@@ -7,8 +7,10 @@ const packageJson = JSON.parse(
 
 function esmTarget(exportEntry) {
   if (typeof exportEntry === "string") return exportEntry;
-  if (typeof exportEntry?.import === "string") return exportEntry.import;
-  if (typeof exportEntry?.default === "string") return exportEntry.default;
+  if (exportEntry !== null && typeof exportEntry === "object") {
+    if ("import" in exportEntry) return esmTarget(exportEntry.import);
+    if ("default" in exportEntry) return esmTarget(exportEntry.default);
+  }
   throw new Error(`No ESM target in package export: ${JSON.stringify(exportEntry)}`);
 }
 
