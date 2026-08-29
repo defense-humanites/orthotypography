@@ -38,7 +38,7 @@ import { compilePipeline, runPipeline } from "@orthotypography/core";
 import { PRESETS, RULES, SOURCES } from "@orthotypography/core/catalogue";
 ```
 
-Cette version expose l’infrastructure et les données documentaires. Elle ne promet pas encore une fonction universelle de correction de texte brut.
+Cette version expose l’infrastructure, les données documentaires, le classificateur numérique et deux règles exécutables de ponctuation basse. Elle ne promet pas encore une fonction universelle de correction de texte brut.
 
 ## Distribution
 
@@ -47,6 +47,5 @@ Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. El
 ## Prochain lot
 
 1. Relier les résultats du classificateur numérique aux règles exécutables sans fragiliser leurs positions lors des transformations.
-2. Implémenter les règles sûres de ponctuation basse sur segments textuels.
-3. Ajouter les règles `;?!:` avec diagnostics et tests d’idempotence.
-4. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.
+2. Ajouter les règles `;?!:` avec diagnostics et tests d’idempotence.
+3. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.

@@ -6,11 +6,16 @@ The canonical package will be published as `@orthotypography/core` on JSR, with 
 
 ## Current status
 
-The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, and a first numeric-context classifier. Executable correction rules are intentionally deferred until their negative vectors are specified.
+The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, a numeric-context classifier, and the first safe low-punctuation rules. Context-sensitive correction rules remain deferred until their negative vectors are specified.
 
 ```ts
 import { runPipeline } from "@orthotypography/core";
+import { SAFE_PUNCTUATION_RULES } from "@orthotypography/core";
 import { PRESETS, RULES } from "@orthotypography/core/catalogue";
+
+const result = runPipeline("Bonjour , monde .", SAFE_PUNCTUATION_RULES, {
+  locale: "fr-FR",
+});
 ```
 
 See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical boundaries and [`docs/depouillement-lexique-v0.3.md`](./docs/depouillement-lexique-v0.3.md) for the first French source review.

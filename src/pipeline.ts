@@ -90,9 +90,9 @@ export function runPipeline(
   const diagnostics: RuleDiagnostic[] = [];
   const appliedRuleIds: string[] = [];
   const orderedRules = compilePipeline(runtimeRules);
-  const mode = options.mode ?? "fix";
 
   for (const rule of orderedRules) {
+    const mode = options.mode ?? rule.definition.defaultMode;
     appliedRuleIds.push(rule.definition.id);
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
       const segment = segments[segmentIndex];

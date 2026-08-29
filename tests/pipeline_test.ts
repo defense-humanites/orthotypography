@@ -40,3 +40,28 @@ Deno.test("compiled pipelines reject duplicate rule IDs", () => {
     "Duplicate runtime rule",
   );
 });
+
+Deno.test("pipelines honor a rule's default mode", () => {
+  const lintByDefault: RuntimeRule = {
+    definition: {
+      ...cleanupRule.definition,
+      id: "test.default-lint",
+      defaultMode: "lint",
+    },
+    apply(value, context) {
+      return { value: context.mode === "fix" ? value.toUpperCase() : value };
+    },
+  };
+
+  assert.equal(
+    runPipeline("texte", [lintByDefault], { locale: "fr-FR" }).value,
+    "texte",
+  );
+  assert.equal(
+    runPipeline("texte", [lintByDefault], {
+      locale: "fr-FR",
+      mode: "fix",
+    }).value,
+    "TEXTE",
+  );
+});

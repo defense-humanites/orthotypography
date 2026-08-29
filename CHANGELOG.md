@@ -8,3 +8,4 @@ All notable changes to this project will be documented in this file.
 - Add the machine-readable documentary catalogue and candidate French presets.
 - Add the generic ordered pipeline with protected segment support.
 - Add a pure classifier for protected and transformable numeric constructs.
+- Add safe executable rules for whitespace before commas and periods.

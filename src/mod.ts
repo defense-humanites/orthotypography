@@ -5,6 +5,7 @@ export {
   runPipeline,
 } from "./pipeline.ts";
 export { classifyNumericConstructs } from "./classify/mod.ts";
+export { SAFE_PUNCTUATION_RULES } from "./rules/mod.ts";
 export type {
   NumericConstruct,
   NumericConstructDisposition,
