@@ -1,11 +1,25 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { compilePipeline, runPipeline } from "../npm/esm/mod.js";
-import { RULES } from "../npm/esm/catalogue.js";
 
 const packageJson = JSON.parse(
   await readFile(new URL("../npm/package.json", import.meta.url), "utf8"),
 );
+
+function esmTarget(exportEntry) {
+  if (typeof exportEntry === "string") return exportEntry;
+  if (typeof exportEntry?.import === "string") return exportEntry.import;
+  if (typeof exportEntry?.default === "string") return exportEntry.default;
+  throw new Error(`No ESM target in package export: ${JSON.stringify(exportEntry)}`);
+}
+
+async function importPackageExport(subpath) {
+  const target = esmTarget(packageJson.exports?.[subpath]);
+  assert.match(target, /^\.\//, `Invalid export target for ${subpath}`);
+  return await import(new URL(`../npm/${target.slice(2)}`, import.meta.url));
+}
+
+const { compilePipeline, runPipeline } = await importPackageExport(".");
+const { RULES } = await importPackageExport("./catalogue");
 
 assert.equal(packageJson.name, "@orthotypography/core");
 assert.equal(packageJson.license, "MIT");
