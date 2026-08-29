@@ -1,0 +1,45 @@
+{
+  "name": "@orthotypography/core",
+  "version": "0.1.0-alpha.0",
+  "license": "MIT",
+  "lock": false,
+  "exports": {
+    ".": "./src/mod.ts",
+    "./catalogue": "./src/catalogue/mod.ts"
+  },
+  "publish": {
+    "include": [
+      "README.md",
+      "LICENSE",
+      "CHANGELOG.md",
+      "RELEASING.md",
+      "docs/**/*.md",
+      "src/**/*.ts"
+    ]
+  },
+  "exclude": [
+    "npm/",
+    "scripts/npm_smoke.mjs"
+  ],
+  "fmt": {
+    "include": [
+      "src/**/*.ts",
+      "tests/**/*.ts",
+      "scripts/**/*.ts",
+      "scripts/**/*.mjs",
+      ".github/**/*.yml",
+      "*.json"
+    ]
+  },
+  "tasks": {
+    "check": "deno fmt --check && deno lint && deno check && deno task doc",
+    "doc": "deno doc src/mod.ts src/catalogue/mod.ts",
+    "test": "deno test",
+    "publish:check": "deno publish --dry-run --check=all",
+    "npm:build": "deno run -A scripts/build_npm.ts",
+    "npm:check": "deno task npm:build && node scripts/npm_smoke.mjs && cd npm && npm pack --dry-run"
+  },
+  "imports": {
+    "@deno/dnt": "jsr:@deno/dnt@0.43.2"
+  }
+}
