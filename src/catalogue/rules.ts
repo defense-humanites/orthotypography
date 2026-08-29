@@ -54,6 +54,7 @@ export const RULES = [
     ],
     outcome: { before: "U+00A0", after: "U+0020" },
     exceptions: ["heure", "ratio", "URI", "port", "syntaxe protégée"],
+    dependsOn: ["classify.numeric-constructs"],
   },
   {
     id: "punctuation.semicolon.nnbsp-before",

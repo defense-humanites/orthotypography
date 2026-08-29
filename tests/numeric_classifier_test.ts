@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { classifyNumericConstructs } from "../src/mod.ts";
+import {
+  classifyNumericConstructs,
+  NUMERIC_PROTECTION_RULE,
+  runPipeline,
+  SAFE_PUNCTUATION_RULES,
+} from "../src/mod.ts";
 import type { NumericConstructKind } from "../src/model.ts";
 
 function only(input: string, expectedKind: NumericConstructKind) {
@@ -71,4 +76,23 @@ Deno.test("numeric classifier returns sorted non-overlapping ranges", () => {
   for (let index = 1; index < matches.length; index++) {
     assert.ok(matches[index - 1].end <= matches[index].start);
   }
+});
+
+Deno.test("numeric protection remains stable across later transformations", () => {
+  const result = runPipeline(
+    "Version 1.2.3 . Bonjour , rendez-vous à 12:30 .",
+    [NUMERIC_PROTECTION_RULE, ...SAFE_PUNCTUATION_RULES],
+    { locale: "fr-FR" },
+  );
+
+  assert.equal(
+    result.value,
+    "Version 1.2.3. Bonjour, rendez-vous à 12:30.",
+  );
+  assert.deepEqual(
+    result.segments.filter(({ protected: isProtected }) => isProtected).map(
+      ({ value }) => value,
+    ),
+    ["1.2.3", "12:30"],
+  );
 });

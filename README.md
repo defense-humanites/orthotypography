@@ -6,7 +6,7 @@ The canonical package will be published as `@orthotypography/core` on JSR, with 
 
 ## Current status
 
-The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, a numeric-context classifier, and the first safe low-punctuation rules. Context-sensitive correction rules remain deferred until their negative vectors are specified.
+The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, a numeric-context classifier, and executable punctuation rules. The source-specific high-punctuation composition protects technical and numeric contexts before transforming text.
 
 ```ts
 import { runPipeline } from "@orthotypography/core";

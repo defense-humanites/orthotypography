@@ -4,13 +4,21 @@ export {
   type PipelineOptions,
   runPipeline,
 } from "./pipeline.ts";
-export { classifyNumericConstructs } from "./classify/mod.ts";
-export { SAFE_PUNCTUATION_RULES } from "./rules/mod.ts";
+export {
+  classifyNumericConstructs,
+  NUMERIC_PROTECTION_RULE,
+} from "./classify/mod.ts";
+export {
+  HIGH_PUNCTUATION_RULES,
+  IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+  SAFE_PUNCTUATION_RULES,
+} from "./rules/mod.ts";
 export type {
   NumericConstruct,
   NumericConstructDisposition,
   NumericConstructKind,
   PipelineResult,
+  ProtectionRange,
   RuleApplication,
   RuleContext,
   RuleDiagnostic,

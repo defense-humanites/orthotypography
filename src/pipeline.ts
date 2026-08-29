@@ -1,5 +1,6 @@
 import {
   type PipelineResult,
+  type ProtectionRange,
   RULE_PHASES,
   type RuleDiagnostic,
   type RuleMode,
@@ -14,6 +15,47 @@ export interface PipelineOptions {
 
 function phaseIndex(rule: RuntimeRule): number {
   return RULE_PHASES.indexOf(rule.definition.phase);
+}
+
+function splitProtectedRanges(
+  segment: TextSegment,
+  protections: readonly ProtectionRange[],
+): readonly TextSegment[] {
+  if (protections.length === 0) return [segment];
+
+  const ordered = [...protections].sort((left, right) =>
+    left.start - right.start
+  );
+  const result: TextSegment[] = [];
+  let cursor = 0;
+
+  for (const protection of ordered) {
+    if (
+      !Number.isInteger(protection.start) ||
+      !Number.isInteger(protection.end) ||
+      protection.start < cursor ||
+      protection.start < 0 ||
+      protection.end <= protection.start ||
+      protection.end > segment.value.length
+    ) {
+      throw new Error(
+        `Invalid protection range: ${protection.start}:${protection.end}`,
+      );
+    }
+    if (cursor < protection.start) {
+      result.push({ value: segment.value.slice(cursor, protection.start) });
+    }
+    result.push({
+      value: segment.value.slice(protection.start, protection.end),
+      protected: true,
+    });
+    cursor = protection.end;
+  }
+
+  if (cursor < segment.value.length) {
+    result.push({ value: segment.value.slice(cursor) });
+  }
+  return result;
 }
 
 /**
@@ -92,17 +134,36 @@ export function runPipeline(
   const orderedRules = compilePipeline(runtimeRules);
 
   for (const rule of orderedRules) {
+    if (!rule.definition.locales.includes(options.locale)) continue;
     const mode = options.mode ?? rule.definition.defaultMode;
     appliedRuleIds.push(rule.definition.id);
+    const nextSegments: TextSegment[] = [];
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
       const segment = segments[segmentIndex];
-      if (segment.protected) continue;
+      if (segment.protected) {
+        nextSegments.push(segment);
+        continue;
+      }
 
       const application = rule.apply(segment.value, {
         locale: options.locale,
         mode,
       });
-      segments[segmentIndex] = { ...segment, value: application.value };
+      if (
+        (application.protections?.length ?? 0) > 0 &&
+        application.value !== segment.value
+      ) {
+        throw new Error(
+          `Rule ${rule.definition.id} cannot transform and protect in one pass`,
+        );
+      }
+      const appliedSegment = { ...segment, value: application.value };
+      nextSegments.push(
+        ...splitProtectedRanges(
+          appliedSegment,
+          application.protections ?? [],
+        ),
+      );
       for (const diagnostic of application.diagnostics ?? []) {
         diagnostics.push({
           ...diagnostic,
@@ -111,6 +172,7 @@ export function runPipeline(
         });
       }
     }
+    segments.splice(0, segments.length, ...nextSegments);
   }
 
   return {

@@ -91,6 +91,13 @@ export interface RuleApplication {
     RuleDiagnostic,
     "ruleId" | "segmentIndex"
   >[];
+  readonly protections?: readonly ProtectionRange[];
+}
+
+/** Half-open source range that later rules must not transform. */
+export interface ProtectionRange {
+  readonly start: number;
+  readonly end: number;
 }
 
 export interface RuleContext {

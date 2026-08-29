@@ -65,3 +65,33 @@ Deno.test("pipelines honor a rule's default mode", () => {
     "TEXTE",
   );
 });
+
+Deno.test("pipelines reject invalid protection ranges", () => {
+  const invalidProtectionRule: RuntimeRule = {
+    definition: { ...cleanupRule.definition, id: "test.invalid-protection" },
+    apply(value) {
+      return { value, protections: [{ start: 2, end: value.length + 1 }] };
+    },
+  };
+
+  assert.throws(
+    () => runPipeline("texte", [invalidProtectionRule], { locale: "fr-FR" }),
+    Error,
+    "Invalid protection range",
+  );
+});
+
+Deno.test("pipelines reject simultaneous transformation and protection", () => {
+  const ambiguousRule: RuntimeRule = {
+    definition: { ...cleanupRule.definition, id: "test.ambiguous-protection" },
+    apply() {
+      return { value: "changed", protections: [{ start: 0, end: 1 }] };
+    },
+  };
+
+  assert.throws(
+    () => runPipeline("text", [ambiguousRule], { locale: "fr-FR" }),
+    Error,
+    "cannot transform and protect in one pass",
+  );
+});

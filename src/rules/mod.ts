@@ -1,1 +1,5 @@
-export { SAFE_PUNCTUATION_RULES } from "./punctuation.ts";
+export {
+  HIGH_PUNCTUATION_RULES,
+  IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+  SAFE_PUNCTUATION_RULES,
+} from "./punctuation.ts";

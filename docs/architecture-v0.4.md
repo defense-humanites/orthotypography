@@ -20,7 +20,7 @@ Une règle documentaire n’est pas automatiquement une règle exécutable. `Rul
 
 L’ordre stable est : classification, glyphes, guillemets, espaces de ponctuation, espaces numériques, nettoyage. Une dépendance ne peut pas remonter vers une phase ultérieure. Le compilateur du pipeline rejette les identifiants dupliqués, les dépendances absentes et les cycles avant toute transformation.
 
-Les intégrations peuvent protéger un segment entier. Cette primitive suffit au cœur pour préserver code, attributs, URL ou syntaxe, sans lier la bibliothèque à un parseur particulier.
+Les intégrations peuvent protéger un segment entier. Cette primitive suffit au cœur pour préserver code, attributs ou syntaxe, sans lier la bibliothèque à un parseur particulier. Le classificateur numérique peut en outre retourner des plages : le pipeline les transforme immédiatement en segments protégés. Les positions ne survivent donc jamais à une transformation susceptible de les décaler.
 
 ## Catalogue initial
 
@@ -38,7 +38,7 @@ import { compilePipeline, runPipeline } from "@orthotypography/core";
 import { PRESETS, RULES, SOURCES } from "@orthotypography/core/catalogue";
 ```
 
-Cette version expose l’infrastructure, les données documentaires, le classificateur numérique et deux règles exécutables de ponctuation basse. Elle ne promet pas encore une fonction universelle de correction de texte brut.
+Cette version expose l’infrastructure, les données documentaires, le classificateur numérique et six règles exécutables de ponctuation. La composition `IMPRIMERIE_NATIONALE_PUNCTUATION_RULES` protège d’abord les constructions numériques et techniques, puis applique la ponctuation basse et haute attestée. Elle ne constitue pas un profil français universel.
 
 ## Distribution
 
@@ -46,6 +46,6 @@ Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. El
 
 ## Prochain lot
 
-1. Relier les résultats du classificateur numérique aux règles exécutables sans fragiliser leurs positions lors des transformations.
-2. Ajouter les règles `;?!:` avec diagnostics et tests d’idempotence.
+1. Implémenter l’espacement des pourcentages à partir des cibles classifiées.
+2. Spécifier puis implémenter l’appariement et l’espacement des guillemets.
 3. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.
