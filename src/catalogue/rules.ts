@@ -156,6 +156,7 @@ export const RULES = [
     ],
     outcome: { beforeSymbol: "U+00A0" },
     exceptions: ["identifiant", "syntaxe protégée"],
+    dependsOn: ["classify.numeric-constructs"],
   },
   {
     id: "number.unit.nbsp-before",

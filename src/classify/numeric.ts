@@ -41,12 +41,14 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "time",
     disposition: "protect",
-    pattern: /\b(?:[01]?\d|2[0-3])(?:\s?h\s?|:)[0-5]\d\b/giu,
+    pattern:
+      /\b(?:[01]?\d|2[0-3])(?:[\t \u00a0\u202f]?h[\t \u00a0\u202f]?|:)[0-5]\d\b/giu,
   },
   {
     kind: "ratio",
     disposition: "protect",
-    pattern: /\b\d+(?:[.,]\d+)?\s*:\s*\d+(?:[.,]\d+)?\b/gu,
+    pattern:
+      /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*:[\t \u00a0\u202f]*\d+(?:[.,]\d+)?\b/gu,
   },
   {
     kind: "port",
@@ -56,28 +58,28 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "percentage",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?\s*[%‰]/gu,
+    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[%‰]/gu,
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /(?:€|\$|£)\s*\d+(?:[.,]\d+)?\b/gu,
+    pattern: /(?:€|\$|£)[\t \u00a0\u202f]*\d+(?:[.,]\d+)?\b/gu,
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?\s*(?:CHF|CAD|USD|EUR)\b/giu,
+    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(?:CHF|CAD|USD|EUR)\b/giu,
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?\s*(?:€|\$|£)/gu,
+    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(?:€|\$|£)/gu,
   },
   {
     kind: "measurement",
     disposition: "target",
     pattern:
-      /\b\d+(?:[.,]\d+)?\s*(?:°C|°F|km|cm|mm|kg|mg|ms|min|h|L|l|m|g|s)\b/gu,
+      /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(?:°C|°F|km|cm|mm|kg|mg|ms|min|h|L|l|m|g|s)\b/gu,
   },
   {
     kind: "decimal",

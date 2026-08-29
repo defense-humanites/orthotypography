@@ -11,3 +11,4 @@ All notable changes to this project will be documented in this file.
 - Add safe executable rules for whitespace before commas and periods.
 - Convert classified ranges into stable protected segments in the pipeline.
 - Add source-specific French spacing rules for colons, semicolons, question marks, and exclamation marks.
+- Add classified no-break spacing before percentage and per-mille symbols.

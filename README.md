@@ -9,13 +9,17 @@ The canonical package will be published as `@orthotypography/core` on JSR, with 
 The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, a numeric-context classifier, and executable punctuation rules. The source-specific high-punctuation composition protects technical and numeric contexts before transforming text.
 
 ```ts
-import { runPipeline } from "@orthotypography/core";
-import { SAFE_PUNCTUATION_RULES } from "@orthotypography/core";
+import {
+  IMPRIMERIE_NATIONALE_RULES,
+  runPipeline,
+} from "@orthotypography/core";
 import { PRESETS, RULES } from "@orthotypography/core/catalogue";
 
-const result = runPipeline("Bonjour , monde .", SAFE_PUNCTUATION_RULES, {
-  locale: "fr-FR",
-});
+const result = runPipeline(
+  "Bonjour , monde : 25%.",
+  IMPRIMERIE_NATIONALE_RULES,
+  { locale: "fr-FR" },
+);
 ```
 
 See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical boundaries and [`docs/depouillement-lexique-v0.3.md`](./docs/depouillement-lexique-v0.3.md) for the first French source review.

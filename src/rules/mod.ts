@@ -3,3 +3,4 @@ export {
   IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
   SAFE_PUNCTUATION_RULES,
 } from "./punctuation.ts";
+export { PERCENTAGE_SPACING_RULE } from "./numeric.ts";
