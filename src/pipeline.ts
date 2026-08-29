@@ -148,6 +148,8 @@ export function runPipeline(
       const application = rule.apply(segment.value, {
         locale: options.locale,
         mode,
+        segments,
+        segmentIndex,
       });
       if (
         (application.protections?.length ?? 0) > 0 &&

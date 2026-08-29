@@ -103,6 +103,8 @@ export interface ProtectionRange {
 export interface RuleContext {
   readonly locale: string;
   readonly mode: RuleMode;
+  readonly segments: readonly TextSegment[];
+  readonly segmentIndex: number;
 }
 
 /** Executable implementation kept separate from documentary definitions. */

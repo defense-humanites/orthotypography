@@ -9,23 +9,13 @@ export {
   NUMERIC_PROTECTION_RULE,
 } from "./classify/mod.ts";
 export {
+  FRENCH_GUILLEMETS_SPACING_RULE,
   HIGH_PUNCTUATION_RULES,
   IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+  IMPRIMERIE_NATIONALE_RULES,
   PERCENTAGE_SPACING_RULE,
   SAFE_PUNCTUATION_RULES,
 } from "./rules/mod.ts";
-
-import {
-  IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
-  PERCENTAGE_SPACING_RULE,
-} from "./rules/mod.ts";
-import type { RuntimeRule } from "./model.ts";
-
-/** Current executable subset of the Imprimerie nationale preset. */
-export const IMPRIMERIE_NATIONALE_RULES: readonly RuntimeRule[] = [
-  ...IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
-  PERCENTAGE_SPACING_RULE,
-] as const;
 export type {
   NumericConstruct,
   NumericConstructDisposition,

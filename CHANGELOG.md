@@ -12,3 +12,4 @@ All notable changes to this project will be documented in this file.
 - Convert classified ranges into stable protected segments in the pipeline.
 - Add source-specific French spacing rules for colons, semicolons, question marks, and exclamation marks.
 - Add classified no-break spacing before percentage and per-mille symbols.
+- Add paired French-guillemet spacing across protected numeric segments.

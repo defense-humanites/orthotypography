@@ -4,3 +4,5 @@ export {
   SAFE_PUNCTUATION_RULES,
 } from "./punctuation.ts";
 export { PERCENTAGE_SPACING_RULE } from "./numeric.ts";
+export { FRENCH_GUILLEMETS_SPACING_RULE } from "./quotes.ts";
+export { IMPRIMERIE_NATIONALE_RULES } from "./presets.ts";

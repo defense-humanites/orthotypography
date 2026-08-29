@@ -38,7 +38,7 @@ import { compilePipeline, runPipeline } from "@orthotypography/core";
 import { PRESETS, RULES, SOURCES } from "@orthotypography/core/catalogue";
 ```
 
-Cette version expose l’infrastructure, les données documentaires, le classificateur numérique, six règles exécutables de ponctuation et l’espacement des pourcentages. La composition `IMPRIMERIE_NATIONALE_RULES` protège d’abord les constructions numériques et techniques, puis applique le sous-ensemble exécutable du preset attesté. Elle ne constitue pas un profil français universel.
+Cette version expose l’infrastructure, les données documentaires, le classificateur numérique, six règles exécutables de ponctuation, l’espacement des pourcentages et celui des guillemets français appariés. La composition `IMPRIMERIE_NATIONALE_RULES` protège d’abord les constructions numériques et techniques, puis applique le sous-ensemble exécutable du preset attesté. Elle ne constitue pas un profil français universel.
 
 ## Distribution
 
@@ -46,6 +46,6 @@ Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. El
 
 ## Prochain lot
 
-1. Spécifier puis implémenter l’appariement et l’espacement des guillemets.
-2. Versionner les registres d’unités et de monnaies avant d’activer leurs règles.
+1. Versionner les registres d’unités et de monnaies avant d’activer leurs règles.
+2. Définir les garanties de diagnostics lorsque des paires traversent plusieurs segments textuels.
 3. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.
