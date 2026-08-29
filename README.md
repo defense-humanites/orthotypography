@@ -1,12 +1,12 @@
 # orthotypography
 
-Source-backed orthotypographic primitives and named editorial presets for JavaScript runtimes and browsers.
+Source-backed orthotypographic primitives and named editorial presets for the JavaScript ecosystem, including browsers and server runtimes.
 
-The project is written for Deno 2. Its canonical package will be published as `@orthotypography/core` on JSR, with an equivalent npm package generated from the same sources. No registry release is enabled yet.
+The canonical package will be published as `@orthotypography/core` on JSR, with an equivalent npm package generated from the same TypeScript sources. No registry release is enabled yet.
 
 ## Current status
 
-The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, and the generic pipeline infrastructure. Executable correction rules are intentionally deferred until their classifiers and negative vectors are specified.
+The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, and a first numeric-context classifier. Executable correction rules are intentionally deferred until their negative vectors are specified.
 
 ```ts
 import { runPipeline } from "@orthotypography/core";

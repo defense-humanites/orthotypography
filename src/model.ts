@@ -110,3 +110,29 @@ export interface PipelineResult {
   readonly diagnostics: readonly RuleDiagnostic[];
   readonly appliedRuleIds: readonly string[];
 }
+
+/** Numeric contexts recognized before punctuation and spacing rules run. */
+export type NumericConstructKind =
+  | "uri"
+  | "ipv4"
+  | "version"
+  | "date"
+  | "time"
+  | "ratio"
+  | "port"
+  | "decimal"
+  | "percentage"
+  | "measurement"
+  | "currency";
+
+/** Whether a numeric context must be preserved or may be transformed. */
+export type NumericConstructDisposition = "protect" | "target";
+
+/** Half-open source range returned by the numeric classifier. */
+export interface NumericConstruct {
+  readonly kind: NumericConstructKind;
+  readonly disposition: NumericConstructDisposition;
+  readonly start: number;
+  readonly end: number;
+  readonly value: string;
+}

@@ -42,11 +42,11 @@ Cette version expose l’infrastructure et les données documentaires. Elle ne p
 
 ## Distribution
 
-La source TypeScript Deno 2 est publiée directement sur JSR sous `@orthotypography/core`. Le paquet npm de même nom et de même version est généré par `@deno/dnt`, avec ESM et déclarations TypeScript. Comme dans `greek-conversion`, la publication de confiance est déclenchée par une release GitHub et reste désactivée tant que la variable `PUBLISH_ENABLED` n’est pas explicitement réglée à `true`.
+Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. Elles sont publiées directement sur JSR sous `@orthotypography/core` ; le paquet npm de même nom et de même version est généré par `@deno/dnt`, avec ESM et déclarations TypeScript. Comme dans `greek-conversion`, la publication de confiance est déclenchée par une release GitHub et reste désactivée tant que la variable `PUBLISH_ENABLED` n’est pas explicitement réglée à `true`.
 
 ## Prochain lot
 
-1. Implémenter le classificateur des constructions numériques et ses vecteurs négatifs.
+1. Relier les résultats du classificateur numérique aux règles exécutables sans fragiliser leurs positions lors des transformations.
 2. Implémenter les règles sûres de ponctuation basse sur segments textuels.
 3. Ajouter les règles `;?!:` avec diagnostics et tests d’idempotence.
 4. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.

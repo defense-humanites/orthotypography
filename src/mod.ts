@@ -4,7 +4,11 @@ export {
   type PipelineOptions,
   runPipeline,
 } from "./pipeline.ts";
+export { classifyNumericConstructs } from "./classify/mod.ts";
 export type {
+  NumericConstruct,
+  NumericConstructDisposition,
+  NumericConstructKind,
   PipelineResult,
   RuleApplication,
   RuleContext,
