@@ -37,10 +37,44 @@ export interface ResolvedUnitFactor extends ResolvedUnitSymbol {
 
 export interface ResolvedUnitExpression {
   readonly symbol: string;
+  readonly ast: UnitExpressionNode;
   readonly factors: readonly ResolvedUnitFactor[];
   readonly spacing: UnitSpacing;
   readonly compound: boolean;
 }
+
+export interface UnitFactorNode extends ResolvedUnitSymbol {
+  readonly kind: "factor";
+}
+
+export interface UnitProductNode {
+  readonly kind: "product";
+  readonly operands: readonly UnitExpressionNode[];
+}
+
+export interface UnitQuotientNode {
+  readonly kind: "quotient";
+  readonly numerator: UnitExpressionNode;
+  readonly denominator: UnitExpressionNode;
+}
+
+export interface UnitGroupNode {
+  readonly kind: "group";
+  readonly expression: UnitExpressionNode;
+}
+
+export interface UnitPowerNode {
+  readonly kind: "power";
+  readonly base: UnitExpressionNode;
+  readonly exponent: number;
+}
+
+export type UnitExpressionNode =
+  | UnitFactorNode
+  | UnitProductNode
+  | UnitQuotientNode
+  | UnitGroupNode
+  | UnitPowerNode;
 
 const sourceId = "bipm-si-9-4.01" as const;
 
@@ -190,70 +224,164 @@ const superscriptDigits: Readonly<Record<string, string>> = {
   "⁹": "9",
 };
 
-function parseUnitFactor(
-  value: string,
-  position: ResolvedUnitFactor["position"],
-): ResolvedUnitFactor | null {
-  const exponentMatch = /([⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/u.exec(value);
-  const symbol = exponentMatch === null
-    ? value
-    : value.slice(0, -exponentMatch[1].length);
-  const resolved = resolveUnitSymbol(symbol);
-  if (resolved === null) return null;
+const unitFactorPattern = /^[\p{L}µΩ°′″]+/u;
+const superscriptPattern = /^[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+/u;
+const whitespacePattern = /[\t \u00a0\u202f]/u;
 
-  let exponent = 1;
-  if (exponentMatch !== null) {
-    const raw = exponentMatch[1];
-    const negative = raw.startsWith("⁻");
-    const digits = [...(negative ? raw.slice(1) : raw)]
-      .map((digit) => superscriptDigits[digit])
-      .join("");
-    if (digits.length === 0 || digits.startsWith("0")) return null;
-    const magnitude = Number.parseInt(digits, 10);
-    if (!Number.isSafeInteger(magnitude)) return null;
-    exponent = magnitude * (negative ? -1 : 1);
-  }
-  return { ...resolved, exponent, position };
+function decodeSuperscript(value: string): number | null {
+  const negative = value.startsWith("⁻");
+  const digits = [...(negative ? value.slice(1) : value)]
+    .map((digit) => superscriptDigits[digit])
+    .join("");
+  if (digits.length === 0 || digits.startsWith("0")) return null;
+  const magnitude = Number.parseInt(digits, 10);
+  if (!Number.isSafeInteger(magnitude)) return null;
+  return magnitude * (negative ? -1 : 1);
 }
 
-function parseUnitProduct(
-  value: string,
-  position: ResolvedUnitFactor["position"],
-): readonly ResolvedUnitFactor[] | null {
-  const rawFactors = value.trim().split(
-    /(?:[\t \u00a0\u202f]*⋅[\t \u00a0\u202f]*|[\t \u00a0\u202f]+)/u,
-  );
-  if (rawFactors.some((factor) => factor.length === 0)) return null;
-  const factors = rawFactors.map((factor) => parseUnitFactor(factor, position));
-  return factors.some((factor) => factor === null)
-    ? null
-    : factors as readonly ResolvedUnitFactor[];
+class UnitExpressionParser {
+  #index = 0;
+
+  constructor(private readonly source: string) {}
+
+  parse(): UnitExpressionNode | null {
+    this.#skipWhitespace();
+    const expression = this.#parseExpression(0);
+    this.#skipWhitespace();
+    return expression !== null && this.#index === this.source.length
+      ? expression
+      : null;
+  }
+
+  #parseExpression(depth: number): UnitExpressionNode | null {
+    const numerator = this.#parseProduct(depth);
+    if (numerator === null) return null;
+    this.#skipWhitespace();
+    if (this.source[this.#index] !== "/") return numerator;
+    this.#index++;
+    this.#skipWhitespace();
+    const denominator = this.#parseProduct(depth);
+    return denominator === null
+      ? null
+      : { kind: "quotient", numerator, denominator };
+  }
+
+  #parseProduct(depth: number): UnitExpressionNode | null {
+    const first = this.#parsePrimary(depth);
+    if (first === null) return null;
+    const operands: UnitExpressionNode[] = [first];
+
+    while (true) {
+      const hadWhitespace = this.#skipWhitespace();
+      if (this.source[this.#index] === "⋅") {
+        this.#index++;
+        this.#skipWhitespace();
+      } else if (!hadWhitespace || !this.#startsPrimary()) {
+        break;
+      }
+      const operand = this.#parsePrimary(depth);
+      if (operand === null) return null;
+      operands.push(operand);
+    }
+    return operands.length === 1 ? first : { kind: "product", operands };
+  }
+
+  #parsePrimary(depth: number): UnitExpressionNode | null {
+    if (depth > 16) return null;
+    let node: UnitExpressionNode;
+    if (this.source[this.#index] === "(") {
+      this.#index++;
+      this.#skipWhitespace();
+      const expression = this.#parseExpression(depth + 1);
+      this.#skipWhitespace();
+      if (expression === null || this.source[this.#index] !== ")") return null;
+      this.#index++;
+      node = { kind: "group", expression };
+    } else {
+      const symbol = unitFactorPattern.exec(this.source.slice(this.#index))
+        ?.[0];
+      if (symbol === undefined) return null;
+      const resolved = resolveUnitSymbol(symbol);
+      if (resolved === null) return null;
+      this.#index += symbol.length;
+      node = { kind: "factor", ...resolved };
+    }
+
+    const superscript = superscriptPattern.exec(
+      this.source.slice(this.#index),
+    )?.[0];
+    if (superscript === undefined) return node;
+    const exponent = decodeSuperscript(superscript);
+    if (exponent === null) return null;
+    this.#index += superscript.length;
+    return { kind: "power", base: node, exponent };
+  }
+
+  #skipWhitespace(): boolean {
+    const start = this.#index;
+    while (whitespacePattern.test(this.source[this.#index] ?? "")) {
+      this.#index++;
+    }
+    return this.#index > start;
+  }
+
+  #startsPrimary(): boolean {
+    return this.source[this.#index] === "(" ||
+      unitFactorPattern.test(this.source.slice(this.#index));
+  }
+}
+
+function flattenUnitExpression(
+  node: UnitExpressionNode,
+  position: ResolvedUnitFactor["position"] = "numerator",
+  exponent = 1,
+): readonly ResolvedUnitFactor[] {
+  switch (node.kind) {
+    case "factor": {
+      const { kind: _kind, ...factor } = node;
+      return [{ ...factor, exponent, position }];
+    }
+    case "power":
+      return flattenUnitExpression(
+        node.base,
+        position,
+        exponent * node.exponent,
+      );
+    case "group":
+      return flattenUnitExpression(node.expression, position, exponent);
+    case "product":
+      return node.operands.flatMap((operand) =>
+        flattenUnitExpression(operand, position, exponent)
+      );
+    case "quotient":
+      return [
+        ...flattenUnitExpression(node.numerator, position, exponent),
+        ...flattenUnitExpression(
+          node.denominator,
+          position === "numerator" ? "denominator" : "numerator",
+          exponent,
+        ),
+      ];
+  }
 }
 
 /**
  * Resolves a conservative SI unit expression.
  *
- * Products may use whitespace or U+22C5 DOT OPERATOR. Quotients may contain
- * one solidus, and integer powers use Unicode superscripts. Parentheses and
- * alternative operator glyphs are deliberately left for a later grammar.
+ * Products may use whitespace or U+22C5 DOT OPERATOR. Each expression level
+ * may contain one solidus; parentheses make nested quotients unambiguous.
+ * Integer powers use Unicode superscripts.
  */
 export function resolveUnitExpression(
   expression: string,
 ): ResolvedUnitExpression | null {
-  const divisions = expression.split("/");
-  if (divisions.length > 2) return null;
-  const numerator = parseUnitProduct(divisions[0], "numerator");
-  if (numerator === null) return null;
-  const denominator = divisions[1] === undefined
-    ? []
-    : parseUnitProduct(divisions[1], "denominator");
-  if (denominator === null) return null;
-
-  const factors = [...numerator, ...denominator];
-  const compound = factors.length > 1 || divisions.length === 2 ||
-    factors[0]?.exponent !== 1;
+  const ast = new UnitExpressionParser(expression).parse();
+  if (ast === null) return null;
+  const factors = flattenUnitExpression(ast);
+  const compound = ast.kind !== "factor";
   return {
     symbol: expression,
+    ast,
     factors,
     spacing: compound ? "space" : factors[0].unit.spacing,
     compound,

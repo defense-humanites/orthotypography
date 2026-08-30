@@ -98,3 +98,13 @@ Deno.test("unit spacing rejects ambiguous compound-like strings", () => {
     [],
   );
 });
+
+Deno.test("unit spacing handles parenthesized compound SI expressions", () => {
+  const result = runPipeline(
+    "2m/(s⋅kg) ; 4(m/s)²",
+    IMPRIMERIE_NATIONALE_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.equal(result.value, "2\u00a0m/(s⋅kg)\u202f; 4\u00a0(m/s)²");
+});

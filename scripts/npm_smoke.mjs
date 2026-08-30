@@ -42,6 +42,7 @@ assert.ok(RULES.length > 0);
 assert.ok(Array.isArray(SI_UNITS));
 assert.deepEqual(validateUnitRegistry(), []);
 assert.equal(resolveUnitExpression("kg⋅m⋅s⁻²")?.compound, true);
+assert.equal(resolveUnitExpression("m/(s⋅kg)")?.ast.kind, "quotient");
 assert.ok(Array.isArray(CURRENCIES));
 assert.equal(CURRENCY_REGISTRY_PROVENANCE.scope, "subset");
 assert.deepEqual(validateCurrencyRegistry(), []);

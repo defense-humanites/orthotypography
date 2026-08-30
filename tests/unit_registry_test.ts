@@ -68,3 +68,41 @@ Deno.test("unit expressions reject ambiguous or non-SI spellings", () => {
     assert.equal(resolveUnitExpression(expression), null, expression);
   }
 });
+
+Deno.test("unit expression AST makes parenthesized quotients unambiguous", () => {
+  const grouped = resolveUnitExpression("m/(s⋅kg)");
+  assert.equal(grouped?.ast.kind, "quotient");
+  assert.deepEqual(
+    grouped?.factors.map(({ symbol, position }) => [symbol, position]),
+    [["m", "numerator"], ["s", "denominator"], ["kg", "denominator"]],
+  );
+
+  assert.deepEqual(
+    resolveUnitExpression("m/(s/kg)")?.factors.map(({ symbol, position }) => [
+      symbol,
+      position,
+    ]),
+    [["m", "numerator"], ["s", "denominator"], ["kg", "numerator"]],
+  );
+  assert.deepEqual(
+    resolveUnitExpression("(m/s)²")?.factors.map(({ symbol, exponent }) => [
+      symbol,
+      exponent,
+    ]),
+    [["m", 2], ["s", 2]],
+  );
+});
+
+Deno.test("unit expression AST rejects malformed or ambiguous groups", () => {
+  for (
+    const expression of [
+      "m//s",
+      "m/(s/kg",
+      "m/()",
+      "m/(s/kg)/A",
+      "m(s/kg)",
+    ]
+  ) {
+    assert.equal(resolveUnitExpression(expression), null, expression);
+  }
+});

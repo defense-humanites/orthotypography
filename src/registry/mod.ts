@@ -12,7 +12,13 @@ export type {
   ResolvedUnitSymbol,
   UnitCategory,
   UnitDefinition,
+  UnitExpressionNode,
+  UnitFactorNode,
+  UnitGroupNode,
+  UnitPowerNode,
   UnitPrefixDefinition,
+  UnitProductNode,
+  UnitQuotientNode,
   UnitRegistryIssue,
   UnitSpacing,
 } from "./units.ts";

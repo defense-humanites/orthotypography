@@ -13,6 +13,15 @@ interface NumericMatcher {
   readonly accept?: (value: string) => boolean;
 }
 
+const unitAtomSource = String.raw`[\p{L}µΩ°′″]+(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?`;
+const unitPrimarySource = String
+  .raw`(?:${unitAtomSource}|\((?:${unitAtomSource})(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*${unitAtomSource})*\)(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)`;
+const measurementPattern = new RegExp(
+  String
+    .raw`\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*${unitPrimarySource}(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*${unitPrimarySource})*(?![\p{L}\p{N}µΩ°′″⁰¹²³⁴⁵⁶⁷⁸⁹⁻⋅/·*^()])`,
+  "gu",
+);
+
 const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "uri",
@@ -86,8 +95,7 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "measurement",
     disposition: "target",
-    pattern:
-      /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[\p{L}µΩ°′″]+(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*[\p{L}µΩ°′″]+(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)*(?![\p{L}\p{N}µΩ°′″⁰¹²³⁴⁵⁶⁷⁸⁹⁻⋅/·*^])/gu,
+    pattern: measurementPattern,
     accept: (value) => {
       const expression = /^\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(.+)$/u.exec(
         value,

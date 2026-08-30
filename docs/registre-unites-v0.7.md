@@ -1,4 +1,4 @@
-# Registre des unités v0.6
+# Registre des unités v0.7
 
 ## 1. Source normative
 
@@ -23,35 +23,36 @@ sections 5.2 et 5.4.3. La version des données est
   espace.
 - Les unités non SI admises sont reconnues sans extrapoler leurs préfixes.
 
-## 3. Expressions composées
+## 3. Arbre des expressions composées
 
-`resolveUnitExpression()` applique une petite grammaire au-dessus du registre
-atomique. Elle reconnaît :
+`resolveUnitExpression()` construit un arbre syntaxique exposé en lecture seule. Ses nœuds
+publics sont `factor`, `product`, `quotient`, `group` et `power`. La liste
+aplatie `factors` reste disponible pour les consommateurs qui veulent seulement
+connaître les symboles, leurs puissances et leur position effective.
+
+La grammaire reconnaît :
 
 - les produits séparés par une espace ou le point opérateur `⋅` (`U+22C5`) ;
-- un unique solidus sans parenthèses (`m/s`) ;
+- au plus un solidus à chaque niveau de l’arbre ;
+- les groupes parenthésés et leurs puissances, comme `(m/s)²` ;
+- les quotients imbriqués désambiguïsés, comme `m/(s⋅kg)` ou `m/(s/kg)` ;
 - les exposants entiers écrits en caractères Unicode (`m²`, `s⁻²`) ;
 - les facteurs préfixés indivisibles (`kW⋅h`).
 
-Elle rejette les solidus multiples (`m/s/kg`), les exposants nuls, les
-préfixes composés et le point médian `·` (`U+00B7`), distinct du point opérateur
-normatif. Les parenthèses sont différées : leur ajout exigera un véritable
-arbre syntaxique et une règle explicite de désambiguïsation.
+Ainsi, `m/s/kg` reste invalide, tandis que `m/(s/kg)` est accepté parce que la
+parenthèse fixe explicitement la portée du second solidus. La profondeur des
+groupes est limitée à seize niveaux pour borner le travail du parseur.
 
-Le classificateur automatique adopte un sous-ensemble encore plus prudent :
-il reconnaît les puissances et les expressions comportant `⋅` ou `/`, mais pas
-les produits séparés par une simple espace. Cette restriction évite d’absorber
-la prose qui suit une unité courte ; l’API du registre sait néanmoins valider
-ces produits lorsqu’une intégration fournit déjà la frontière de l’expression.
+La grammaire rejette aussi les exposants nuls, les préfixes composés et le point
+médian `·` (`U+00B7`), distinct du point opérateur normatif.
 
-## 4. Périmètre machine
+## 4. Classification automatique
 
-Le registre contient les sept unités de base, les vingt-deux unités dérivées à
-nom spécial, `g`, un sous-ensemble explicite des unités non SI admises et les
-vingt-quatre préfixes décimaux officiels.
-
-`resolveUnitSymbol()` résout un symbole atomique exact. Il n’effectue aucune
-correction de casse et n’accepte aucun alias Unicode pour `µ`.
+Le classificateur reconnaît les puissances et les expressions comportant `⋅`,
+`/` ou un groupe parenthésé simple. Il ne déduit pas les produits séparés par
+une simple espace, afin de ne pas absorber la prose placée après une unité
+courte. L’API du registre sait néanmoins valider ces produits lorsqu’une
+intégration fournit déjà la frontière de l’expression.
 
 ## 5. Incidence typographique
 
@@ -61,4 +62,4 @@ transposition éditoriale portée par la règle et ses sources.
 
 `UNIT_SPACING_RULE` reste en mode `lint` par défaut. Le mode `fix` remplace
 uniquement le séparateur entre la valeur et une expression reconnue ; il ne
-réécrit ni les opérateurs, ni les exposants, ni la structure de l’unité.
+réécrit ni les opérateurs, ni les exposants, ni les parenthèses.
