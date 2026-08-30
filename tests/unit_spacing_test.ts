@@ -49,8 +49,7 @@ Deno.test("unit spacing preserves exclusions and technical text", () => {
 
 Deno.test("unit spacing requires numeric classification", () => {
   assert.throws(
-    () =>
-      runPipeline("12kg", [UNIT_SPACING_RULE], { locale: "fr-FR" }),
+    () => runPipeline("12kg", [UNIT_SPACING_RULE], { locale: "fr-FR" }),
     Error,
     "Missing dependency classify.numeric-constructs",
   );
