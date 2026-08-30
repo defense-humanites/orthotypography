@@ -5,6 +5,13 @@ export {
   runPipeline,
 } from "./pipeline.ts";
 export {
+  runTextNodePipeline,
+  type TextNodeInput,
+  type TextNodeOutput,
+  type TextNodePipelineOptions,
+  type TextNodePipelineResult,
+} from "./integration.ts";
+export {
   classifyNumericConstructs,
   NUMERIC_PROTECTION_RULE,
 } from "./classify/mod.ts";

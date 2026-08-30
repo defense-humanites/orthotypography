@@ -43,6 +43,11 @@ sa révision et `segmentValue`. Une intégration qui doit publier des positions
 dans le document source exécute donc une passe `lint` séparée ; elle ne doit pas
 projeter les offsets d’une passe de correction sur l’arbre d’origine.
 
+Le protocole de collecte et de reconstruction des nœuds est défini dans le
+[contrat d’intégration des arbres textuels](integration-contract-v0.1.md).
+`runTextNodePipeline` replie les fragments internes dans les nœuds sources sans
+modifier la structure de l’arbre.
+
 ## Catalogue initial
 
 Le catalogue machine contient deux presets candidats :
@@ -82,4 +87,6 @@ Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. El
 ## Prochain lot
 
 1. Exécuter et auditer le premier import complet de la List One ISO 4217.
-2. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.
+2. Créer le dépôt d’intégrations et y implémenter l’adaptateur rehype selon le
+   contrat v0.1.
+3. Ajouter ensuite la couche de configuration Astro au-dessus de rehype.

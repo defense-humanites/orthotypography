@@ -1,0 +1,72 @@
+import assert from "node:assert/strict";
+import {
+  FRENCH_GUILLEMETS_SPACING_RULE,
+  IMPRIMERIE_NATIONALE_RULES,
+  runTextNodePipeline,
+} from "../src/mod.ts";
+
+Deno.test("text-node fixes preserve tree boundaries", () => {
+  const result = runTextNodePipeline(
+    [
+      { id: "opening", value: "«Version " },
+      { id: "code", value: "1.2.3", protected: true },
+      { id: "closing", value: "»" },
+    ],
+    [FRENCH_GUILLEMETS_SPACING_RULE],
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.deepEqual(result.nodes, [
+    { id: "opening", value: "«\u00a0Version " },
+    { id: "code", value: "1.2.3", protected: true },
+    { id: "closing", value: "\u00a0»" },
+  ]);
+  assert.equal(result.value, "«\u00a0Version 1.2.3\u00a0»");
+});
+
+Deno.test("text-node lint exposes source diagnostics without mutation", () => {
+  const nodes = [
+    { id: "opening", value: "«texte" },
+    { id: "closing", value: "»" },
+  ] as const;
+  const result = runTextNodePipeline(
+    nodes,
+    [FRENCH_GUILLEMETS_SPACING_RULE],
+    { locale: "fr-FR", mode: "lint" },
+  );
+
+  assert.deepEqual(result.nodes, nodes);
+  assert.deepEqual(
+    result.diagnostics.map((diagnostic) => ({
+      segmentId: diagnostic.segmentId,
+      coordinateSpace: diagnostic.coordinateSpace,
+      relatedId: diagnostic.related?.[0]?.segmentId,
+    })),
+    [
+      {
+        segmentId: "opening",
+        coordinateSpace: "source",
+        relatedId: "closing",
+      },
+      {
+        segmentId: "closing",
+        coordinateSpace: "source",
+        relatedId: "opening",
+      },
+    ],
+  );
+});
+
+Deno.test("classifier fragments fold back into their source node", () => {
+  const source = "«Version 1.2.3»";
+  const result = runTextNodePipeline(
+    [{ id: "paragraph", value: source }],
+    IMPRIMERIE_NATIONALE_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.deepEqual(result.nodes, [{
+    id: "paragraph",
+    value: "«\u00a0Version 1.2.3\u00a0»",
+  }]);
+});

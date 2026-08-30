@@ -1,0 +1,78 @@
+# Contrat d’intégration des arbres textuels v0.1
+
+## Portée
+
+Le cœur ne dépend d’aucun format d’arbre. Une intégration rehype, Astro ou
+équivalente extrait des nœuds textuels, décide de leurs frontières sémantiques
+et transmet chaque suite logique à `runTextNodePipeline`. Le cœur modifie
+uniquement les valeurs textuelles : il ne crée, ne supprime, ne déplace et ne
+fusionne aucun nœud.
+
+## Suite textuelle logique
+
+Une invocation regroupe les nœuds de texte entre lesquels une construction
+typographique peut se poursuivre, notamment une paire de guillemets séparée
+par un élément de mise en forme en ligne. Elle ne traverse pas :
+
+- deux blocs distincts ;
+- un saut de ligne explicite portant une valeur sémantique ;
+- un nœud HTML brut ou un composant embarqué dont le contenu n’est pas connu ;
+- `script`, `style`, `pre`, `code` ou tout sous-arbre exclu par la politique de
+  l’intégration.
+
+Un contenu connu mais intangible peut être transmis avec `protected: true`.
+Il participe alors au texte logique et à l’appariement, mais aucune règle ne le
+transforme. Une frontière, au contraire, termine l’invocation courante.
+
+## Identité et reconstruction
+
+Chaque `TextNodeInput` reçoit un `id` non vide, unique dans l’invocation et
+stable pendant celle-ci. L’identifiant peut provenir du chemin du nœud dans
+l’arbre ; il n’a pas vocation à devenir un identifiant documentaire persistant.
+
+`runTextNodePipeline` replie les fragments créés par le classificateur dans
+leur nœud d’origine et retourne exactement un `TextNodeOutput` par entrée, dans
+le même ordre. L’intégration remplace chaque propriété textuelle par la valeur
+portant le même `id`. Elle ne reconstruit pas l’arbre depuis `value` et ne
+répartit pas une chaîne concaténée par calcul de longueurs.
+
+## Deux passes explicites
+
+Une intégration choisit toujours le mode :
+
+- `lint` conserve toutes les valeurs et produit des diagnostics dans l’espace
+  `source` ; leurs offsets UTF-16 semi-ouverts s’appliquent directement au nœud
+  identifié par `segmentId` ;
+- `fix` retourne les nouvelles valeurs par nœud. Ses diagnostics décrivent des
+  instantanés `runtime` et ne doivent pas être projetés sur les positions de
+  l’arbre source.
+
+Une intégration qui doit corriger et publier des diagnostics effectue donc une
+passe `lint` sur l’arbre initial, puis une passe `fix` séparée. Elle n’applique
+pas elle-même les champs `replacement`, car cette opération contournerait
+l’ordre, les dépendances et les protections du pipeline.
+
+## Diagnostics liés
+
+`related` exprime les autres emplacements nécessaires à la compréhension d’un
+diagnostic. Pour des guillemets répartis entre plusieurs nœuds, chaque défaut
+d’espacement reste local au nœud qu’il faut modifier et référence l’autre
+guillemet. Une intégration peut ainsi afficher une relation sans inventer une
+plage continue qui engloberait des nœuds intermédiaires.
+
+## Contrat rehype
+
+Le futur adaptateur rehype devra :
+
+1. parcourir l’arbre par suites de contenu en ligne appartenant au même bloc ;
+2. attribuer les identifiants et appliquer une politique configurable
+   d’exclusion et de protection ;
+3. appeler `runTextNodePipeline` une fois par suite logique ;
+4. rattacher les diagnostics `source` aux nœuds par `segmentId` ;
+5. en correction, remplacer uniquement la propriété `value` de chaque nœud ;
+6. préserver les données de position fournies par l’analyseur, sans prétendre
+   les recalculer après correction.
+
+L’intégration Astro sera une couche de configuration au-dessus de l’adaptateur
+rehype pour le contenu Markdown/MDX. Elle ne doit pas faire analyser au cœur la
+syntaxe des composants ou des fichiers `.astro`.
