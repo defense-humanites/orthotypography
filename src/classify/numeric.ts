@@ -3,6 +3,7 @@ import type {
   NumericConstructDisposition,
   NumericConstructKind,
 } from "../model.ts";
+import { resolveUnitSymbol } from "../registry/units.ts";
 
 interface NumericMatcher {
   readonly kind: NumericConstructKind;
@@ -78,8 +79,12 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "measurement",
     disposition: "target",
-    pattern:
-      /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(?:°C|°F|km|cm|mm|kg|mg|ms|min|h|L|l|m|g|s)\b/gu,
+    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[\p{L}µΩ°]+/gu,
+    accept: (value) => {
+      const symbol = /[\p{L}µΩ°]+$/u.exec(value)?.[0];
+      return symbol !== undefined &&
+        resolveUnitSymbol(symbol)?.unit.spacing === "space";
+    },
   },
   {
     kind: "decimal",

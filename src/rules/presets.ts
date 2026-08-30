@@ -1,6 +1,6 @@
 import { NUMERIC_PROTECTION_RULE } from "../classify/runtime.ts";
 import type { RuntimeRule } from "../model.ts";
-import { PERCENTAGE_SPACING_RULE } from "./numeric.ts";
+import { PERCENTAGE_SPACING_RULE, UNIT_SPACING_RULE } from "./numeric.ts";
 import {
   HIGH_PUNCTUATION_RULES,
   SAFE_PUNCTUATION_RULES,
@@ -14,4 +14,5 @@ export const IMPRIMERIE_NATIONALE_RULES: readonly RuntimeRule[] = [
   ...SAFE_PUNCTUATION_RULES,
   ...HIGH_PUNCTUATION_RULES,
   PERCENTAGE_SPACING_RULE,
+  UNIT_SPACING_RULE,
 ] as const;

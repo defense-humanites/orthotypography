@@ -15,6 +15,7 @@ export {
   IMPRIMERIE_NATIONALE_RULES,
   PERCENTAGE_SPACING_RULE,
   SAFE_PUNCTUATION_RULES,
+  UNIT_SPACING_RULE,
 } from "./rules/mod.ts";
 export type {
   NumericConstruct,
@@ -30,3 +31,4 @@ export type {
 } from "./model.ts";
 
 export * as catalogue from "./catalogue/mod.ts";
+export * as registry from "./registry/mod.ts";

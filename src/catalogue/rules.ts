@@ -165,13 +165,17 @@ export const RULES = [
     locales: frenchLocales,
     phase: "numeric-spacing",
     status: "VERIFIED_BY_EXAMPLE",
-    defaultMode: "fix",
+    defaultMode: "lint",
     sources: [
       {
         sourceId: "imprimerie-nationale-2002",
         locator: "Unités de mesure/Remarques sur les symboles",
       },
       { sourceId: "oqlf-spacing", locator: "Symboles d’unités de mesure" },
+      {
+        sourceId: "bipm-si-9-4.01",
+        locator: "5.4.3 Formatting the value of a quantity",
+      },
     ],
     outcome: { beforeSymbol: "U+00A0" },
     exceptions: ["angle", "nom commun", "unité inconnue", "syntaxe protégée"],

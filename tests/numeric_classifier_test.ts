@@ -40,6 +40,8 @@ Deno.test("numeric classifier identifies transformable candidates", () => {
     ["12 km", "measurement"],
     ["12kg", "measurement"],
     ["20 °C", "measurement"],
+    ["2 kPa", "measurement"],
+    ["5 µm", "measurement"],
     ["25 CAD", "currency"],
     ["25 €", "currency"],
     ["€25", "currency"],
@@ -57,6 +59,9 @@ Deno.test("numeric classifier preserves documented negative vectors", () => {
       "%PATH%",
       "prix$variable",
       "12 kilogrammes",
+      "12 Kg",
+      "12 sec",
+      "12 mps",
       "1234",
       "arc-en-ciel",
     ]

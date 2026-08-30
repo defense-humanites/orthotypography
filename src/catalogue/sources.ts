@@ -30,4 +30,11 @@ export const SOURCES = [
       "https://vitrinelinguistique.oqlf.gouv.qc.ca/23363/la-ponctuation/guillemets/generalites-sur-les-guillemets",
     accessedAt: "2026-08-29",
   },
+  {
+    id: "bipm-si-9-4.01",
+    citation:
+      "BUREAU INTERNATIONAL DES POIDS ET MESURES. Le Système international d’unités (SI). 9e éd., version 4.01. Sèvres : BIPM, 2026. DOI 10.59161/AUEZ1291.",
+    url: "https://doi.org/10.59161/AUEZ1291",
+    accessedAt: "2026-08-30",
+  },
 ] as const satisfies readonly SourceDefinition[];

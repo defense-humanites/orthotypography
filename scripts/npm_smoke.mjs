@@ -22,6 +22,9 @@ async function importPackageExport(subpath) {
 
 const { compilePipeline, runPipeline } = await importPackageExport(".");
 const { RULES } = await importPackageExport("./catalogue");
+const { SI_UNITS, validateUnitRegistry } = await importPackageExport(
+  "./registry",
+);
 
 assert.equal(packageJson.name, "@orthotypography/core");
 assert.equal(packageJson.license, "MIT");
@@ -29,5 +32,7 @@ assert.equal(typeof runPipeline, "function");
 assert.equal(typeof compilePipeline, "function");
 assert.ok(Array.isArray(RULES));
 assert.ok(RULES.length > 0);
+assert.ok(Array.isArray(SI_UNITS));
+assert.deepEqual(validateUnitRegistry(), []);
 
 console.log("npm ESM smoke test passed");

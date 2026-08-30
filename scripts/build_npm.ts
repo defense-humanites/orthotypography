@@ -22,6 +22,7 @@ await build({
   entryPoints: [
     { name: ".", path: "./src/mod.ts" },
     { name: "./catalogue", path: "./src/catalogue/mod.ts" },
+    { name: "./registry", path: "./src/registry/mod.ts" },
   ],
   outDir: OUT_DIR,
   esModule: true,

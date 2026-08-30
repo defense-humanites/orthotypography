@@ -5,7 +5,8 @@
   "lock": false,
   "exports": {
     ".": "./src/mod.ts",
-    "./catalogue": "./src/catalogue/mod.ts"
+    "./catalogue": "./src/catalogue/mod.ts",
+    "./registry": "./src/registry/mod.ts"
   },
   "publish": {
     "include": [
