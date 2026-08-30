@@ -4,7 +4,7 @@ import type {
   NumericConstructKind,
 } from "../model.ts";
 import { resolveCurrencyNotation } from "../registry/currencies.ts";
-import { resolveUnitSymbol } from "../registry/units.ts";
+import { resolveUnitExpression } from "../registry/units.ts";
 
 interface NumericMatcher {
   readonly kind: NumericConstructKind;
@@ -86,11 +86,14 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "measurement",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[\p{L}µΩ°]+/gu,
+    pattern:
+      /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[\p{L}µΩ°′″]+(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*[\p{L}µΩ°′″]+(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)*(?![\p{L}\p{N}µΩ°′″⁰¹²³⁴⁵⁶⁷⁸⁹⁻⋅/·*^])/gu,
     accept: (value) => {
-      const symbol = /[\p{L}µΩ°]+$/u.exec(value)?.[0];
-      return symbol !== undefined &&
-        resolveUnitSymbol(symbol)?.unit.spacing === "space";
+      const expression = /^\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(.+)$/u.exec(
+        value,
+      )?.[1];
+      return expression !== undefined &&
+        resolveUnitExpression(expression)?.spacing === "space";
     },
   },
   {

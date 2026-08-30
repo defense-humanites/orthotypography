@@ -1,4 +1,5 @@
 export {
+  resolveUnitExpression,
   resolveUnitSymbol,
   SI_PREFIXES,
   SI_UNITS,
@@ -6,6 +7,8 @@ export {
   validateUnitRegistry,
 } from "./units.ts";
 export type {
+  ResolvedUnitExpression,
+  ResolvedUnitFactor,
   ResolvedUnitSymbol,
   UnitCategory,
   UnitDefinition,

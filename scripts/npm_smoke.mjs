@@ -25,6 +25,7 @@ const { RULES } = await importPackageExport("./catalogue");
 const {
   CURRENCIES,
   CURRENCY_REGISTRY_PROVENANCE,
+  resolveUnitExpression,
   SI_UNITS,
   validateCurrencyRegistry,
   validateUnitRegistry,
@@ -40,6 +41,7 @@ assert.ok(Array.isArray(RULES));
 assert.ok(RULES.length > 0);
 assert.ok(Array.isArray(SI_UNITS));
 assert.deepEqual(validateUnitRegistry(), []);
+assert.equal(resolveUnitExpression("kg⋅m⋅s⁻²")?.compound, true);
 assert.ok(Array.isArray(CURRENCIES));
 assert.equal(CURRENCY_REGISTRY_PROVENANCE.scope, "subset");
 assert.deepEqual(validateCurrencyRegistry(), []);

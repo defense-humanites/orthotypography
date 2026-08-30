@@ -1,7 +1,7 @@
 import { RULES } from "../catalogue/rules.ts";
 import { classifyNumericConstructs } from "../classify/numeric.ts";
 import type { RuleDefinition, RuntimeRule } from "../model.ts";
-import { resolveUnitSymbol } from "../registry/units.ts";
+import { resolveUnitExpression } from "../registry/units.ts";
 
 const definition = RULES.find((rule) =>
   rule.id === "number.percent.nbsp-before"
@@ -71,9 +71,10 @@ export const UNIT_SPACING_RULE: RuntimeRule = {
     const edits = classifyNumericConstructs(value)
       .filter(({ kind }) => kind === "measurement")
       .map(({ start, end, value: construct }) => {
-        const parts = /^(\d+(?:[.,]\d+)?)[\t \u00a0\u202f]*([\p{L}µΩ°]+)$/u
-          .exec(construct);
-        if (parts === null || resolveUnitSymbol(parts[2]) === null) {
+        const parts = /^(\d+(?:[.,]\d+)?)[\t \u00a0\u202f]*(.+)$/u.exec(
+          construct,
+        );
+        if (parts === null || resolveUnitExpression(parts[2]) === null) {
           throw new Error(`Invalid classified measurement: ${construct}`);
         }
         return {

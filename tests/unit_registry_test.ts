@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  resolveUnitExpression,
   resolveUnitSymbol,
   SI_PREFIXES,
   SI_UNITS,
@@ -39,5 +40,31 @@ Deno.test("SI registry is case-sensitive and rejects compound prefixes", () => {
 Deno.test("angle units retain their no-space exception", () => {
   for (const symbol of ["°", "′", "″"]) {
     assert.equal(resolveUnitSymbol(symbol)?.unit.spacing, "none", symbol);
+  }
+});
+
+Deno.test("unit expressions resolve products, quotients, and powers", () => {
+  assert.deepEqual(
+    resolveUnitExpression("m/s")?.factors.map(({ symbol, position }) => [
+      symbol,
+      position,
+    ]),
+    [["m", "numerator"], ["s", "denominator"]],
+  );
+  assert.deepEqual(
+    resolveUnitExpression("kg⋅m⋅s⁻²")?.factors.map(({ symbol, exponent }) => [
+      symbol,
+      exponent,
+    ]),
+    [["kg", 1], ["m", 1], ["s", -2]],
+  );
+  assert.equal(resolveUnitExpression("m²")?.factors[0].exponent, 2);
+  assert.equal(resolveUnitExpression("kW⋅h")?.compound, true);
+  assert.equal(resolveUnitExpression("kg m s⁻²")?.compound, true);
+});
+
+Deno.test("unit expressions reject ambiguous or non-SI spellings", () => {
+  for (const expression of ["m/s/kg", "m·s", "mps", "m⁰", "µkg/s"]) {
+    assert.equal(resolveUnitExpression(expression), null, expression);
   }
 });

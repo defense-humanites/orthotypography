@@ -69,3 +69,32 @@ Deno.test("unit spacing is idempotent in fix mode", () => {
   assert.equal(second.value, first.value);
   assert.deepEqual(second.diagnostics, []);
 });
+
+Deno.test("unit spacing handles explicit compound SI expressions", () => {
+  const result = runPipeline(
+    "9,81m/s ; 5m² ; 3kW⋅h ; 2 kg⋅m⋅s⁻²",
+    IMPRIMERIE_NATIONALE_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.equal(
+    result.value,
+    "9,81\u00a0m/s\u202f; 5\u00a0m²\u202f; 3\u00a0kW⋅h\u202f; 2\u00a0kg⋅m⋅s⁻²",
+  );
+});
+
+Deno.test("unit spacing rejects ambiguous compound-like strings", () => {
+  const input = "12m/s/kg / 12m·s / 12m*s / 12m^2 / 12mps / 12m⁰";
+  const result = runPipeline(input, IMPRIMERIE_NATIONALE_RULES, {
+    locale: "fr-FR",
+    mode: "fix",
+  });
+
+  assert.equal(result.value, input);
+  assert.deepEqual(
+    result.diagnostics.filter(({ ruleId }) =>
+      ruleId === "number.unit.nbsp-before"
+    ),
+    [],
+  );
+});

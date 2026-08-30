@@ -34,7 +34,7 @@
   },
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check && deno task doc",
-    "doc": "deno doc src/mod.ts src/catalogue/mod.ts",
+    "doc": "deno doc src/mod.ts src/catalogue/mod.ts src/registry/mod.ts",
     "test": "deno test --allow-read=tests/fixtures",
     "publish:check": "deno publish --dry-run --check=all",
     "npm:build": "deno run -A scripts/build_npm.ts",

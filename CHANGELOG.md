@@ -17,3 +17,4 @@ All notable changes to this project will be documented in this file.
 - Add registry-backed unit-spacing diagnostics with explicit opt-in fixes.
 - Add an ambiguity-aware monetary registry and opt-in euro-symbol fixes.
 - Add a validated, provenance-preserving importer for SIX ISO 4217 List One.
+- Resolve conservative SI products, quotients, and Unicode powers.

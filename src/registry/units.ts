@@ -30,6 +30,18 @@ export interface ResolvedUnitSymbol {
   readonly prefix?: UnitPrefixDefinition;
 }
 
+export interface ResolvedUnitFactor extends ResolvedUnitSymbol {
+  readonly exponent: number;
+  readonly position: "numerator" | "denominator";
+}
+
+export interface ResolvedUnitExpression {
+  readonly symbol: string;
+  readonly factors: readonly ResolvedUnitFactor[];
+  readonly spacing: UnitSpacing;
+  readonly compound: boolean;
+}
+
 const sourceId = "bipm-si-9-4.01" as const;
 
 export const SI_PREFIXES = [
@@ -163,6 +175,89 @@ export function resolveUnitSymbol(symbol: string): ResolvedUnitSymbol | null {
     if (unit?.prefixable === true) return { symbol, unit, prefix };
   }
   return null;
+}
+
+const superscriptDigits: Readonly<Record<string, string>> = {
+  "⁰": "0",
+  "¹": "1",
+  "²": "2",
+  "³": "3",
+  "⁴": "4",
+  "⁵": "5",
+  "⁶": "6",
+  "⁷": "7",
+  "⁸": "8",
+  "⁹": "9",
+};
+
+function parseUnitFactor(
+  value: string,
+  position: ResolvedUnitFactor["position"],
+): ResolvedUnitFactor | null {
+  const exponentMatch = /([⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/u.exec(value);
+  const symbol = exponentMatch === null
+    ? value
+    : value.slice(0, -exponentMatch[1].length);
+  const resolved = resolveUnitSymbol(symbol);
+  if (resolved === null) return null;
+
+  let exponent = 1;
+  if (exponentMatch !== null) {
+    const raw = exponentMatch[1];
+    const negative = raw.startsWith("⁻");
+    const digits = [...(negative ? raw.slice(1) : raw)]
+      .map((digit) => superscriptDigits[digit])
+      .join("");
+    if (digits.length === 0 || digits.startsWith("0")) return null;
+    const magnitude = Number.parseInt(digits, 10);
+    if (!Number.isSafeInteger(magnitude)) return null;
+    exponent = magnitude * (negative ? -1 : 1);
+  }
+  return { ...resolved, exponent, position };
+}
+
+function parseUnitProduct(
+  value: string,
+  position: ResolvedUnitFactor["position"],
+): readonly ResolvedUnitFactor[] | null {
+  const rawFactors = value.trim().split(
+    /(?:[\t \u00a0\u202f]*⋅[\t \u00a0\u202f]*|[\t \u00a0\u202f]+)/u,
+  );
+  if (rawFactors.some((factor) => factor.length === 0)) return null;
+  const factors = rawFactors.map((factor) => parseUnitFactor(factor, position));
+  return factors.some((factor) => factor === null)
+    ? null
+    : factors as readonly ResolvedUnitFactor[];
+}
+
+/**
+ * Resolves a conservative SI unit expression.
+ *
+ * Products may use whitespace or U+22C5 DOT OPERATOR. Quotients may contain
+ * one solidus, and integer powers use Unicode superscripts. Parentheses and
+ * alternative operator glyphs are deliberately left for a later grammar.
+ */
+export function resolveUnitExpression(
+  expression: string,
+): ResolvedUnitExpression | null {
+  const divisions = expression.split("/");
+  if (divisions.length > 2) return null;
+  const numerator = parseUnitProduct(divisions[0], "numerator");
+  if (numerator === null) return null;
+  const denominator = divisions[1] === undefined
+    ? []
+    : parseUnitProduct(divisions[1], "denominator");
+  if (denominator === null) return null;
+
+  const factors = [...numerator, ...denominator];
+  const compound = factors.length > 1 || divisions.length === 2 ||
+    factors[0]?.exponent !== 1;
+  return {
+    symbol: expression,
+    factors,
+    spacing: compound ? "space" : factors[0].unit.spacing,
+    compound,
+  };
 }
 
 export interface UnitRegistryIssue {
