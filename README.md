@@ -31,6 +31,7 @@ deno task check
 deno task test
 deno task publish:check
 deno task npm:check
+deno task currency:update
 ```
 
 ## License

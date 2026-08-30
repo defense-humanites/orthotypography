@@ -60,7 +60,7 @@ Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. El
 
 ## Prochain lot
 
-1. Automatiser l’import de la liste active ISO 4217 depuis sa source XML.
+1. Exécuter et auditer le premier import complet de la List One ISO 4217.
 2. Étendre progressivement la grammaire des unités composées.
 3. Définir les garanties de diagnostics lorsque des paires traversent plusieurs segments textuels.
 4. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.

@@ -1,13 +1,15 @@
-/** Version and retrieval date of the monetary data represented here. */
-export const CURRENCY_REGISTRY_VERSION = "iso-4217-six-2026-08-30";
+import {
+  CURRENCIES,
+  CURRENCY_REGISTRY_PROVENANCE,
+  CURRENCY_REGISTRY_VERSION,
+} from "./currency-data.ts";
+import type { CurrencyDefinition } from "./currency-types.ts";
 
-export interface CurrencyDefinition {
-  readonly code: string;
-  readonly numericCode: string;
-  readonly name: string;
-  readonly minorUnit: number;
-  readonly sourceId: "iso-4217-six";
-}
+export { CURRENCIES, CURRENCY_REGISTRY_PROVENANCE, CURRENCY_REGISTRY_VERSION };
+export type {
+  CurrencyDefinition,
+  CurrencyRegistryProvenance,
+} from "./currency-types.ts";
 
 export type CurrencySymbolAmbiguity = "unique" | "shared";
 
@@ -25,47 +27,7 @@ export interface ResolvedCurrencyNotation {
   readonly ambiguous: boolean;
 }
 
-const isoSourceId = "iso-4217-six" as const;
 const symbolSourceId = "oqlf-currency-symbols" as const;
-
-/** Initial audited subset of active ISO 4217 currencies used by the runtime. */
-export const CURRENCIES = [
-  {
-    code: "EUR",
-    numericCode: "978",
-    name: "Euro",
-    minorUnit: 2,
-    sourceId: isoSourceId,
-  },
-  {
-    code: "USD",
-    numericCode: "840",
-    name: "US Dollar",
-    minorUnit: 2,
-    sourceId: isoSourceId,
-  },
-  {
-    code: "CAD",
-    numericCode: "124",
-    name: "Canadian Dollar",
-    minorUnit: 2,
-    sourceId: isoSourceId,
-  },
-  {
-    code: "CHF",
-    numericCode: "756",
-    name: "Swiss Franc",
-    minorUnit: 2,
-    sourceId: isoSourceId,
-  },
-  {
-    code: "GBP",
-    numericCode: "826",
-    name: "Pound Sterling",
-    minorUnit: 2,
-    sourceId: isoSourceId,
-  },
-] as const satisfies readonly CurrencyDefinition[];
 
 /** Editorial symbols are separate from ISO codes and may be ambiguous. */
 export const CURRENCY_SYMBOLS = [
@@ -155,6 +117,16 @@ export function validateCurrencyRegistry(): readonly CurrencyRegistryIssue[] {
       issues.push({
         path: `currencies.${currency.code}.numericCode`,
         message: "invalid numeric code",
+      });
+    }
+    if (
+      currency.minorUnit !== null &&
+      (!Number.isInteger(currency.minorUnit) || currency.minorUnit < 0 ||
+        currency.minorUnit > 9)
+    ) {
+      issues.push({
+        path: `currencies.${currency.code}.minorUnit`,
+        message: "invalid minor unit",
       });
     }
     if (codes.has(currency.code)) {

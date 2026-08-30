@@ -24,6 +24,7 @@ const { compilePipeline, runPipeline } = await importPackageExport(".");
 const { RULES } = await importPackageExport("./catalogue");
 const {
   CURRENCIES,
+  CURRENCY_REGISTRY_PROVENANCE,
   SI_UNITS,
   validateCurrencyRegistry,
   validateUnitRegistry,
@@ -40,6 +41,7 @@ assert.ok(RULES.length > 0);
 assert.ok(Array.isArray(SI_UNITS));
 assert.deepEqual(validateUnitRegistry(), []);
 assert.ok(Array.isArray(CURRENCIES));
+assert.equal(CURRENCY_REGISTRY_PROVENANCE.scope, "subset");
 assert.deepEqual(validateCurrencyRegistry(), []);
 
 console.log("npm ESM smoke test passed");

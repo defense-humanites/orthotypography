@@ -15,6 +15,7 @@ export type {
 } from "./units.ts";
 export {
   CURRENCIES,
+  CURRENCY_REGISTRY_PROVENANCE,
   CURRENCY_REGISTRY_VERSION,
   CURRENCY_SYMBOLS,
   resolveCurrencyCode,
@@ -24,6 +25,7 @@ export {
 export type {
   CurrencyDefinition,
   CurrencyRegistryIssue,
+  CurrencyRegistryProvenance,
   CurrencySymbolAmbiguity,
   CurrencySymbolDefinition,
   ResolvedCurrencyNotation,

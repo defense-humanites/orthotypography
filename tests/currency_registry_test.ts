@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   CURRENCIES,
+  CURRENCY_REGISTRY_PROVENANCE,
   CURRENCY_REGISTRY_VERSION,
   resolveCurrencyCode,
   resolveCurrencyNotation,
@@ -8,7 +9,11 @@ import {
 } from "../src/registry/mod.ts";
 
 Deno.test("currency registry is internally consistent", () => {
-  assert.equal(CURRENCY_REGISTRY_VERSION, "iso-4217-six-2026-08-30");
+  assert.equal(
+    CURRENCY_REGISTRY_VERSION,
+    "iso-4217-six-2026-08-30-subset",
+  );
+  assert.equal(CURRENCY_REGISTRY_PROVENANCE.scope, "subset");
   assert.equal(CURRENCIES.length, 5);
   assert.deepEqual(validateCurrencyRegistry(), []);
 });

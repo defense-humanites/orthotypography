@@ -35,10 +35,11 @@
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check && deno task doc",
     "doc": "deno doc src/mod.ts src/catalogue/mod.ts",
-    "test": "deno test",
+    "test": "deno test --allow-read=tests/fixtures",
     "publish:check": "deno publish --dry-run --check=all",
     "npm:build": "deno run -A scripts/build_npm.ts",
-    "npm:check": "deno task npm:build && node scripts/npm_smoke.mjs && cd npm && npm pack --dry-run"
+    "npm:check": "deno task npm:build && node scripts/npm_smoke.mjs && cd npm && npm pack --dry-run",
+    "currency:update": "deno run --allow-net=www.six-group.com --allow-read --allow-write=src/registry/currency-data.ts,docs/iso-4217-update.md scripts/update_iso4217.ts"
   },
   "imports": {
     "@deno/dnt": "jsr:@deno/dnt@0.43.2"
