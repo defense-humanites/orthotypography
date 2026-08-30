@@ -62,6 +62,76 @@ Deno.test("French guillemet spacing supports lint mode", () => {
   assert.equal(result.diagnostics.length, 2);
 });
 
+Deno.test("lint diagnostics keep source coordinates across text segments", () => {
+  const result = runPipeline(
+    [
+      { id: "opening", value: "«Version " },
+      { id: "version", value: "1.2.3", protected: true },
+      { id: "closing", value: "»" },
+    ],
+    [FRENCH_GUILLEMETS_SPACING_RULE],
+    { locale: "fr-FR", mode: "lint" },
+  );
+
+  assert.deepEqual(
+    result.diagnostics.map((diagnostic) => ({
+      coordinateSpace: diagnostic.coordinateSpace,
+      segmentId: diagnostic.segmentId,
+      segmentValue: diagnostic.segmentValue,
+      start: diagnostic.start,
+      end: diagnostic.end,
+      related: diagnostic.related?.map((location) => ({
+        segmentId: location.segmentId,
+        start: location.start,
+        end: location.end,
+      })),
+    })),
+    [
+      {
+        coordinateSpace: "source",
+        segmentId: "opening",
+        segmentValue: "«Version ",
+        start: 1,
+        end: 1,
+        related: [{ segmentId: "closing", start: 0, end: 1 }],
+      },
+      {
+        coordinateSpace: "source",
+        segmentId: "closing",
+        segmentValue: "»",
+        start: 0,
+        end: 0,
+        related: [{ segmentId: "opening", start: 0, end: 1 }],
+      },
+    ],
+  );
+});
+
+Deno.test("lint coordinates survive classifier-created fragments", () => {
+  const source = "«Version 1.2.3»";
+  const result = runPipeline(
+    [{ id: "paragraph", value: source }],
+    IMPRIMERIE_NATIONALE_RULES,
+    { locale: "fr-FR", mode: "lint" },
+  );
+
+  const quoteDiagnostics = result.diagnostics.filter((diagnostic) =>
+    diagnostic.ruleId === "quotes.french.nbsp-inner"
+  );
+  assert.deepEqual(
+    quoteDiagnostics.map(({ segmentId, segmentValue, start, end }) => ({
+      segmentId,
+      segmentValue,
+      start,
+      end,
+    })),
+    [
+      { segmentId: "paragraph", segmentValue: source, start: 1, end: 1 },
+      { segmentId: "paragraph", segmentValue: source, start: 14, end: 14 },
+    ],
+  );
+});
+
 Deno.test("French guillemet spacing is locale-aware and idempotent", () => {
   const otherLocale = runPipeline(
     "«text»",

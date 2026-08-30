@@ -72,25 +72,51 @@ export interface PresetDefinition {
 
 /** A segment integrations may protect from all text transformations. */
 export interface TextSegment {
+  /** Stable integration-owned identity of the source text node. */
+  readonly id?: string;
   readonly value: string;
   readonly protected?: boolean;
 }
 
-export interface RuleDiagnostic {
-  readonly ruleId: string;
+/** Exact location of a diagnostic or one of its related subjects. */
+export interface DiagnosticLocation {
+  /** Whether offsets address the input node or a runtime fragment snapshot. */
+  readonly coordinateSpace: "source" | "runtime";
   readonly segmentIndex: number;
+  readonly segmentId?: string;
+  /** Immutable text snapshot against which start and end are measured. */
+  readonly segmentValue: string;
+  /** Revision of the runtime fragment; always zero in source coordinates. */
+  readonly segmentRevision: number;
+  readonly start: number;
+  readonly end: number;
+}
+
+export interface RuleDiagnostic extends DiagnosticLocation {
+  readonly ruleId: string;
+  readonly message: string;
+  readonly replacement?: string;
+  readonly related?: readonly DiagnosticLocation[];
+}
+
+/** Runtime-fragment location emitted by a rule before pipeline enrichment. */
+export interface ApplicationDiagnosticLocation {
+  readonly segmentIndex: number;
+  readonly start: number;
+  readonly end: number;
+}
+
+export interface RuleApplicationDiagnostic {
   readonly start: number;
   readonly end: number;
   readonly message: string;
   readonly replacement?: string;
+  readonly related?: readonly ApplicationDiagnosticLocation[];
 }
 
 export interface RuleApplication {
   readonly value: string;
-  readonly diagnostics?: readonly Omit<
-    RuleDiagnostic,
-    "ruleId" | "segmentIndex"
-  >[];
+  readonly diagnostics?: readonly RuleApplicationDiagnostic[];
   readonly protections?: readonly ProtectionRange[];
 }
 

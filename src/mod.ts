@@ -19,12 +19,15 @@ export {
   UNIT_SPACING_RULE,
 } from "./rules/mod.ts";
 export type {
+  ApplicationDiagnosticLocation,
+  DiagnosticLocation,
   NumericConstruct,
   NumericConstructDisposition,
   NumericConstructKind,
   PipelineResult,
   ProtectionRange,
   RuleApplication,
+  RuleApplicationDiagnostic,
   RuleContext,
   RuleDiagnostic,
   RuntimeRule,

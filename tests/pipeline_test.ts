@@ -95,3 +95,40 @@ Deno.test("pipelines reject simultaneous transformation and protection", () => {
     "cannot transform and protect in one pass",
   );
 });
+
+Deno.test("source segment IDs must be unique and non-empty", () => {
+  assert.throws(
+    () =>
+      runPipeline(
+        [{ id: "node", value: "a" }, { id: "node", value: "b" }],
+        [],
+        { locale: "fr-FR" },
+      ),
+    Error,
+    "duplicate source segment ID",
+  );
+  assert.throws(
+    () => runPipeline([{ id: "", value: "a" }], [], { locale: "fr-FR" }),
+    Error,
+    "Invalid or duplicate source segment ID",
+  );
+});
+
+Deno.test("lint mode rejects transformations to preserve source coordinates", () => {
+  const invalidLintRule: RuntimeRule = {
+    definition: { ...cleanupRule.definition, id: "test.invalid-lint" },
+    apply(value) {
+      return { value: value.toUpperCase() };
+    },
+  };
+
+  assert.throws(
+    () =>
+      runPipeline("texte", [invalidLintRule], {
+        locale: "fr-FR",
+        mode: "lint",
+      }),
+    Error,
+    "cannot transform text in lint mode",
+  );
+});
