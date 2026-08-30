@@ -109,3 +109,58 @@ export const UNIT_SPACING_RULE: RuntimeRule = {
     };
   },
 };
+
+const euroDefinition = RULES.find((rule) =>
+  rule.id === "number.euro.nbsp-before"
+);
+if (euroDefinition === undefined) {
+  throw new Error("Missing documentary rule: number.euro.nbsp-before");
+}
+
+/** Diagnoses French euro-symbol placement, or fixes it when requested. */
+export const EURO_SPACING_RULE: RuntimeRule = {
+  definition: euroDefinition as RuleDefinition,
+  apply(value, context) {
+    const edits = classifyNumericConstructs(value)
+      .filter(({ kind, value }) => kind === "currency" && value.includes("€"))
+      .map(({ start, end, value: construct }) => {
+        const leading = /^€[\t \u00a0\u202f]*(\d+(?:[.,]\d+)?)$/u.exec(
+          construct,
+        );
+        const trailing = /^(\d+(?:[.,]\d+)?)[\t \u00a0\u202f]*€$/u.exec(
+          construct,
+        );
+        const amount = leading?.[1] ?? trailing?.[1];
+        if (amount === undefined) {
+          throw new Error(`Invalid classified euro amount: ${construct}`);
+        }
+        return { start, end, replacement: `${amount}\u00a0€` };
+      })
+      .filter(({ start, end, replacement }) =>
+        value.slice(start, end) !== replacement
+      );
+
+    let result = value;
+    if (context.mode === "fix") {
+      for (
+        const edit of [...edits].sort((left, right) => right.start - left.start)
+      ) {
+        result = result.slice(0, edit.start) + edit.replacement +
+          result.slice(edit.end);
+      }
+    }
+
+    return {
+      value: result,
+      diagnostics: edits.length === 0
+        ? undefined
+        : edits.map(({ start, end, replacement }) => ({
+          start,
+          end,
+          message:
+            "Expected the euro symbol after the amount with a no-break space",
+          replacement,
+        })),
+    };
+  },
+};

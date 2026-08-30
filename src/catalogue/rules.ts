@@ -192,6 +192,10 @@ export const RULES = [
     sources: [
       { sourceId: "imprimerie-nationale-2002", locator: "Euro" },
       { sourceId: "oqlf-spacing", locator: "Symboles d’unités monétaires" },
+      {
+        sourceId: "oqlf-currency-symbols",
+        locator: "Écriture des symboles d’unités monétaires",
+      },
     ],
     outcome: { position: "after", beforeSymbol: "U+00A0" },
     exceptions: [

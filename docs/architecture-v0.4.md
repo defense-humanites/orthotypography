@@ -31,9 +31,11 @@ Le catalogue machine contient deux presets candidats :
 
 Les comportements ambigus restent en `lint` ou `manual-review`. Le
 classificateur numérique protège les constructions techniques et identifie les
-mesures dont le symbole figure dans le registre. L’espacement des unités est
+mesures et les monnaies dont la notation figure dans les registres.
+L’espacement des unités est
 activé en diagnostic par défaut ; sa correction doit être demandée
-explicitement. La règle monétaire reste différée.
+explicitement. La règle euro suit la même politique ; les symboles monétaires
+ambigus restent hors correction automatique.
 
 ## API initiale
 
@@ -43,13 +45,14 @@ import { PRESETS, RULES, SOURCES } from "@orthotypography/core/catalogue";
 ```
 
 Cette version expose l’infrastructure, les données documentaires, le registre
-versionné des unités et préfixes, le classificateur numérique, six règles
+versionné des unités et préfixes, le registre monétaire initial, le
+classificateur numérique, six règles
 exécutables de ponctuation, l’espacement des pourcentages et celui des
 guillemets français appariés. La composition `IMPRIMERIE_NATIONALE_RULES`
 protège d’abord les constructions numériques et techniques, puis applique le
 sous-ensemble exécutable du preset attesté. Elle diagnostique l’espacement des
-unités sans le corriger par défaut. Elle ne constitue pas un profil français
-universel.
+unités et de l’euro sans les corriger par défaut. Elle ne constitue pas un
+profil français universel.
 
 ## Distribution
 
@@ -57,7 +60,7 @@ Les mêmes sources TypeScript alimentent toutes les distributions JavaScript. El
 
 ## Prochain lot
 
-1. Constituer séparément le registre des codes et symboles monétaires.
+1. Automatiser l’import de la liste active ISO 4217 depuis sa source XML.
 2. Étendre progressivement la grammaire des unités composées.
 3. Définir les garanties de diagnostics lorsque des paires traversent plusieurs segments textuels.
 4. Définir le contrat d’une intégration rehype, puis Astro, dans un dépôt séparé.

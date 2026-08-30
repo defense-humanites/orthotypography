@@ -22,7 +22,12 @@ async function importPackageExport(subpath) {
 
 const { compilePipeline, runPipeline } = await importPackageExport(".");
 const { RULES } = await importPackageExport("./catalogue");
-const { SI_UNITS, validateUnitRegistry } = await importPackageExport(
+const {
+  CURRENCIES,
+  SI_UNITS,
+  validateCurrencyRegistry,
+  validateUnitRegistry,
+} = await importPackageExport(
   "./registry",
 );
 
@@ -34,5 +39,7 @@ assert.ok(Array.isArray(RULES));
 assert.ok(RULES.length > 0);
 assert.ok(Array.isArray(SI_UNITS));
 assert.deepEqual(validateUnitRegistry(), []);
+assert.ok(Array.isArray(CURRENCIES));
+assert.deepEqual(validateCurrencyRegistry(), []);
 
 console.log("npm ESM smoke test passed");

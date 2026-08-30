@@ -13,3 +13,18 @@ export type {
   UnitRegistryIssue,
   UnitSpacing,
 } from "./units.ts";
+export {
+  CURRENCIES,
+  CURRENCY_REGISTRY_VERSION,
+  CURRENCY_SYMBOLS,
+  resolveCurrencyCode,
+  resolveCurrencyNotation,
+  validateCurrencyRegistry,
+} from "./currencies.ts";
+export type {
+  CurrencyDefinition,
+  CurrencyRegistryIssue,
+  CurrencySymbolAmbiguity,
+  CurrencySymbolDefinition,
+  ResolvedCurrencyNotation,
+} from "./currencies.ts";

@@ -37,4 +37,20 @@ export const SOURCES = [
     url: "https://doi.org/10.59161/AUEZ1291",
     accessedAt: "2026-08-30",
   },
+  {
+    id: "iso-4217-six",
+    citation:
+      "SIX GROUP. ISO 4217 — Currency Codes: List One, Current Currency & Funds. Zurich : SIX Financial Information, 2026.",
+    url:
+      "https://www.six-group.com/en/products-services/financial-information/market-reference-data/data-standards.html",
+    accessedAt: "2026-08-30",
+  },
+  {
+    id: "oqlf-currency-symbols",
+    citation:
+      "OFFICE QUÉBÉCOIS DE LA LANGUE FRANÇAISE. Écriture des symboles d’unités monétaires. Vitrine linguistique, 2019.",
+    url:
+      "https://vitrinelinguistique.oqlf.gouv.qc.ca/21400/les-abreviations-et-les-symboles/les-symboles/ecriture-des-symboles-dunites-monetaires",
+    accessedAt: "2026-08-30",
+  },
 ] as const satisfies readonly SourceDefinition[];

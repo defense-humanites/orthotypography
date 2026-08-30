@@ -3,6 +3,7 @@ import type {
   NumericConstructDisposition,
   NumericConstructKind,
 } from "../model.ts";
+import { resolveCurrencyNotation } from "../registry/currencies.ts";
 import { resolveUnitSymbol } from "../registry/units.ts";
 
 interface NumericMatcher {
@@ -64,17 +65,23 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "currency",
     disposition: "target",
-    pattern: /(?:€|\$|£)[\t \u00a0\u202f]*\d+(?:[.,]\d+)?\b/gu,
+    pattern: /[€$£][\t \u00a0\u202f]*\d+(?:[.,]\d+)?\b/gu,
+    accept: (value) => resolveCurrencyNotation(value[0]) !== null,
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(?:CHF|CAD|USD|EUR)\b/giu,
+    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[A-Z]{3}\b/gu,
+    accept: (value) => {
+      const code = /[A-Z]{3}$/u.exec(value)?.[0];
+      return code !== undefined && resolveCurrencyNotation(code) !== null;
+    },
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(?:€|\$|£)/gu,
+    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[€$£]/gu,
+    accept: (value) => resolveCurrencyNotation(value.at(-1) ?? "") !== null,
   },
   {
     kind: "measurement",
