@@ -12,3 +12,20 @@ Before enabling publication:
 4. leave `PUBLISH_ENABLED` absent or equal to `false`.
 
 For a prerelease, run `deno task check`, `deno task test`, `deno task publish:check`, and `deno task npm:check`; tag the exact version with a `v` prefix; then enable `PUBLISH_ENABLED` only for the authorized publication window.
+
+## Partial publication recovery
+
+The workflow resolves the exact version independently on JSR and npm before
+publishing. A version already present is skipped; only a missing registry is
+published. The final step waits for both registries to expose the version and
+fails if the release remains incomplete.
+
+To resume a partial publication, rerun the failed workflow. If the original run
+is no longer available, dispatch `Publish` manually with the existing release
+tag. The tag must still equal `v` followed by the version in `deno.json`, and
+`PUBLISH_ENABLED` must be `true`. Never increment the version merely to recover
+the registry that is missing.
+
+Before resuming, verify that the existing version belongs to this release. The
+workflow treats an exact version found on a registry as immutable and
+authoritative; it does not overwrite or replace it.
