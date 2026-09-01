@@ -1,18 +1,30 @@
 # orthotypography
 
-Source-backed orthotypographic primitives and named editorial presets for the JavaScript ecosystem, including browsers and server runtimes.
+Source-backed orthotypographic primitives and named editorial presets for the
+JavaScript ecosystem, including browsers and server runtimes.
 
-The canonical package will be published as `@orthotypography/core` on JSR, with an equivalent npm package generated from the same TypeScript sources. No registry release is enabled yet.
+The `0.1.0-alpha.0` release is the first public preview. Its API and rule
+catalogue may change during the alpha series. The canonical TypeScript package
+is distributed through JSR; an equivalent ESM package is generated from the same
+sources for npm.
+
+## Installation
+
+```sh
+deno add jsr:@orthotypography/core@0.1.0-alpha.0
+npm install @orthotypography/core@alpha
+```
 
 ## Current status
 
-The repository contains a documentary catalogue, a machine-readable rule model, two candidate French presets, the generic pipeline infrastructure, a numeric-context classifier, and executable punctuation rules. The source-specific high-punctuation composition protects technical and numeric contexts before transforming text.
+The repository contains a documentary catalogue, a machine-readable rule model,
+two candidate French presets, the generic pipeline infrastructure, a
+numeric-context classifier, and executable punctuation rules. The
+source-specific high-punctuation composition protects technical and numeric
+contexts before transforming text.
 
 ```ts
-import {
-  IMPRIMERIE_NATIONALE_RULES,
-  runPipeline,
-} from "@orthotypography/core";
+import { IMPRIMERIE_NATIONALE_RULES, runPipeline } from "@orthotypography/core";
 import { PRESETS, RULES } from "@orthotypography/core/catalogue";
 
 const result = runPipeline(
@@ -22,7 +34,10 @@ const result = runPipeline(
 );
 ```
 
-See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical boundaries and [`docs/depouillement-lexique-v0.3.md`](./docs/depouillement-lexique-v0.3.md) for the first French source review.
+See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical
+boundaries and
+[`docs/depouillement-lexique-v0.3.md`](./docs/depouillement-lexique-v0.3.md) for
+the first French source review.
 
 ## Development
 
@@ -36,4 +51,5 @@ deno task currency:update
 
 ## License
 
-MIT © Antoine Boquet. Contributions are accepted under the same license; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+MIT © Antoine Boquet. Contributions are accepted under the same license; see
+[`CONTRIBUTING.md`](./CONTRIBUTING.md).

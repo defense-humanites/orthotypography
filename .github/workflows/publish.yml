@@ -58,6 +58,8 @@ jobs:
         run: npm install --global npm@11.5.1
       - name: Publish to npm
         if: steps.registry.outputs.npm_exists != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: >-
           npm publish ./npm
           --tag "${{ steps.release.outputs.npm_tag }}"
