@@ -31,7 +31,11 @@ async function fetchMetadata(
   fetcher: Fetcher,
 ): Promise<unknown> {
   const response = await fetcher(url, {
-    headers: { accept: "application/json" },
+    cache: "no-store",
+    headers: {
+      accept: "application/json",
+      "cache-control": "no-cache",
+    },
   });
   if (response.status === 404) return { versions: {} };
   if (!response.ok) {
@@ -42,6 +46,27 @@ async function fetchMetadata(
   return await response.json();
 }
 
+async function versionEndpointExists(
+  url: string,
+  label: string,
+  fetcher: Fetcher,
+): Promise<boolean> {
+  const response = await fetcher(url, {
+    cache: "no-store",
+    headers: {
+      accept: "application/json",
+      "cache-control": "no-cache",
+    },
+  });
+  if (response.status === 404) return false;
+  if (!response.ok) {
+    throw new Error(
+      `${label} registry returned ${response.status} ${response.statusText}`,
+    );
+  }
+  return true;
+}
+
 /** Resolves whether an exact immutable version exists on both registries. */
 export async function fetchRegistryPresence(
   packageName: string,
@@ -49,16 +74,16 @@ export async function fetchRegistryPresence(
   fetcher: Fetcher = fetch,
 ): Promise<RegistryPresence> {
   const jsrUrl = `https://jsr.io/${packageName}/meta.json`;
-  const npmUrl = `https://registry.npmjs.org/${
+  const npmVersionUrl = `https://registry.npmjs.org/${
     encodeURIComponent(packageName)
-  }`;
-  const [jsrMetadata, npmMetadata] = await Promise.all([
+  }/${encodeURIComponent(version)}`;
+  const [jsrMetadata, npm] = await Promise.all([
     fetchMetadata(jsrUrl, "JSR", fetcher),
-    fetchMetadata(npmUrl, "npm", fetcher),
+    versionEndpointExists(npmVersionUrl, "npm", fetcher),
   ]);
   return {
     jsr: hasVersion(jsrMetadata, version, "JSR"),
-    npm: hasVersion(npmMetadata, version, "npm"),
+    npm,
   };
 }
 
@@ -75,7 +100,7 @@ async function writeOutputs(presence: RegistryPresence): Promise<void> {
 }
 
 async function requireBothRegistries(): Promise<void> {
-  const attempts = 12;
+  const attempts = 30;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     const presence = await fetchRegistryPresence(
       denoConfig.name,
@@ -88,7 +113,7 @@ async function requireBothRegistries(): Promise<void> {
           `JSR=${presence.jsr}, npm=${presence.npm}`,
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
   }
 }
 

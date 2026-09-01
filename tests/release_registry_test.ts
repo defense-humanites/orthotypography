@@ -16,7 +16,7 @@ Deno.test("release registry state resolves each registry independently", async (
     return Promise.resolve(
       url.includes("jsr.io")
         ? response({ versions: { "0.1.0-alpha.0": {} } })
-        : response({ versions: {} }),
+        : response({ error: "not found" }, 404),
     );
   };
 
@@ -30,7 +30,7 @@ Deno.test("release registry state resolves each registry independently", async (
   );
   assert.deepEqual(requested, [
     "https://jsr.io/@orthotypography/core/meta.json",
-    "https://registry.npmjs.org/%40orthotypography%2Fcore",
+    "https://registry.npmjs.org/%40orthotypography%2Fcore/0.1.0-alpha.0",
   ]);
 });
 
@@ -57,9 +57,16 @@ Deno.test("all partial-release registry states remain distinguishable", async ()
       const published = String(input).includes("jsr.io")
         ? expected.jsr
         : expected.npm;
-      return Promise.resolve(response({
-        versions: published ? { "0.1.0-alpha.0": {} } : {},
-      }));
+      if (String(input).includes("jsr.io")) {
+        return Promise.resolve(response({
+          versions: published ? { "0.1.0-alpha.0": {} } : {},
+        }));
+      }
+      return Promise.resolve(
+        published
+          ? response({ name: "@orthotypography/core" })
+          : response({}, 404),
+      );
     };
     assert.deepEqual(
       await fetchRegistryPresence(
