@@ -45,12 +45,28 @@ Une intégration choisit toujours le mode :
   identifié par `segmentId` ;
 - `fix` retourne les nouvelles valeurs par nœud. Ses diagnostics décrivent des
   instantanés `runtime` et ne doivent pas être projetés sur les positions de
-  l’arbre source.
+  l’arbre source. En revanche, son tableau `changes` constitue un jeu complet
+  de remplacements dans l’espace `source`.
 
 Une intégration qui doit corriger et publier des diagnostics effectue donc une
 passe `lint` sur l’arbre initial, puis une passe `fix` séparée. Elle n’applique
-pas elle-même les champs `replacement`, car cette opération contournerait
-l’ordre, les dépendances et les protections du pipeline.
+pas elle-même les champs `replacement` des diagnostics, car cette opération
+contournerait l’ordre, les dépendances et les protections du pipeline.
+
+## Changements applicables
+
+Chaque `TextChange` désigne un unique nœud source par `segmentId` et par
+`segmentIndex`. `start` et `end` sont des offsets UTF-16 semi-ouverts dans sa
+valeur initiale ; `expected` en contient la sous-chaîne exacte et sert de garde
+contre une modification concurrente. Les changements sont non chevauchants et
+doivent être appliqués par offsets décroissants dans chaque nœud.
+
+L’application de tous les changements à leurs valeurs sources reproduit
+exactement les `nodes` retournés par la même passe. `ruleIds` conserve, dans
+l’ordre, la provenance des règles ayant créé puis éventuellement affiné une
+même modification. Une règle tierce ancienne qui ne décrit pas ses éditions
+atomiques reste prise en charge, mais produit un remplacement conservateur du
+fragment entier.
 
 ## Diagnostics liés
 
@@ -70,7 +86,9 @@ Le futur adaptateur rehype devra :
 3. appeler `runTextNodePipeline` une fois par suite logique ;
 4. rattacher les diagnostics `source` aux nœuds par `segmentId` ;
 5. en correction, remplacer uniquement la propriété `value` de chaque nœud ;
-6. préserver les données de position fournies par l’analyseur, sans prétendre
+6. pour une correction interactive, appliquer `changes` après vérification de
+   `expected`, plutôt que les remplacements des diagnostics ;
+7. préserver les données de position fournies par l’analyseur, sans prétendre
    les recalculer après correction.
 
 L’intégration Astro sera une couche de configuration au-dessus de l’adaptateur

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+- Add source-coordinate `TextChange` sets with optimistic `expected` guards.
+- Compose rule provenance across successive edits without reconstructing a
+  post-processing diff.
+- Let runtime rules expose precise atomic edits while retaining a conservative
+  whole-fragment fallback for existing rules.
+
 ## [0.1.0-alpha.0] - 2026-09-01
 
 - Add the JavaScript package scaffold and coordinated JSR/npm distribution

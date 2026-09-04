@@ -32,6 +32,13 @@ const result = runPipeline(
   IMPRIMERIE_NATIONALE_RULES,
   { locale: "fr-FR" },
 );
+
+console.log(result.value);
+// "Bonjour, monde\u00a0: 25\u00a0%."
+
+// In fix mode, source-coordinate changes can be applied individually by
+// editors while preserving stable rule provenance.
+console.log(result.changes);
 ```
 
 See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical

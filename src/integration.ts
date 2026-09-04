@@ -1,7 +1,9 @@
 import type {
+  ChangeSet,
   RuleDiagnostic,
   RuleMode,
   RuntimeRule,
+  TextChange,
   TextSegment,
 } from "./model.ts";
 import { runPipeline } from "./pipeline.ts";
@@ -24,9 +26,10 @@ export interface TextNodePipelineOptions {
   readonly mode: RuleMode;
 }
 
-export interface TextNodePipelineResult {
+export interface TextNodePipelineResult extends ChangeSet {
   readonly value: string;
   readonly nodes: readonly TextNodeOutput[];
+  readonly changes: readonly TextChange[];
   readonly diagnostics: readonly RuleDiagnostic[];
   readonly appliedRuleIds: readonly string[];
 }
@@ -68,6 +71,7 @@ export function runTextNodePipeline(
   return {
     value: result.value,
     nodes: output,
+    changes: result.changes,
     diagnostics: result.diagnostics,
     appliedRuleIds: result.appliedRuleIds,
   };

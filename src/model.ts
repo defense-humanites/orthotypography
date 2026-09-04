@@ -114,8 +114,17 @@ export interface RuleApplicationDiagnostic {
   readonly related?: readonly ApplicationDiagnosticLocation[];
 }
 
+/** Atomic runtime edit proposed by a rule against its input fragment. */
+export interface RuleApplicationEdit {
+  readonly start: number;
+  readonly end: number;
+  readonly replacement: string;
+}
+
 export interface RuleApplication {
   readonly value: string;
+  /** Precise edits used to produce value; optional for legacy rules. */
+  readonly edits?: readonly RuleApplicationEdit[];
   readonly diagnostics?: readonly RuleApplicationDiagnostic[];
   readonly protections?: readonly ProtectionRange[];
 }
@@ -139,9 +148,29 @@ export interface RuntimeRule {
   apply(value: string, context: RuleContext): RuleApplication;
 }
 
-export interface PipelineResult {
+/** One non-overlapping replacement expressed against an input source segment. */
+export interface TextChange {
+  readonly segmentIndex: number;
+  readonly segmentId?: string;
+  readonly start: number;
+  readonly end: number;
+  /** Exact source substring expected at start:end. */
+  readonly expected: string;
+  readonly replacement: string;
+  /** Ordered rule provenance, including rules that refined prior output. */
+  readonly ruleIds: readonly string[];
+}
+
+/** A complete set of source-coordinate edits for one pipeline result. */
+export interface ChangeSet {
+  readonly changes: readonly TextChange[];
+}
+
+export interface PipelineResult extends ChangeSet {
   readonly value: string;
   readonly segments: readonly TextSegment[];
+  /** Applied fixes projected back into stable source coordinates. */
+  readonly changes: readonly TextChange[];
   readonly diagnostics: readonly RuleDiagnostic[];
   readonly appliedRuleIds: readonly string[];
 }

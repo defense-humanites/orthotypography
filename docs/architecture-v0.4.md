@@ -43,6 +43,14 @@ sa révision et `segmentValue`. Une intégration qui doit publier des positions
 dans le document source exécute donc une passe `lint` séparée ; elle ne doit pas
 projeter les offsets d’une passe de correction sur l’arbre d’origine.
 
+Les corrections suivent un contrat distinct. Une passe qui transforme le texte
+retourne des `TextChange` non chevauchants, toujours projetés sur les segments
+sources. Le pipeline compose les éditions atomiques successives dans un journal
+et conserve leurs `ruleIds`. `expected` permet à une intégration de refuser un
+changement si le document a évolué depuis son analyse. Les règles tierces qui
+n’exposent pas encore leurs éditions restent compatibles au prix d’un
+remplacement de fragment moins précis.
+
 Le protocole de collecte et de reconstruction des nœuds est défini dans le
 [contrat d’intégration des arbres textuels](integration-contract-v0.1.md).
 `runTextNodePipeline` replie les fragments internes dans les nœuds sources sans

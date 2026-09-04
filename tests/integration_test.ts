@@ -5,6 +5,26 @@ import {
   runTextNodePipeline,
 } from "../src/mod.ts";
 
+function applyNodeChanges(
+  source: string,
+  changes: readonly {
+    readonly start: number;
+    readonly end: number;
+    readonly expected: string;
+    readonly replacement: string;
+  }[],
+): string {
+  let result = source;
+  for (const change of [...changes].sort((left, right) =>
+    right.start - left.start
+  )) {
+    assert.equal(source.slice(change.start, change.end), change.expected);
+    result = result.slice(0, change.start) + change.replacement +
+      result.slice(change.end);
+  }
+  return result;
+}
+
 Deno.test("text-node fixes preserve tree boundaries", () => {
   const result = runTextNodePipeline(
     [
@@ -22,6 +42,28 @@ Deno.test("text-node fixes preserve tree boundaries", () => {
     { id: "closing", value: "\u00a0»" },
   ]);
   assert.equal(result.value, "«\u00a0Version 1.2.3\u00a0»");
+  assert.deepEqual(result.changes.map((change) => ({
+    segmentId: change.segmentId,
+    start: change.start,
+    end: change.end,
+    expected: change.expected,
+    replacement: change.replacement,
+  })), [
+    {
+      segmentId: "opening",
+      start: 1,
+      end: 1,
+      expected: "",
+      replacement: "\u00a0",
+    },
+    {
+      segmentId: "closing",
+      start: 0,
+      end: 0,
+      expected: "",
+      replacement: "\u00a0",
+    },
+  ]);
 });
 
 Deno.test("text-node lint exposes source diagnostics without mutation", () => {
@@ -36,6 +78,7 @@ Deno.test("text-node lint exposes source diagnostics without mutation", () => {
   );
 
   assert.deepEqual(result.nodes, nodes);
+  assert.deepEqual(result.changes, []);
   assert.deepEqual(
     result.diagnostics.map((diagnostic) => ({
       segmentId: diagnostic.segmentId,
@@ -69,4 +112,20 @@ Deno.test("classifier fragments fold back into their source node", () => {
     id: "paragraph",
     value: "«\u00a0Version 1.2.3\u00a0»",
   }]);
+  assert.equal(applyNodeChanges(source, result.changes), result.nodes[0].value);
+});
+
+Deno.test("changes reproduce fixes after protected classifier fragments", () => {
+  const source = "Version 1.2.3 : 25%. Bonjour , monde.";
+  const result = runTextNodePipeline(
+    [{ id: "paragraph", value: source }],
+    IMPRIMERIE_NATIONALE_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.equal(
+    applyNodeChanges(source, result.changes),
+    result.nodes[0].value,
+  );
+  assert.ok(result.changes.every(({ segmentId }) => segmentId === "paragraph"));
 });

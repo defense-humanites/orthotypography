@@ -19,16 +19,23 @@ function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {
   return {
     definition,
     apply(value, context): RuleApplication {
-      const diagnostics = [...value.matchAll(pattern)].map((match) => ({
+      const edits = [...value.matchAll(pattern)].map((match) => ({
         start: match.index,
         end: match.index + match[0].length,
-        message: `Unexpected whitespace before ${mark}`,
         replacement: mark,
       }));
 
       return {
         value: context.mode === "fix" ? value.replaceAll(pattern, mark) : value,
-        diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
+        edits,
+        diagnostics: edits.length === 0
+          ? undefined
+          : edits.map(({ start, end, replacement }) => ({
+            start,
+            end,
+            message: `Unexpected whitespace before ${mark}`,
+            replacement,
+          })),
       };
     },
   };
@@ -108,6 +115,7 @@ function highPunctuationRule(
 
       return {
         value: context.mode === "fix" ? applyEdits(value, edits) : value,
+        edits,
         diagnostics: edits.length === 0
           ? undefined
           : edits.map(({ start, end, replacement }) => ({

@@ -2,6 +2,26 @@ import assert from "node:assert/strict";
 import { compilePipeline, runPipeline } from "../src/mod.ts";
 import type { RuntimeRule } from "../src/model.ts";
 
+function applyChanges(
+  source: string,
+  changes: readonly {
+    readonly start: number;
+    readonly end: number;
+    readonly expected: string;
+    readonly replacement: string;
+  }[],
+): string {
+  let result = source;
+  for (const change of [...changes].sort((left, right) =>
+    right.start - left.start
+  )) {
+    assert.equal(source.slice(change.start, change.end), change.expected);
+    result = result.slice(0, change.start) + change.replacement +
+      result.slice(change.end);
+  }
+  return result;
+}
+
 const cleanupRule: RuntimeRule = {
   definition: {
     id: "test.cleanup",
@@ -31,6 +51,94 @@ Deno.test("the pipeline preserves protected segments", () => {
 
   assert.equal(result.value, "Bonjour monde  code  ");
   assert.deepEqual(result.appliedRuleIds, ["test.cleanup"]);
+  assert.deepEqual(result.changes, [{
+    segmentIndex: 0,
+    start: 0,
+    end: 14,
+    expected: "Bonjour  monde",
+    replacement: "Bonjour monde",
+    ruleIds: ["test.cleanup"],
+  }]);
+});
+
+Deno.test("changes compose rule provenance in source coordinates", () => {
+  const first: RuntimeRule = {
+    definition: {
+      ...cleanupRule.definition,
+      id: "test.expand",
+      phase: "glyphs",
+    },
+    apply(value, context) {
+      const edits = [{ start: 0, end: 1, replacement: "xy" }];
+      return {
+        value: context.mode === "fix" ? "xy" : value,
+        edits,
+      };
+    },
+  };
+  const second: RuntimeRule = {
+    definition: {
+      ...cleanupRule.definition,
+      id: "test.refine",
+      phase: "cleanup",
+    },
+    apply(value, context) {
+      const edits = [{ start: 1, end: 2, replacement: "z" }];
+      return {
+        value: context.mode === "fix" ? "xz" : value,
+        edits,
+      };
+    },
+  };
+
+  const result = runPipeline("a", [second, first], {
+    locale: "fr-FR",
+    mode: "fix",
+  });
+
+  assert.equal(result.value, "xz");
+  assert.deepEqual(result.changes, [{
+    segmentIndex: 0,
+    start: 0,
+    end: 1,
+    expected: "a",
+    replacement: "xz",
+    ruleIds: ["test.expand", "test.refine"],
+  }]);
+  assert.equal(applyChanges("a", result.changes), result.value);
+});
+
+Deno.test("lint mode never reports applied changes", () => {
+  const result = runPipeline("a", [{
+    ...cleanupRule,
+    apply(value) {
+      return {
+        value,
+        edits: [{ start: 0, end: 1, replacement: "b" }],
+      };
+    },
+  }], { locale: "fr-FR", mode: "lint" });
+
+  assert.deepEqual(result.changes, []);
+});
+
+Deno.test("declared edits must produce the transformed value", () => {
+  const invalid: RuntimeRule = {
+    ...cleanupRule,
+    definition: { ...cleanupRule.definition, id: "test.invalid-edits" },
+    apply() {
+      return {
+        value: "b",
+        edits: [{ start: 0, end: 1, replacement: "c" }],
+      };
+    },
+  };
+
+  assert.throws(
+    () => runPipeline("a", [invalid], { locale: "fr-FR", mode: "fix" }),
+    Error,
+    "edits do not produce its value",
+  );
 });
 
 Deno.test("compiled pipelines reject duplicate rule IDs", () => {

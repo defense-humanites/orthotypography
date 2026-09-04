@@ -27,6 +27,7 @@ export {
 } from "./rules/mod.ts";
 export type {
   ApplicationDiagnosticLocation,
+  ChangeSet,
   DiagnosticLocation,
   NumericConstruct,
   NumericConstructDisposition,
@@ -34,10 +35,12 @@ export type {
   PipelineResult,
   ProtectionRange,
   RuleApplication,
+  RuleApplicationEdit,
   RuleApplicationDiagnostic,
   RuleContext,
   RuleDiagnostic,
   RuntimeRule,
+  TextChange,
   TextSegment,
 } from "./model.ts";
 

@@ -132,6 +132,7 @@ export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = {
 
     return {
       value: context.mode === "fix" ? applyEdits(value, edits) : value,
+      edits,
       diagnostics: edits.length === 0
         ? undefined
         : edits.map(({ start, end, replacement, related }) => ({

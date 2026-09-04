@@ -45,6 +45,7 @@ export const PERCENTAGE_SPACING_RULE: RuntimeRule = {
 
     return {
       value: result,
+      edits,
       diagnostics: edits.length === 0
         ? undefined
         : edits.map(({ start, end, replacement }) => ({
@@ -99,6 +100,7 @@ export const UNIT_SPACING_RULE: RuntimeRule = {
 
     return {
       value: result,
+      edits,
       diagnostics: edits.length === 0
         ? undefined
         : edits.map(({ start, end, replacement }) => ({
@@ -153,6 +155,7 @@ export const EURO_SPACING_RULE: RuntimeRule = {
 
     return {
       value: result,
+      edits,
       diagnostics: edits.length === 0
         ? undefined
         : edits.map(({ start, end, replacement }) => ({
