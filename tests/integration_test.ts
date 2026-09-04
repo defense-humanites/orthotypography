@@ -186,14 +186,19 @@ Deno.test("high punctuation crosses inline formatting boundaries", () => {
 });
 
 Deno.test("cross-segment punctuation preserves technical sequences", () => {
-  for (const nodes of [
-    [
-      { id: "left", value: "Déclaration !" },
-      { id: "right", value: "important" },
-    ],
-    [{ id: "left", value: "https" }, { id: "right", value: "://example.test" }],
-    [{ id: "left", value: "Quoi!" }, { id: "right", value: "?" }],
-  ]) {
+  for (
+    const nodes of [
+      [
+        { id: "left", value: "Déclaration !" },
+        { id: "right", value: "important" },
+      ],
+      [{ id: "left", value: "https" }, {
+        id: "right",
+        value: "://example.test",
+      }],
+      [{ id: "left", value: "Quoi!" }, { id: "right", value: "?" }],
+    ]
+  ) {
     const result = runTextNodePipeline(
       nodes,
       IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,

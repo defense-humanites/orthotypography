@@ -178,20 +178,16 @@ function highPunctuationRule(
         let end = markIndex + 1;
         while (end < value.length && spacingCharacters.has(value[end])) end++;
 
-        const preceding = start === 0
-          ? precedingBoundary(context)
-          : {
-            blocked: false,
-            character: value[start - 1],
-            segmentEdits: [],
-          };
-        const following = end === value.length
-          ? followingBoundary(context)
-          : {
-            blocked: false,
-            character: value[end],
-            segmentEdits: [],
-          };
+        const preceding = start === 0 ? precedingBoundary(context) : {
+          blocked: false,
+          character: value[start - 1],
+          segmentEdits: [],
+        };
+        const following = end === value.length ? followingBoundary(context) : {
+          blocked: false,
+          character: value[end],
+          segmentEdits: [],
+        };
         if (preceding.blocked || following.blocked) continue;
         const previous = preceding.character;
         const next = following.character;

@@ -580,9 +580,11 @@ export function runPipeline(
         ? application.value
         : applyEdits(segment.value, edits);
       if (edits.length > 0) {
-        for (const edit of [...edits].sort((left, right) =>
-          right.start - left.start
-        )) {
+        for (
+          const edit of [...edits].sort((left, right) =>
+            right.start - left.start
+          )
+        ) {
           applyLedgerEdit(ledgers[segment.sourceIndex], {
             start: nodeOffset + edit.start,
             end: nodeOffset + edit.end,
