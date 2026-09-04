@@ -54,9 +54,11 @@ remplacement de fragment moins précis.
 Les éditions d’une même règle forment une transaction sur l’instantané courant
 de la suite logique. Elles peuvent viser plusieurs segments non protégés ; le
 pipeline les valide et les applique ensemble avant de passer à la règle
-suivante. La ponctuation haute peut ainsi reconnaître ses voisins à travers des
-nœuds en ligne, normaliser les blancs portés par un nœud adjacent et conserver
-les exceptions techniques également réparties sur plusieurs nœuds.
+suivante. La ponctuation peut ainsi reconnaître ses voisins à travers des nœuds
+en ligne, normaliser les blancs portés par un nœud adjacent et conserver les
+exceptions techniques également réparties sur plusieurs nœuds. Cette propriété
+vaut pour la suppression des blancs avant la virgule et le point comme pour
+l’espacement de `:;?!`.
 
 Le protocole de collecte et de reconstruction des nœuds est défini dans le
 [contrat d’intégration des arbres textuels](integration-contract-v0.1.md).

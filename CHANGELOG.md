@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
   segments.
 - Normalize French high punctuation across inline formatting boundaries while
   preserving split technical and expressive sequences.
+- Remove whitespace before commas and periods when it belongs to neighboring
+  inline text segments.
 
 ## [0.1.0-alpha.0] - 2026-09-01
 

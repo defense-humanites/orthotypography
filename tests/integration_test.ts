@@ -226,3 +226,81 @@ Deno.test("cross-segment lint relates whitespace in neighboring nodes", () => {
   assert.equal(diagnostic?.related?.[0]?.segmentId, "emphasis");
   assert.deepEqual(result.changes, []);
 });
+
+Deno.test("low punctuation removes whitespace from neighboring nodes", () => {
+  const cases = [
+    {
+      nodes: [
+        { id: "emphasis", value: "Bonjour " },
+        { id: "plain", value: ", monde" },
+      ],
+      expected: ["Bonjour", ", monde"],
+    },
+    {
+      nodes: [
+        { id: "plain", value: "Fin " },
+        { id: "emphasis", value: " ." },
+      ],
+      expected: ["Fin", "."],
+    },
+    {
+      nodes: [
+        { id: "word", value: "Bonjour " },
+        { id: "empty-style", value: "\u00a0" },
+        { id: "plain", value: ", suite" },
+      ],
+      expected: ["Bonjour", "", ", suite"],
+    },
+  ] as const;
+
+  for (const { nodes, expected } of cases) {
+    const result = runTextNodePipeline(
+      nodes,
+      IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+      { locale: "fr-FR", mode: "fix" },
+    );
+    assert.deepEqual(result.nodes.map(({ value }) => value), expected);
+    for (const node of nodes) {
+      assert.equal(
+        applyNodeChanges(
+          node.value,
+          result.changes.filter(({ segmentId }) => segmentId === node.id),
+        ),
+        result.nodes.find(({ id }) => id === node.id)?.value,
+      );
+    }
+  }
+});
+
+Deno.test("low-punctuation lint relates preceding-node whitespace", () => {
+  const result = runTextNodePipeline(
+    [
+      { id: "emphasis", value: "Bonjour " },
+      { id: "plain", value: ", monde" },
+    ],
+    IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+    { locale: "fr-FR", mode: "lint" },
+  );
+  const diagnostic = result.diagnostics.find(({ ruleId }) =>
+    ruleId === "punctuation.comma.no-space-before"
+  );
+
+  assert.equal(diagnostic?.segmentId, "plain");
+  assert.equal(diagnostic?.related?.[0]?.segmentId, "emphasis");
+  assert.deepEqual(result.changes, []);
+});
+
+Deno.test("low punctuation does not edit protected neighboring whitespace", () => {
+  const nodes = [
+    { id: "protected", value: "Code ", protected: true },
+    { id: "plain", value: ", suite" },
+  ] as const;
+  const result = runTextNodePipeline(
+    nodes,
+    IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.deepEqual(result.nodes, nodes);
+  assert.deepEqual(result.changes, []);
+});

@@ -16,31 +16,63 @@ function documentaryDefinition(id: string): RuleDefinition {
   return definition;
 }
 
+interface TextEdit {
+  readonly start: number;
+  readonly end: number;
+  readonly replacement: string;
+  readonly related?: readonly RuleApplicationSegmentEdit[];
+}
+
+const spacingCharacters = new Set(["\t", " ", "\u00a0", "\u202f"]);
+
 function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {
   const definition = documentaryDefinition(id);
-  const pattern = mark === ","
-    ? /[\t \u00a0\u202f]+,/gu
-    : /[\t \u00a0\u202f]+\./gu;
 
   return {
     definition,
     apply(value, context): RuleApplication {
-      const edits = [...value.matchAll(pattern)].map((match) => ({
-        start: match.index,
-        end: match.index + match[0].length,
-        replacement: mark,
-      }));
+      const edits: TextEdit[] = [];
+      const segmentEdits: RuleApplicationSegmentEdit[] = [];
+      for (let markIndex = 0; markIndex < value.length; markIndex++) {
+        if (value[markIndex] !== mark) continue;
+        let start = markIndex;
+        while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
+        const preceding = start === 0 ? precedingBoundary(context) : {
+          blocked: false,
+          character: value[start - 1],
+          segmentEdits: [],
+        };
+        if (preceding.blocked) continue;
+        const related = preceding.segmentEdits;
+        if (start < markIndex || related.length > 0) {
+          edits.push({
+            start,
+            end: markIndex + 1,
+            replacement: mark,
+            related,
+          });
+          segmentEdits.push(...related);
+        }
+      }
 
       return {
-        value: context.mode === "fix" ? value.replaceAll(pattern, mark) : value,
+        value: context.mode === "fix" ? applyEdits(value, edits) : value,
         edits,
+        segmentEdits,
         diagnostics: edits.length === 0
           ? undefined
-          : edits.map(({ start, end, replacement }) => ({
+          : edits.map(({ start, end, replacement, related }) => ({
             start,
             end,
             message: `Unexpected whitespace before ${mark}`,
             replacement,
+            ...(related === undefined || related.length === 0 ? {} : {
+              related: related.map(({ segmentIndex, start, end }) => ({
+                segmentIndex,
+                start,
+                end,
+              })),
+            }),
           })),
       };
     },
@@ -52,15 +84,6 @@ export const SAFE_PUNCTUATION_RULES: readonly RuntimeRule[] = [
   noSpaceBeforeRule("punctuation.comma.no-space-before", ","),
   noSpaceBeforeRule("punctuation.period.no-space-before", "."),
 ] as const;
-
-interface TextEdit {
-  readonly start: number;
-  readonly end: number;
-  readonly replacement: string;
-  readonly related?: readonly RuleApplicationSegmentEdit[];
-}
-
-const spacingCharacters = new Set(["\t", " ", "\u00a0", "\u202f"]);
 
 interface BoundaryContext {
   readonly blocked: boolean;
