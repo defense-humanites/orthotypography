@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   FRENCH_GUILLEMETS_SPACING_RULE,
+  IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
   IMPRIMERIE_NATIONALE_RULES,
   runTextNodePipeline,
 } from "../src/mod.ts";
@@ -131,4 +132,92 @@ Deno.test("changes reproduce fixes after protected classifier fragments", () => 
     result.nodes[0].value,
   );
   assert.ok(result.changes.every(({ segmentId }) => segmentId === "paragraph"));
+});
+
+Deno.test("high punctuation crosses inline formatting boundaries", () => {
+  const cases = [
+    {
+      nodes: [
+        { id: "emphasis", value: "Bonjour" },
+        { id: "plain", value: " :suite" },
+      ],
+      expected: ["Bonjour", "\u00a0: suite"],
+    },
+    {
+      nodes: [
+        { id: "plain", value: "Bonjour:" },
+        { id: "emphasis", value: "suite" },
+      ],
+      expected: ["Bonjour\u00a0: ", "suite"],
+    },
+    {
+      nodes: [
+        { id: "emphasis", value: "Bonjour " },
+        { id: "plain", value: ":suite" },
+      ],
+      expected: ["Bonjour", "\u00a0: suite"],
+    },
+    {
+      nodes: [
+        { id: "plain", value: "Bonjour :" },
+        { id: "emphasis", value: " suite" },
+      ],
+      expected: ["Bonjour\u00a0: ", "suite"],
+    },
+  ] as const;
+
+  for (const { nodes, expected } of cases) {
+    const result = runTextNodePipeline(
+      nodes,
+      IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+      { locale: "fr-FR", mode: "fix" },
+    );
+    assert.deepEqual(result.nodes.map(({ value }) => value), expected);
+    for (const node of nodes) {
+      assert.equal(
+        applyNodeChanges(
+          node.value,
+          result.changes.filter(({ segmentId }) => segmentId === node.id),
+        ),
+        result.nodes.find(({ id }) => id === node.id)?.value,
+      );
+    }
+  }
+});
+
+Deno.test("cross-segment punctuation preserves technical sequences", () => {
+  for (const nodes of [
+    [
+      { id: "left", value: "Déclaration !" },
+      { id: "right", value: "important" },
+    ],
+    [{ id: "left", value: "https" }, { id: "right", value: "://example.test" }],
+    [{ id: "left", value: "Quoi!" }, { id: "right", value: "?" }],
+  ]) {
+    const result = runTextNodePipeline(
+      nodes,
+      IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+      { locale: "fr-FR", mode: "fix" },
+    );
+    assert.deepEqual(result.nodes, nodes);
+    assert.deepEqual(result.changes, []);
+  }
+});
+
+Deno.test("cross-segment lint relates whitespace in neighboring nodes", () => {
+  const result = runTextNodePipeline(
+    [
+      { id: "emphasis", value: "Bonjour " },
+      { id: "plain", value: ":suite" },
+    ],
+    IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+    { locale: "fr-FR", mode: "lint" },
+  );
+  const diagnostic = result.diagnostics.find(({ ruleId }) =>
+    ruleId === "punctuation.colon.nbsp-before"
+  );
+
+  assert.equal(diagnostic?.segmentId, "plain");
+  assert.equal(diagnostic?.related?.[0]?.segmentId, "emphasis");
+  assert.deepEqual(result.changes, []);
 });

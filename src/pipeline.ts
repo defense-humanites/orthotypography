@@ -481,20 +481,8 @@ export function runPipeline(
     if (!rule.definition.locales.includes(options.locale)) continue;
     const mode = options.mode ?? rule.definition.defaultMode;
     appliedRuleIds.push(rule.definition.id);
-    const nextSegments: PipelineSegment[] = [];
-    const processedLengths = new Map<number, number>();
-    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-      const segment = segments[segmentIndex];
-      const nodeOffset = processedLengths.get(segment.sourceIndex) ?? 0;
-      if (segment.protected) {
-        nextSegments.push(segment);
-        processedLengths.set(
-          segment.sourceIndex,
-          nodeOffset + segment.value.length,
-        );
-        continue;
-      }
-
+    const applications = segments.map((segment, segmentIndex) => {
+      if (segment.protected) return undefined;
       const application = rule.apply(segment.value, {
         locale: options.locale,
         mode,
@@ -514,27 +502,87 @@ export function runPipeline(
           `Rule ${rule.definition.id} cannot transform and protect in one pass`,
         );
       }
-      if (application.value !== segment.value) {
-        const edits = (application.edits?.length ?? 0) > 0
-          ? application.edits as readonly RuleApplicationEdit[]
-          : [{
-            start: 0,
-            end: segment.value.length,
-            replacement: application.value,
-          }];
-        if (
-          application.edits !== undefined &&
-          applyEdits(segment.value, application.edits) !== application.value
-        ) {
-          throw new Error(
-            `Rule ${rule.definition.id} edits do not produce its value`,
-          );
+      if (
+        application.value !== segment.value &&
+        application.edits !== undefined &&
+        applyEdits(segment.value, application.edits) !== application.value
+      ) {
+        throw new Error(
+          `Rule ${rule.definition.id} edits do not produce its value`,
+        );
+      }
+      return application;
+    });
+
+    const editsBySegment = new Map<number, RuleApplicationEdit[]>();
+    const addEdit = (segmentIndex: number, edit: RuleApplicationEdit): void => {
+      const target = segments[segmentIndex];
+      if (target === undefined) {
+        throw new Error(
+          `Rule ${rule.definition.id} targets missing segment ${segmentIndex}`,
+        );
+      }
+      if (target.protected) {
+        throw new Error(
+          `Rule ${rule.definition.id} targets protected segment ${segmentIndex}`,
+        );
+      }
+      validateRange(edit.start, edit.end, target.value.length, "edit");
+      const edits = editsBySegment.get(segmentIndex) ?? [];
+      edits.push(edit);
+      editsBySegment.set(segmentIndex, edits);
+    };
+
+    if (!sourceCoordinates) {
+      for (
+        let segmentIndex = 0;
+        segmentIndex < applications.length;
+        segmentIndex++
+      ) {
+        const application = applications[segmentIndex];
+        if (application === undefined) continue;
+        const segment = segments[segmentIndex];
+        if (application.value !== segment.value) {
+          const edits = (application.edits?.length ?? 0) > 0
+            ? application.edits as readonly RuleApplicationEdit[]
+            : [{
+              start: 0,
+              end: segment.value.length,
+              replacement: application.value,
+            }];
+          for (const edit of edits) addEdit(segmentIndex, edit);
         }
-        for (
-          const edit of [...edits].sort((left, right) =>
-            right.start - left.start
-          )
-        ) {
+        if (mode === "fix") {
+          for (const edit of application.segmentEdits ?? []) {
+            addEdit(edit.segmentIndex, edit);
+          }
+        }
+      }
+    }
+
+    const nextSegments: PipelineSegment[] = [];
+    const processedLengths = new Map<number, number>();
+    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+      const segment = segments[segmentIndex];
+      const nodeOffset = processedLengths.get(segment.sourceIndex) ?? 0;
+      const application = applications[segmentIndex];
+      if (application === undefined) {
+        nextSegments.push(segment);
+        processedLengths.set(
+          segment.sourceIndex,
+          nodeOffset + segment.value.length,
+        );
+        continue;
+      }
+
+      const edits = editsBySegment.get(segmentIndex) ?? [];
+      const value = edits.length === 0
+        ? application.value
+        : applyEdits(segment.value, edits);
+      if (edits.length > 0) {
+        for (const edit of [...edits].sort((left, right) =>
+          right.start - left.start
+        )) {
           applyLedgerEdit(ledgers[segment.sourceIndex], {
             start: nodeOffset + edit.start,
             end: nodeOffset + edit.end,
@@ -544,8 +592,8 @@ export function runPipeline(
       }
       const appliedSegment: PipelineSegment = {
         ...segment,
-        value: application.value,
-        revision: application.value === segment.value
+        value,
+        revision: value === segment.value
           ? segment.revision
           : segment.revision + 1,
       };
@@ -557,7 +605,7 @@ export function runPipeline(
       );
       processedLengths.set(
         segment.sourceIndex,
-        nodeOffset + application.value.length,
+        nodeOffset + value.length,
       );
       for (const diagnostic of application.diagnostics ?? []) {
         const location = diagnosticLocation(

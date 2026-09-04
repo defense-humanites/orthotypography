@@ -37,6 +37,7 @@ export type {
   RuleApplication,
   RuleApplicationDiagnostic,
   RuleApplicationEdit,
+  RuleApplicationSegmentEdit,
   RuleContext,
   RuleDiagnostic,
   RuntimeRule,

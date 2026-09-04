@@ -21,7 +21,9 @@ The repository contains a documentary catalogue, a machine-readable rule model,
 two candidate French presets, the generic pipeline infrastructure, a
 numeric-context classifier, and executable punctuation rules. The
 source-specific high-punctuation composition protects technical and numeric
-contexts before transforming text.
+contexts before transforming text. Text-node integrations preserve inline
+formatting boundaries while punctuation and paired guillemets can inspect one
+logical run across those boundaries.
 
 ```ts
 import { IMPRIMERIE_NATIONALE_RULES, runPipeline } from "@orthotypography/core";

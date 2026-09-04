@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
   post-processing diff.
 - Let runtime rules expose precise atomic edits while retaining a conservative
   whole-fragment fallback for existing rules.
+- Apply one rule's edits as an atomic transaction across neighboring text
+  segments.
+- Normalize French high punctuation across inline formatting boundaries while
+  preserving split technical and expressive sequences.
 
 ## [0.1.0-alpha.0] - 2026-09-01
 

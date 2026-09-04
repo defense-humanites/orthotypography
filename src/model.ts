@@ -121,10 +121,17 @@ export interface RuleApplicationEdit {
   readonly replacement: string;
 }
 
+/** Atomic edit against any segment in the current rule-context snapshot. */
+export interface RuleApplicationSegmentEdit extends RuleApplicationEdit {
+  readonly segmentIndex: number;
+}
+
 export interface RuleApplication {
   readonly value: string;
   /** Precise edits used to produce value; optional for legacy rules. */
   readonly edits?: readonly RuleApplicationEdit[];
+  /** Additional edits applied atomically to other context segments. */
+  readonly segmentEdits?: readonly RuleApplicationSegmentEdit[];
   readonly diagnostics?: readonly RuleApplicationDiagnostic[];
   readonly protections?: readonly ProtectionRange[];
 }

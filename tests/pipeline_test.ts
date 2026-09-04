@@ -141,6 +141,77 @@ Deno.test("declared edits must produce the transformed value", () => {
   );
 });
 
+Deno.test("one rule transaction may edit a neighboring segment", () => {
+  const crossSegmentRule: RuntimeRule = {
+    ...cleanupRule,
+    definition: { ...cleanupRule.definition, id: "test.cross-segment" },
+    apply(value, context) {
+      return {
+        value,
+        ...(context.segmentIndex === 1
+          ? {
+            segmentEdits: [{
+              segmentIndex: 0,
+              start: 1,
+              end: 2,
+              replacement: "",
+            }],
+          }
+          : {}),
+      };
+    },
+  };
+  const result = runPipeline(
+    [{ id: "left", value: "a " }, { id: "right", value: "b" }],
+    [crossSegmentRule],
+    { locale: "fr-FR", mode: "fix" },
+  );
+
+  assert.equal(result.value, "ab");
+  assert.deepEqual(result.changes, [{
+    segmentIndex: 0,
+    segmentId: "left",
+    start: 1,
+    end: 2,
+    expected: " ",
+    replacement: "",
+    ruleIds: ["test.cross-segment"],
+  }]);
+});
+
+Deno.test("rule transactions cannot edit protected neighbors", () => {
+  const invalid: RuntimeRule = {
+    ...cleanupRule,
+    definition: { ...cleanupRule.definition, id: "test.protected-neighbor" },
+    apply(value, context) {
+      return {
+        value,
+        ...(context.segmentIndex === 1
+          ? {
+            segmentEdits: [{
+              segmentIndex: 0,
+              start: 0,
+              end: 1,
+              replacement: "x",
+            }],
+          }
+          : {}),
+      };
+    },
+  };
+
+  assert.throws(
+    () =>
+      runPipeline(
+        [{ value: "a", protected: true }, { value: "b" }],
+        [invalid],
+        { locale: "fr-FR", mode: "fix" },
+      ),
+    Error,
+    "targets protected segment",
+  );
+});
+
 Deno.test("compiled pipelines reject duplicate rule IDs", () => {
   assert.throws(
     () => compilePipeline([cleanupRule, cleanupRule]),

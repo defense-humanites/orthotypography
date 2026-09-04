@@ -68,6 +68,14 @@ même modification. Une règle tierce ancienne qui ne décrit pas ses éditions
 atomiques reste prise en charge, mais produit un remplacement conservateur du
 fragment entier.
 
+Une règle peut produire une transaction couvrant plusieurs segments de la
+même suite logique. Le pipeline évalue d’abord la règle contre un instantané
+commun, valide toutes les plages, puis applique simultanément les éditions. Une
+édition visant un segment protégé ou une plage chevauchante fait échouer la
+transaction entière. Cette capacité permet notamment de supprimer un blanc à
+la fin d’un nœud de mise en forme tout en insérant l’espace typographique dans
+le nœud portant le signe de ponctuation.
+
 ## Diagnostics liés
 
 `related` exprime les autres emplacements nécessaires à la compréhension d’un

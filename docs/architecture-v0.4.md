@@ -51,6 +51,13 @@ changement si le document a évolué depuis son analyse. Les règles tierces qui
 n’exposent pas encore leurs éditions restent compatibles au prix d’un
 remplacement de fragment moins précis.
 
+Les éditions d’une même règle forment une transaction sur l’instantané courant
+de la suite logique. Elles peuvent viser plusieurs segments non protégés ; le
+pipeline les valide et les applique ensemble avant de passer à la règle
+suivante. La ponctuation haute peut ainsi reconnaître ses voisins à travers des
+nœuds en ligne, normaliser les blancs portés par un nœud adjacent et conserver
+les exceptions techniques également réparties sur plusieurs nœuds.
+
 Le protocole de collecte et de reconstruction des nœuds est défini dans le
 [contrat d’intégration des arbres textuels](integration-contract-v0.1.md).
 `runTextNodePipeline` replie les fragments internes dans les nœuds sources sans
