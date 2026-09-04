@@ -4,8 +4,8 @@ import {
   type PipelineResult,
   type ProtectionRange,
   RULE_PHASES,
-  type RuleDiagnostic,
   type RuleApplicationEdit,
+  type RuleDiagnostic,
   type RuleMode,
   type RuntimeRule,
   type TextChange,
@@ -208,9 +208,7 @@ function applyEdits(
   let result = value;
   let previousStart = value.length + 1;
   for (
-    const edit of [...edits].sort((left, right) =>
-      right.start - left.start
-    )
+    const edit of [...edits].sort((left, right) => right.start - left.start)
   ) {
     validateRange(edit.start, edit.end, value.length, "edit");
     if (edit.end > previousStart) throw new Error("Overlapping rule edits");

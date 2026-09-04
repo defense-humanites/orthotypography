@@ -15,9 +15,9 @@ function applyNodeChanges(
   }[],
 ): string {
   let result = source;
-  for (const change of [...changes].sort((left, right) =>
-    right.start - left.start
-  )) {
+  for (
+    const change of [...changes].sort((left, right) => right.start - left.start)
+  ) {
     assert.equal(source.slice(change.start, change.end), change.expected);
     result = result.slice(0, change.start) + change.replacement +
       result.slice(change.end);
@@ -42,28 +42,31 @@ Deno.test("text-node fixes preserve tree boundaries", () => {
     { id: "closing", value: "\u00a0»" },
   ]);
   assert.equal(result.value, "«\u00a0Version 1.2.3\u00a0»");
-  assert.deepEqual(result.changes.map((change) => ({
-    segmentId: change.segmentId,
-    start: change.start,
-    end: change.end,
-    expected: change.expected,
-    replacement: change.replacement,
-  })), [
-    {
-      segmentId: "opening",
-      start: 1,
-      end: 1,
-      expected: "",
-      replacement: "\u00a0",
-    },
-    {
-      segmentId: "closing",
-      start: 0,
-      end: 0,
-      expected: "",
-      replacement: "\u00a0",
-    },
-  ]);
+  assert.deepEqual(
+    result.changes.map((change) => ({
+      segmentId: change.segmentId,
+      start: change.start,
+      end: change.end,
+      expected: change.expected,
+      replacement: change.replacement,
+    })),
+    [
+      {
+        segmentId: "opening",
+        start: 1,
+        end: 1,
+        expected: "",
+        replacement: "\u00a0",
+      },
+      {
+        segmentId: "closing",
+        start: 0,
+        end: 0,
+        expected: "",
+        replacement: "\u00a0",
+      },
+    ],
+  );
 });
 
 Deno.test("text-node lint exposes source diagnostics without mutation", () => {

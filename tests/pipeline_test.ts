@@ -12,9 +12,9 @@ function applyChanges(
   }[],
 ): string {
   let result = source;
-  for (const change of [...changes].sort((left, right) =>
-    right.start - left.start
-  )) {
+  for (
+    const change of [...changes].sort((left, right) => right.start - left.start)
+  ) {
     assert.equal(source.slice(change.start, change.end), change.expected);
     result = result.slice(0, change.start) + change.replacement +
       result.slice(change.end);
