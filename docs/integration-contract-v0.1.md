@@ -61,6 +61,11 @@ valeur initiale ; `expected` en contient la sous-chaîne exacte et sert de garde
 contre une modification concurrente. Les changements sont non chevauchants et
 doivent être appliqués par offsets décroissants dans chaque nœud.
 
+`applyTextChanges` réalise cette opération pour une chaîne ou une liste de
+segments. Il vérifie les bornes, `segmentId`, `expected`, l’absence de
+chevauchement et la protection des segments avant de retourner de nouvelles
+valeurs sans modifier les entrées.
+
 L’application de tous les changements à leurs valeurs sources reproduit
 exactement les `nodes` retournés par la même passe. `ruleIds` conserve, dans
 l’ordre, la provenance des règles ayant créé puis éventuellement affiné une

@@ -1,4 +1,5 @@
 /** Orthotypography core: source-backed, composable typographic primitives. */
+export { applyTextChanges } from "./changes.ts";
 export {
   compilePipeline,
   type PipelineOptions,

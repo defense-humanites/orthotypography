@@ -1,0 +1,96 @@
+import type { TextChange, TextSegment } from "./model.ts";
+
+function validateChange(
+  segments: readonly TextSegment[],
+  change: TextChange,
+): void {
+  if (!Number.isInteger(change.segmentIndex)) {
+    throw new Error(`Invalid change segment index: ${change.segmentIndex}`);
+  }
+  const segment = segments[change.segmentIndex];
+  if (segment === undefined) {
+    throw new Error(`Missing source segment ${change.segmentIndex}`);
+  }
+  if (change.segmentId !== undefined && change.segmentId !== segment.id) {
+    throw new Error(
+      `Change segment ID ${change.segmentId} does not match source segment ${change.segmentIndex}`,
+    );
+  }
+  if (segment.protected) {
+    throw new Error(`Change targets protected segment ${change.segmentIndex}`);
+  }
+  if (
+    !Number.isInteger(change.start) || !Number.isInteger(change.end) ||
+    change.start < 0 || change.end < change.start ||
+    change.end > segment.value.length
+  ) {
+    throw new Error(`Invalid change range in segment ${change.segmentIndex}`);
+  }
+  if (segment.value.slice(change.start, change.end) !== change.expected) {
+    throw new Error(`Stale change in segment ${change.segmentIndex}`);
+  }
+}
+
+function applySegmentChanges(
+  value: string,
+  changes: readonly TextChange[],
+  segmentIndex: number,
+): string {
+  const ordered = [...changes].sort((left, right) =>
+    left.start - right.start || left.end - right.end
+  );
+  for (let index = 1; index < ordered.length; index++) {
+    const previous = ordered[index - 1];
+    const current = ordered[index];
+    if (current.start < previous.end || current.start === previous.start) {
+      throw new Error(`Overlapping changes in segment ${segmentIndex}`);
+    }
+  }
+
+  let result = value;
+  for (const change of ordered.reverse()) {
+    result = result.slice(0, change.start) + change.replacement +
+      result.slice(change.end);
+  }
+  return result;
+}
+
+/** Applies guarded source-coordinate changes to one string. */
+export function applyTextChanges(
+  source: string,
+  changes: readonly TextChange[],
+): string;
+
+/** Applies guarded source-coordinate changes to their source segments. */
+export function applyTextChanges(
+  source: readonly TextSegment[],
+  changes: readonly TextChange[],
+): readonly TextSegment[];
+
+export function applyTextChanges(
+  source: string | readonly TextSegment[],
+  changes: readonly TextChange[],
+): string | readonly TextSegment[] {
+  const stringInput = typeof source === "string";
+  const segments: readonly TextSegment[] = stringInput
+    ? [{ value: source }]
+    : source;
+  const bySegment = new Map<number, TextChange[]>();
+
+  for (const change of changes) {
+    validateChange(segments, change);
+    const existing = bySegment.get(change.segmentIndex) ?? [];
+    existing.push(change);
+    bySegment.set(change.segmentIndex, existing);
+  }
+
+  const output = segments.map((segment, segmentIndex): TextSegment => {
+    const segmentChanges = bySegment.get(segmentIndex);
+    if (segmentChanges === undefined) return segment;
+    return {
+      ...segment,
+      value: applySegmentChanges(segment.value, segmentChanges, segmentIndex),
+    };
+  });
+  return stringInput ? output[0].value : output;
+}

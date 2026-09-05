@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add `applyTextChanges` for guarded application of source-coordinate changes
+  to strings and segmented documents.
+
 ## [0.1.0-alpha.1] - 2026-09-05
 
 - Add source-coordinate `TextChange` sets with optimistic `expected` guards.

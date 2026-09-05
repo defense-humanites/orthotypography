@@ -26,7 +26,11 @@ formatting boundaries while punctuation and paired guillemets can inspect one
 logical run across those boundaries.
 
 ```ts
-import { IMPRIMERIE_NATIONALE_RULES, runPipeline } from "@orthotypography/core";
+import {
+  applyTextChanges,
+  IMPRIMERIE_NATIONALE_RULES,
+  runPipeline,
+} from "@orthotypography/core";
 import { PRESETS, RULES } from "@orthotypography/core/catalogue";
 
 const result = runPipeline(
@@ -41,6 +45,7 @@ console.log(result.value);
 // In fix mode, source-coordinate changes can be applied individually by
 // editors while preserving stable rule provenance.
 console.log(result.changes);
+console.log(applyTextChanges("Bonjour , monde : 25%.", result.changes));
 ```
 
 See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical
