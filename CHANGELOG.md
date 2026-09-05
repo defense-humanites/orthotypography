@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.1.0-alpha.1] - 2026-09-05
+
 - Add source-coordinate `TextChange` sets with optimistic `expected` guards.
 - Compose rule provenance across successive edits without reconstructing a
   post-processing diff.
