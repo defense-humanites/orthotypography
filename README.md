@@ -51,7 +51,10 @@ console.log(applyTextChanges("Bonjour , monde : 25%.", result.changes));
 See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical
 boundaries and
 [`docs/depouillement-lexique-v0.3.md`](./docs/depouillement-lexique-v0.3.md) for
-the first French source review.
+the first French source review. The
+[`Imprimerie nationale coverage matrix`](./docs/matrice-couverture-in-2002-v0.1.md)
+tracks each documented prescription through catalogue, runtime, tests, and
+preset activation.
 
 ## Development
 

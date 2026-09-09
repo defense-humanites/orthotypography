@@ -78,7 +78,7 @@ export type UnitExpressionNode =
 
 const sourceId = "bipm-si-9-4.01" as const;
 
-export const SI_PREFIXES = [
+export const SI_PREFIXES: readonly UnitPrefixDefinition[] = [
   { symbol: "Q", name: "quetta", power: 30 },
   { symbol: "R", name: "ronna", power: 27 },
   { symbol: "Y", name: "yotta", power: 24 },
@@ -103,7 +103,7 @@ export const SI_PREFIXES = [
   { symbol: "y", name: "yocto", power: -24 },
   { symbol: "r", name: "ronto", power: -27 },
   { symbol: "q", name: "quecto", power: -30 },
-] as const satisfies readonly UnitPrefixDefinition[];
+] as const;
 
 const baseUnits = [
   ["s", "second"],

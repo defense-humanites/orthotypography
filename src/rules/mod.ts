@@ -8,5 +8,6 @@ export {
   PERCENTAGE_SPACING_RULE,
   UNIT_SPACING_RULE,
 } from "./numeric.ts";
+export { ETC_ELLIPSIS_RULE } from "./ellipsis.ts";
 export { FRENCH_GUILLEMETS_SPACING_RULE } from "./quotes.ts";
 export { IMPRIMERIE_NATIONALE_RULES } from "./presets.ts";

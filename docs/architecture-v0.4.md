@@ -89,7 +89,7 @@ import { PRESETS, RULES, SOURCES } from "@orthotypography/core/catalogue";
 
 Cette version expose l’infrastructure, les données documentaires, le registre
 versionné des unités et préfixes, le registre monétaire initial, le
-classificateur numérique, six règles
+classificateur numérique, sept règles
 exécutables de ponctuation, l’espacement des pourcentages et celui des
 guillemets français appariés. La composition `IMPRIMERIE_NATIONALE_RULES`
 protège d’abord les constructions numériques et techniques, puis applique le

@@ -2,7 +2,7 @@ import type { RuleDefinition } from "../model.ts";
 
 const frenchLocales = ["fr-FR", "fr-CA"] as const;
 
-export const RULES = [
+export const RULES: readonly RuleDefinition[] = [
   {
     id: "punctuation.comma.no-space-before",
     description: "Supprimer tout blanc précédant une virgule de phrase.",
@@ -118,6 +118,30 @@ export const RULES = [
     ],
   },
   {
+    id: "punctuation.ellipsis.after-etc.forbidden",
+    description: "Remove suspension points that follow the abbreviation etc.",
+    locales: ["fr-FR"],
+    phase: "cleanup",
+    status: "VERIFIED",
+    defaultMode: "fix",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Points de suspension",
+      },
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Abréviations/etc.",
+      },
+    ],
+    outcome: { afterEtc: "U+002E only" },
+    exceptions: [
+      "non-standalone token",
+      "technical syntax",
+      "protected content",
+    ],
+  },
+  {
     id: "quotes.french.nbsp-inner",
     description:
       "Placer une espace insécable de mots à l’intérieur des guillemets français.",
@@ -217,4 +241,4 @@ export const RULES = [
     outcome: { effect: "classification-only" },
     exceptions: ["entrée structurée par l’intégration"],
   },
-] as const satisfies readonly RuleDefinition[];
+] as const;
