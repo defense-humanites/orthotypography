@@ -35,8 +35,9 @@ adaptateurs et leur avancement sont suivis dans la
 3. **Extension atomique des règles.** L’interdiction des points de suspension
    après `etc.` a été fusionnée dans la PR nº 2. La tranche suivante,
    `space.after.comma`, possède désormais une implémentation ciblée sur la prose
-   sûre ; son examen, sa CI et sa fusion restent distincts. Choisir ensuite une
-   seule nouvelle lacune explicite de la matrice.
+   sûre dans la [PR nº 3](https://github.com/defense-humanites/orthotypography/pull/3) ;
+   son examen, sa CI et sa fusion restent distincts. Choisir ensuite une seule
+   nouvelle lacune explicite de la matrice.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite
