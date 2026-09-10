@@ -4,20 +4,20 @@ import type {
 } from "./currency-types.ts";
 
 /** Provenance of the currently checked-in monetary identity data. */
-export const CURRENCY_REGISTRY_PROVENANCE = {
+export const CURRENCY_REGISTRY_PROVENANCE: CurrencyRegistryProvenance = {
   sourceUrl:
     "https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml",
   publishedAt: null,
   retrievedAt: "2026-08-30",
   sourceSha256: null,
   scope: "subset",
-} as const satisfies CurrencyRegistryProvenance;
+} as const;
 
 /** Version of the monetary identity data represented here. */
 export const CURRENCY_REGISTRY_VERSION = "iso-4217-six-2026-08-30-subset";
 
 /** Initial audited subset of active ISO 4217 currencies used by the runtime. */
-export const CURRENCIES = [
+export const CURRENCIES: readonly CurrencyDefinition[] = [
   {
     code: "EUR",
     numericCode: "978",
@@ -53,4 +53,4 @@ export const CURRENCIES = [
     minorUnit: 2,
     sourceId: "iso-4217-six",
   },
-] as const satisfies readonly CurrencyDefinition[];
+] as const;

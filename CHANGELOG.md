@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add a source-backed coverage matrix for the Imprimerie nationale preset.
+- Remove suspension points after standalone `etc.` across unprotected text
+  segments while preserving source UTF-16 coordinates.
+- Add explicit public API types required by current Deno 2 lint checks.
+
 ## [0.1.0-alpha.2] - 2026-09-08
 
 - Add `applyTextChanges` for guarded application of source-coordinate changes

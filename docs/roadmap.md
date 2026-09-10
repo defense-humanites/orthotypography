@@ -14,6 +14,7 @@ prochaines tâches sont proposées et ne constituent pas une promesse de release
 | Normalisation           | Pipeline, classification numérique, ponctuation exécutable et traitement de suites textuelles traversant les nœuds                         | [README](../README.md), [architecture](architecture-v0.4.md)                                                           |
 | Changements localisés   | `TextChange` et `applyTextChanges` avec contrôles du texte attendu, des segments, des bornes UTF-16, des chevauchements et des protections | [Contrat](integration-contract-v0.1.md), [implémentation](../src/changes.ts)                                           |
 | Registres               | Unités et monnaies documentées ; leur présence ne signifie pas que toutes les corrections sont activées par défaut                         | [Unités](registre-unites-v0.7.md), [monnaies](registre-monnaies-v0.7.md)                                               |
+| Matrice de couverture   | Prescriptions du dépouillement reliées au catalogue, à l’exécution, aux tests, aux exclusions et au preset IN 2002                   | [Matrice](matrice-couverture-in-2002-v0.1.md)                                                                          |
 | Validation de release   | 87 tests annoncés pour alpha.2, contrôles JSR et npm                                                                                       | Notes de la release ci-dessus ; ce nombre n'est pas une nouvelle exécution des tests                                   |
 
 Le cœur reste indépendant des parseurs Markdown/HTML et des API d'éditeurs. Les
@@ -28,13 +29,12 @@ adaptateurs et leur avancement sont suivis dans la
    linguistiques nécessaires aux règles et aux tests. Terminé lorsque les
    fichiers concernés respectent `AGENTS.md` et que les commandes documentées
    correspondent au manifeste courant.
-2. **Matrice de couverture.** Relier chaque règle documentaire à son éventuelle
-   implémentation lint/fix, ses tests, ses exceptions et son activation par
-   preset. Terminé lorsque le catalogue ne laisse plus confondre règle recensée,
-   diagnostic disponible et correction automatique disponible.
-3. **Extension atomique des règles.** Choisir une règle manquante à partir de
-   cette matrice, documenter sa source et ses exclusions, puis l'implémenter
-   dans une tâche dédiée avec cas positifs, négatifs et idempotence.
+2. **Matrice de couverture.** Première version achevée dans
+   [`matrice-couverture-in-2002-v0.1.md`](matrice-couverture-in-2002-v0.1.md).
+   La maintenir à chaque ajout de catalogue, d’exécution, de test ou de preset.
+3. **Extension atomique des règles.** Première règle sélectionnée : interdiction
+   des points de suspension après `etc.`. Après validation et revue de cette
+   tranche, choisir la suivante parmi les lacunes explicites de la matrice.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite

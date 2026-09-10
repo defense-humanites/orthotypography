@@ -11,7 +11,7 @@ const commonFrenchRules = [
   { ruleId: "number.euro.nbsp-before", mode: "lint" },
 ] as const;
 
-export const PRESETS = [
+export const PRESETS: readonly PresetDefinition[] = [
   {
     id: "fr-FR/imprimerie-nationale-2002",
     locale: "fr-FR",
@@ -22,6 +22,7 @@ export const PRESETS = [
       { ruleId: "punctuation.semicolon.nnbsp-before" },
       { ruleId: "punctuation.question.nnbsp-before" },
       { ruleId: "punctuation.exclamation.nnbsp-before" },
+      { ruleId: "punctuation.ellipsis.after-etc.forbidden" },
     ],
   },
   {
@@ -36,4 +37,4 @@ export const PRESETS = [
       { ruleId: "punctuation.exclamation.nnbsp-before", mode: "lint" },
     ],
   },
-] as const satisfies readonly PresetDefinition[];
+] as const;

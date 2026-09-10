@@ -197,11 +197,11 @@ export function renderCurrencyDataModule(
       JSON.stringify(currency.name)
     },\n    minorUnit: ${minorUnit},\n    sourceId: "iso-4217-six",\n  },`;
   }).join("\n");
-  return `import type {\n  CurrencyDefinition,\n  CurrencyRegistryProvenance,\n} from "./currency-types.ts";\n\n/** Generated from SIX ISO 4217 List One. Do not edit manually. */\nexport const CURRENCY_REGISTRY_PROVENANCE = ${
+  return `import type {\n  CurrencyDefinition,\n  CurrencyRegistryProvenance,\n} from "./currency-types.ts";\n\n/** Generated from SIX ISO 4217 List One. Do not edit manually. */\nexport const CURRENCY_REGISTRY_PROVENANCE: CurrencyRegistryProvenance = ${
     JSON.stringify(provenance, null, 2)
-  } as const satisfies CurrencyRegistryProvenance;\n\nexport const CURRENCY_REGISTRY_VERSION = ${
+  } as const;\n\nexport const CURRENCY_REGISTRY_VERSION = ${
     JSON.stringify(version)
-  };\n\nexport const CURRENCIES = [\n${rows}\n] as const satisfies readonly CurrencyDefinition[];\n`;
+  };\n\nexport const CURRENCIES: readonly CurrencyDefinition[] = [\n${rows}\n] as const;\n`;
 }
 
 export function renderCurrencyDiffReport(

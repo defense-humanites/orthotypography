@@ -30,7 +30,7 @@ export interface ResolvedCurrencyNotation {
 const symbolSourceId = "oqlf-currency-symbols" as const;
 
 /** Editorial symbols are separate from ISO codes and may be ambiguous. */
-export const CURRENCY_SYMBOLS = [
+export const CURRENCY_SYMBOLS: readonly CurrencySymbolDefinition[] = [
   {
     symbol: "€",
     currencyCodes: ["EUR"],
@@ -49,7 +49,7 @@ export const CURRENCY_SYMBOLS = [
     ambiguity: "unique",
     sourceId: symbolSourceId,
   },
-] as const satisfies readonly CurrencySymbolDefinition[];
+] as const;
 
 const currenciesByCode = new Map<string, CurrencyDefinition>(
   CURRENCIES.map((currency) => [currency.code, currency] as const),

@@ -1,6 +1,6 @@
 import type { SourceDefinition } from "../model.ts";
 
-export const SOURCES = [
+export const SOURCES: readonly SourceDefinition[] = [
   {
     id: "imprimerie-nationale-2002",
     citation:
@@ -53,4 +53,4 @@ export const SOURCES = [
       "https://vitrinelinguistique.oqlf.gouv.qc.ca/21400/les-abreviations-et-les-symboles/les-symboles/ecriture-des-symboles-dunites-monetaires",
     accessedAt: "2026-08-30",
   },
-] as const satisfies readonly SourceDefinition[];
+] as const;
