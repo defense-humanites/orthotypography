@@ -21,9 +21,10 @@ The repository contains a documentary catalogue, a machine-readable rule model,
 two candidate French presets, the generic pipeline infrastructure, a
 numeric-context classifier, and executable punctuation rules. The
 source-specific high-punctuation composition protects technical and numeric
-contexts before transforming text. Text-node integrations preserve inline
-formatting boundaries while punctuation and paired guillemets can inspect one
-logical run across those boundaries.
+contexts before transforming text. The Imprimerie nationale composition also
+inserts a missing word space after a comma when prose follows. Text-node
+integrations preserve inline formatting boundaries while punctuation and paired
+guillemets can inspect one logical run across those boundaries.
 
 ```ts
 import {

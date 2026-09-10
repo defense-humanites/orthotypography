@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - Add a source-backed coverage matrix for the Imprimerie nationale preset.
 - Remove suspension points after standalone `etc.` across unprotected text
   segments while preserving source UTF-16 coordinates.
+- Insert missing spaces after commas in safe prose contexts, including across
+  unprotected text segments, while preserving numeric and technical syntax.
 - Add explicit public API types required by current Deno 2 lint checks.
 
 ## [0.1.0-alpha.2] - 2026-09-08

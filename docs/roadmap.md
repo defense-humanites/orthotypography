@@ -1,9 +1,9 @@
 # Feuille de route du cœur
 
-État vérifié le 9 septembre 2026 sur
-[`9455cb50`](https://github.com/defense-humanites/orthotypography/commit/9455cb50bbcb946a51e767d0833ccb4313cc847d),
-avant l'ajout de cette feuille de route. Ce document sert de passation ; les
-prochaines tâches sont proposées et ne constituent pas une promesse de release.
+État vérifié le 10 septembre 2026 sur
+[`eb09c854`](https://github.com/defense-humanites/orthotypography/commit/eb09c85465a555006e38c611c0ec35d2048994a6),
+après la fusion de la PR nº 2. Ce document sert de passation ; les prochaines
+tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
 
@@ -32,9 +32,11 @@ adaptateurs et leur avancement sont suivis dans la
 2. **Matrice de couverture.** Première version achevée dans
    [`matrice-couverture-in-2002-v0.1.md`](matrice-couverture-in-2002-v0.1.md).
    La maintenir à chaque ajout de catalogue, d’exécution, de test ou de preset.
-3. **Extension atomique des règles.** Première règle sélectionnée : interdiction
-   des points de suspension après `etc.`. Après validation et revue de cette
-   tranche, choisir la suivante parmi les lacunes explicites de la matrice.
+3. **Extension atomique des règles.** L’interdiction des points de suspension
+   après `etc.` a été fusionnée dans la PR nº 2. La tranche suivante,
+   `space.after.comma`, possède désormais une implémentation ciblée sur la prose
+   sûre ; son examen, sa CI et sa fusion restent distincts. Choisir ensuite une
+   seule nouvelle lacune explicite de la matrice.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite

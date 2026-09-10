@@ -19,6 +19,7 @@ export const PRESETS: readonly PresetDefinition[] = [
     status: "CANDIDATE",
     rules: [
       ...commonFrenchRules,
+      { ruleId: "punctuation.comma.space-after" },
       { ruleId: "punctuation.semicolon.nnbsp-before" },
       { ruleId: "punctuation.question.nnbsp-before" },
       { ruleId: "punctuation.exclamation.nnbsp-before" },

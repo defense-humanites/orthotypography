@@ -91,6 +91,160 @@ interface BoundaryContext {
   readonly segmentEdits: readonly RuleApplicationSegmentEdit[];
 }
 
+interface AdjacentCharacter {
+  readonly blocked: boolean;
+  readonly character?: string;
+}
+
+function characterBefore(value: string, index: number): string | undefined {
+  if (index <= 0) return undefined;
+  const finalUnit = value.charCodeAt(index - 1);
+  const start = finalUnit >= 0xdc00 && finalUnit <= 0xdfff
+    ? index - 2
+    : index - 1;
+  return value.slice(Math.max(0, start), index);
+}
+
+function characterAt(value: string, index: number): string | undefined {
+  const codePoint = value.codePointAt(index);
+  return codePoint === undefined ? undefined : String.fromCodePoint(codePoint);
+}
+
+function precedingCharacter(
+  value: string,
+  index: number,
+  context: RuleContext,
+): AdjacentCharacter {
+  if (index > 0) {
+    return { blocked: false, character: characterBefore(value, index) };
+  }
+  for (
+    let segmentIndex = context.segmentIndex - 1;
+    segmentIndex >= 0;
+    segmentIndex--
+  ) {
+    const segment = context.segments[segmentIndex];
+    if (segment.protected) return { blocked: true };
+    if (segment.value.length > 0) {
+      return {
+        blocked: false,
+        character: characterBefore(segment.value, segment.value.length),
+      };
+    }
+  }
+  return { blocked: false };
+}
+
+function followingCharacter(
+  value: string,
+  index: number,
+  context: RuleContext,
+): AdjacentCharacter {
+  if (index < value.length) {
+    return { blocked: false, character: characterAt(value, index) };
+  }
+  for (
+    let segmentIndex = context.segmentIndex + 1;
+    segmentIndex < context.segments.length;
+    segmentIndex++
+  ) {
+    const segment = context.segments[segmentIndex];
+    if (segment.protected) return { blocked: true };
+    if (segment.value.length > 0) {
+      return { blocked: false, character: characterAt(segment.value, 0) };
+    }
+  }
+  return { blocked: false };
+}
+
+function logicalTokenBefore(
+  value: string,
+  end: number,
+  context: RuleContext,
+): string {
+  let token = value.slice(0, end).match(/\S*$/u)?.[0] ?? "";
+  if (token.length < end) return token;
+
+  for (
+    let segmentIndex = context.segmentIndex - 1;
+    segmentIndex >= 0 && token.length < 256;
+    segmentIndex--
+  ) {
+    const segment = context.segments[segmentIndex];
+    if (segment.protected) break;
+    const suffix = segment.value.match(/\S*$/u)?.[0] ?? "";
+    token = suffix + token;
+    if (suffix.length < segment.value.length) break;
+  }
+  return token;
+}
+
+function isTechnicalTokenBeforeComma(token: string): boolean {
+  return /(?:[a-z][a-z0-9+.-]*:\/\/|www\.)\S*$/iu.test(token) ||
+    /^(?:\.{0,2}\/)[^\s]*$/u.test(token);
+}
+
+const textOpeningCharacters = new Set([
+  "(",
+  "[",
+  "{",
+  '"',
+  "'",
+  "«",
+  "“",
+  "‘",
+]);
+
+function beginsText(character: string): boolean {
+  return /[\p{L}\p{N}]/u.test(character) ||
+    textOpeningCharacters.has(character);
+}
+
+/** Inserts the documented word space after commas in safe prose contexts. */
+export const SPACE_AFTER_COMMA_RULE: RuntimeRule = {
+  definition: documentaryDefinition("punctuation.comma.space-after"),
+  apply(value, context): RuleApplication {
+    const edits: TextEdit[] = [];
+
+    for (let commaIndex = 0; commaIndex < value.length; commaIndex++) {
+      if (value[commaIndex] !== ",") continue;
+
+      const preceding = precedingCharacter(value, commaIndex, context);
+      const following = followingCharacter(value, commaIndex + 1, context);
+      if (preceding.blocked || following.blocked) continue;
+
+      const previous = preceding.character;
+      const next = following.character;
+      if (next === undefined || /\s/u.test(next) || !beginsText(next)) continue;
+      if (/\p{N}/u.test(previous ?? "") && /\p{N}/u.test(next)) continue;
+      if (
+        isTechnicalTokenBeforeComma(
+          logicalTokenBefore(value, commaIndex, context),
+        )
+      ) continue;
+
+      edits.push({
+        start: commaIndex + 1,
+        end: commaIndex + 1,
+        replacement: " ",
+      });
+    }
+
+    return {
+      value: context.mode === "fix" ? applyEdits(value, edits) : value,
+      edits,
+      diagnostics: edits.length === 0
+        ? undefined
+        : edits.map(({ start, end, replacement }) => ({
+          start,
+          end,
+          message: "Missing whitespace after comma",
+          replacement,
+        })),
+    };
+  },
+};
+
 function precedingBoundary(context: RuleContext): BoundaryContext {
   const segmentEdits: RuleApplicationSegmentEdit[] = [];
   for (
@@ -283,5 +437,6 @@ export const HIGH_PUNCTUATION_RULES: readonly RuntimeRule[] = [
 export const IMPRIMERIE_NATIONALE_PUNCTUATION_RULES: readonly RuntimeRule[] = [
   NUMERIC_PROTECTION_RULE,
   ...SAFE_PUNCTUATION_RULES,
+  SPACE_AFTER_COMMA_RULE,
   ...HIGH_PUNCTUATION_RULES,
 ] as const;
