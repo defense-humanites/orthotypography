@@ -293,6 +293,30 @@ export const RULES: readonly RuleDefinition[] = [
     ],
   },
   {
+    id: "number.groupDigits",
+    description:
+      "Group digits in quantities by threes on both sides of the decimal comma.",
+    locales: ["fr-FR"],
+    phase: "numeric-spacing",
+    status: "VERIFIED_SEMANTICS",
+    defaultMode: "lint",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Nombres en chiffres arabes/Nota a",
+      },
+    ],
+    outcome: { separator: "U+202F", groupSize: "3" },
+    exceptions: [
+      "years and dates",
+      "ordinals and numbering",
+      "versions and network addresses",
+      "identifiers, codes, and references",
+      "technical or protected content",
+    ],
+    dependsOn: ["classify.numeric-constructs"],
+  },
+  {
     id: "number.percent.nbsp-before",
     description:
       "Placer une espace insécable entre une valeur et le symbole pour cent.",

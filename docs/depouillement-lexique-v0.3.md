@@ -107,7 +107,12 @@ Le texte prescrit une espace « insécable et non dilatable » sans la qualifier
 - `U+202F`, dont la finesse et l’insécabilité correspondent fonctionnellement au groupement des chiffres ;
 - `U+00A0` avec une politique CSS empêchant sa dilatation, plus littérale sur le mot « insécable ».
 
-Recommandation candidate : `U+202F`, mais conserver l’état `VERIFIED_SEMANTICS` jusqu’à comparaison visuelle avec l’édition imprimée.
+La [spécification dédiée](groupement-chiffres-v0.1.md) retient `U+202F` comme
+sortie Unicode canonique candidate du projet. Ce choix traduit la fonction
+« insécable et non dilatable » et concorde avec l’encodage des exemples de
+l’édition EPUB examinée ; il ne transforme pas cette décision moderne en
+prescription historique. `U+00A0` reste accepté en entrée dans la première
+tranche diagnostique, sans normalisation automatique.
 
 ### 5.4 Points de suspension
 
@@ -168,10 +173,12 @@ Il peut passer de `BLOCKED` à `CANDIDATE`. Il ne doit pas être renommé imméd
 
 ### Nécessaire avant le premier code
 
-1. Valider le choix Unicode du groupement numérique.
-2. Vérifier la largeur typographique des espaces dans les exemples litigieux.
-3. Définir la représentation des espaces pour les sorties `unicode`, `html` et texte contraint.
-4. Convertir les vecteurs Markdown du catalogue 0.2 en données de test après décision sur ces points.
+1. Vérifier visuellement la largeur typographique de l’espace dans l’édition
+   imprimée, sans remettre en cause la distinction entre prescription et choix
+   Unicode.
+2. Définir la représentation des espaces pour les sorties `unicode`, `html` et texte contraint.
+3. Étendre prudemment le lint aux quantités autonomes après stabilisation des
+   exclusions sémantiques.
 
 ### Reportable après le noyau
 

@@ -2,7 +2,7 @@
 
 **Version :** 0.1  
 **Date de vérification :** 12 septembre 2026
-**Base examinée :** `12ef7c38e6923383c7955cd1f2c445fe6aa32b90`
+**Base examinée :** `3ac6d1b50e0f02c5be21e00323fc0615ca33c52c`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -10,6 +10,9 @@ l’Imprimerie nationale*, édition 2002
 
 **Conception des ellipses :**
 [`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md)
+
+**Spécification du groupement des chiffres :**
+[`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
 ## 1. Objet et vocabulaire
 
@@ -55,9 +58,9 @@ supplémentaires propres au comportement.
 | `dash.parenthetical.glyph` | issue de source seulement | non | non | non | le tiret source `-` est trop ambigu pour une conversion globale |
 | `dash.spacing` | issue de source seulement | non | non | non | reconnaître préalablement le tiret d’incise ; cas fermant particulier |
 | `dash.closing.beforePeriod` | issue de source seulement | non | non | non | reconnaître une incise appariée avant suppression |
-| `number.groupDigits` | issue de source seulement | non | non | non | choix Unicode et classification quantités/numérotages à stabiliser |
+| `number.groupDigits` | `number.groupDigits` | `DIGIT_GROUPING_RULE` : lint seulement, limité aux mesures, pourcentages et monnaies classifiés | `digit_grouping_test.ts`, `numeric_classifier_test.ts` | non | `U+202F` sortie canonique candidate, `U+00A0` accepté ; quantités autonomes, correction et normalisation des séparateurs reportées |
 | `number.decimalSeparator` | issue de source et classificateur | reconnaissance sans conversion | `numeric_classifier_test.ts` | non comme transformation | ne jamais convertir aveuglément versions, identifiants ou conventions citées |
-| `number.noGrouping.ordinal` | issue de source et protection partielle par classification | pas de règle de groupement à exclure actuellement | `numeric_classifier_test.ts` pour dates, versions et identifiants | non | compléter avant une future règle de groupement |
+| `number.noGrouping.ordinal` | exclusion de `number.groupDigits` et protection partielle par classification | le lint de groupement exclut les libellés de numérotage reconnus et n’examine pas les nombres autonomes | `digit_grouping_test.ts`, `numeric_classifier_test.ts` | non | années, dates, numérotations, versions, adresses, identifiants, codes et références restent exclus ; protéger structurellement les contextes connus |
 | `space.before.percent` | `number.percent.nbsp-before` | `PERCENTAGE_SPACING_RULE` : `fix` | `numeric_spacing_test.ts` | oui | valeur numérique classifiée ; identifiants et URI protégés |
 | `percent.glyph` | résultat agrégé dans `number.percent.nbsp-before` | reconnaissance de `%` et `‰`, sans conversion de glyphe | `numeric_spacing_test.ts` | oui, indirectement | aucun glyphe source alternatif défini |
 | `space.numberUnit` | `number.unit.nbsp-before` | `UNIT_SPACING_RULE` : `lint` par défaut, `fix` explicite | `unit_spacing_test.ts` | oui | registre d’unités reconnu ; angles, noms communs et symboles ambigus exclus |
@@ -118,7 +121,9 @@ coupures éditoriales non structurées restent protégées ou soumises à revue.
 2. Implémenter séparément la reconnaissance en diagnostic, la règle de glyphe,
    puis les espacements `final`, `initial` et `word` selon les niveaux de sûreté
    définis dans la spécification.
-3. Stabiliser le caractère Unicode du groupement numérique, puis compléter les
-   exclusions de numérotage avant tout mode `fix`.
+3. Étendre le lint de groupement aux quantités autonomes seulement après avoir
+   stabilisé leurs indices sémantiques et les exclusions de numérotage ; définir
+   ensuite une représentation sûre des corrections inter-segments avant tout
+   mode `fix`.
 4. Maintenir les règles d’unités et d’euro en `lint` par défaut tant que leurs
    ambiguïtés documentées ne sont pas levées.
