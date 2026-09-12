@@ -36,10 +36,12 @@ adaptateurs et leur avancement sont suivis dans la
    après `etc.` et `space.after.comma` ont été fusionnées dans les PR
    [nº 2](https://github.com/defense-humanites/orthotypography/pull/2) et
    [nº 3](https://github.com/defense-humanites/orthotypography/pull/3). Les
-   prescriptions suivant le point et la ponctuation haute possèdent désormais
-   des identifiants documentaires autonomes, sélectionnés en `manual-review`.
-   La prochaine tranche peut séparer la provenance du runtime à comportement
-   constant ou choisir une autre lacune explicite de la matrice.
+   prescriptions suivant le point et la ponctuation haute reçoivent des
+   identifiants documentaires autonomes, sélectionnés en `manual-review`, dans
+   la [PR nº 4](https://github.com/defense-humanites/orthotypography/pull/4).
+   Sa revue et sa fusion restent distinctes. La prochaine tranche peut ensuite
+   séparer la provenance du runtime à comportement constant ou choisir une
+   autre lacune explicite de la matrice.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite
