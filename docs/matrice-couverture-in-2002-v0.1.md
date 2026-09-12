@@ -14,6 +14,9 @@ l’Imprimerie nationale*, édition 2002
 **Spécification du groupement des chiffres :**
 [`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
+**PR d’implémentation candidate :**
+[nº 6](https://github.com/defense-humanites/orthotypography/pull/6)
+
 ## 1. Objet et vocabulaire
 
 Cette matrice distingue cinq niveaux qui ne doivent pas être confondus :

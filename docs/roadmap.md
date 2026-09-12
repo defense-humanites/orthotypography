@@ -45,6 +45,8 @@ adaptateurs et leur avancement sont suivis dans la
    fixe le choix de glyphe, les fonctions d’espacement, les protections et le
    découpage recommandé, sans ajouter de comportement exécutable. La
    [spécification du groupement des chiffres](groupement-chiffres-v0.1.md)
+   proposée dans la
+   [PR nº 6](https://github.com/defense-humanites/orthotypography/pull/6)
    stabilise ensuite la transposition Unicode et borne un premier lint aux
    mesures, pourcentages et monnaies classifiés. La règle reste hors preset,
    sans correction automatique ; les quantités autonomes et les autres règles
