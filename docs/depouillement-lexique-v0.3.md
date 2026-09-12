@@ -2,6 +2,7 @@
 
 **Version :** 0.3  
 **Date d’établissement :** 29 août 2026  
+**Dernière mise à jour :** 12 septembre 2026
 **Statut :** relevé primaire du périmètre microtypographique v1  
 **Profil candidat :** `fr-FR/imprimerie-nationale-2002`
 
@@ -45,7 +46,9 @@ Ces localisateurs sémantiques peuvent être complétés ultérieurement par des
 | `space.before.semicolon` | espace fine insécable | `U+202F` | `VERIFIED_MAPPING` | tableau Point-virgule |
 | `space.before.exclamation` | espace fine insécable | `U+202F` | `VERIFIED_MAPPING` | tableau Point d’exclamation |
 | `space.before.question` | espace fine insécable | `U+202F` | `VERIFIED_MAPPING` | tableau Point d’interrogation |
-| `space.after.highPunctuation` | espace justifiante | `U+0020` | `VERIFIED_MAPPING` | mêmes tableaux |
+| `space.after.semicolon` | espace justifiante | `U+0020` | `VERIFIED_MAPPING` | tableau Point-virgule |
+| `space.after.exclamation` | espace justifiante | `U+0020` | `VERIFIED_MAPPING` | tableau Point d’exclamation |
+| `space.after.question` | espace justifiante | `U+0020` | `VERIFIED_MAPPING` | tableau Point d’interrogation |
 | `space.before.colon` | espace de mots insécable | `U+00A0` | `VERIFIED_MAPPING` | tableau Deux-points |
 | `space.after.colon` | espace justifiante | `U+0020` | `VERIFIED_MAPPING` | tableau Deux-points |
 | `quotes.primary.glyphs` | guillemets français ouvrant et fermant | `U+00AB`, `U+00BB` | `VERIFIED` | Ponctuation, Citations |

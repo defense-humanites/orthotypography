@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add atomic documentary catalogue entries for word spacing after periods,
+  colons, semicolons, question marks, and exclamation marks.
 - Add a source-backed coverage matrix for the Imprimerie nationale preset.
 - Remove suspension points after standalone `etc.` across unprotected text
   segments while preserving source UTF-16 coordinates.

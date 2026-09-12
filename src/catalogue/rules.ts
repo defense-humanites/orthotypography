@@ -60,6 +60,27 @@ export const RULES: readonly RuleDefinition[] = [
     exceptions: ["abréviation", "version", "adresse IP", "syntaxe protégée"],
   },
   {
+    id: "punctuation.period.space-after",
+    description: "Require a word space after a period when text follows.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_MAPPING",
+    defaultMode: "manual-review",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Tableau Point",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "end of text",
+      "abbreviation boundary",
+      "technical syntax",
+      "protected content",
+    ],
+  },
+  {
     id: "punctuation.colon.nbsp-before",
     description:
       "Placer une espace insécable de mots avant un deux-points de phrase.",
@@ -74,9 +95,30 @@ export const RULES: readonly RuleDefinition[] = [
       },
       { sourceId: "oqlf-spacing", locator: "Deux-points" },
     ],
-    outcome: { before: "U+00A0", after: "U+0020" },
+    outcome: { before: "U+00A0" },
     exceptions: ["heure", "ratio", "URI", "port", "syntaxe protégée"],
     dependsOn: ["classify.numeric-constructs"],
+  },
+  {
+    id: "punctuation.colon.space-after",
+    description: "Require a word space after a colon when text follows.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_MAPPING",
+    defaultMode: "manual-review",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Tableau Deux-points",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "end of text",
+      "adjacent punctuation",
+      "technical syntax",
+      "protected content",
+    ],
   },
   {
     id: "punctuation.semicolon.nnbsp-before",
@@ -92,8 +134,29 @@ export const RULES: readonly RuleDefinition[] = [
       },
       { sourceId: "oqlf-space-types", locator: "Espace fine insécable" },
     ],
-    outcome: { before: "U+202F", after: "U+0020" },
+    outcome: { before: "U+202F" },
     exceptions: ["syntaxe protégée", "support contraint"],
+  },
+  {
+    id: "punctuation.semicolon.space-after",
+    description: "Require a word space after a semicolon when text follows.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_MAPPING",
+    defaultMode: "manual-review",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Tableau Point-virgule",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "end of text",
+      "adjacent punctuation",
+      "technical syntax",
+      "protected content",
+    ],
   },
   {
     id: "punctuation.question.nnbsp-before",
@@ -110,11 +173,33 @@ export const RULES: readonly RuleDefinition[] = [
       },
       { sourceId: "oqlf-space-types", locator: "Espace fine insécable" },
     ],
-    outcome: { before: "U+202F", after: "U+0020" },
+    outcome: { before: "U+202F" },
     exceptions: [
       "séquence expressive",
       "syntaxe protégée",
       "support contraint",
+    ],
+  },
+  {
+    id: "punctuation.question.space-after",
+    description:
+      "Require a word space after a question mark when text follows.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_MAPPING",
+    defaultMode: "manual-review",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Tableau Point d’interrogation",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "end of text",
+      "expressive sequence",
+      "technical syntax",
+      "protected content",
     ],
   },
   {
@@ -132,11 +217,33 @@ export const RULES: readonly RuleDefinition[] = [
       },
       { sourceId: "oqlf-space-types", locator: "Espace fine insécable" },
     ],
-    outcome: { before: "U+202F", after: "U+0020" },
+    outcome: { before: "U+202F" },
     exceptions: [
       "séquence expressive",
       "syntaxe protégée",
       "support contraint",
+    ],
+  },
+  {
+    id: "punctuation.exclamation.space-after",
+    description:
+      "Require a word space after an exclamation mark when text follows.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_MAPPING",
+    defaultMode: "manual-review",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Tableau Point d’exclamation",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "end of text",
+      "expressive sequence",
+      "technical syntax",
+      "protected content",
     ],
   },
   {
