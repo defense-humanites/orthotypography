@@ -89,13 +89,16 @@ import { PRESETS, RULES, SOURCES } from "@orthotypography/core/catalogue";
 
 Cette version expose l’infrastructure, les données documentaires, le registre
 versionné des unités et préfixes, le registre monétaire initial, le
-classificateur numérique, sept règles
+classificateur numérique, huit règles
 exécutables de ponctuation, l’espacement des pourcentages et celui des
 guillemets français appariés. La composition `IMPRIMERIE_NATIONALE_RULES`
 protège d’abord les constructions numériques et techniques, puis applique le
-sous-ensemble exécutable du preset attesté. Elle diagnostique l’espacement des
-unités et de l’euro sans les corriger par défaut. Elle ne constitue pas un
-profil français universel.
+sous-ensemble exécutable du preset attesté. La règle atomique de l’espace
+suivant la virgule agit dans la prose, y compris à une frontière de segments
+non protégés. Elle s’arrête devant une ponctuation adjacente, à une limite
+protégée et dans les constructions numériques ou techniques reconnues. La
+composition diagnostique l’espacement des unités et de l’euro sans les corriger
+par défaut. Elle ne constitue pas un profil français universel.
 
 ## Distribution
 

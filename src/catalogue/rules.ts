@@ -21,6 +21,28 @@ export const RULES: readonly RuleDefinition[] = [
     exceptions: ["séparateur décimal", "syntaxe protégée"],
   },
   {
+    id: "punctuation.comma.space-after",
+    description: "Insert a word space after a comma when text follows.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_MAPPING",
+    defaultMode: "fix",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Tableau Virgule",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "end of text",
+      "adjacent punctuation",
+      "decimal separator",
+      "technical syntax",
+      "protected content",
+    ],
+  },
+  {
     id: "punctuation.period.no-space-before",
     description: "Supprimer tout blanc précédant un point final.",
     locales: frenchLocales,

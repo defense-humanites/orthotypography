@@ -1,8 +1,8 @@
 # Matrice de couverture — Imprimerie nationale 2002
 
 **Version :** 0.1  
-**Date de vérification :** 9 septembre 2026  
-**Base examinée :** `5ad411beef95e6ec987d352ccd6d9053ceb2ffee`  
+**Date de vérification :** 10 septembre 2026
+**Base examinée :** `eb09c85465a555006e38c611c0ec35d2048994a6`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -28,11 +28,11 @@ supplémentaires propres au comportement.
 
 ## 2. Matrice
 
-| Prescription atomique du dépouillement | Catalogue machine | Exécution au 9 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
+| Prescription atomique du dépouillement | Catalogue machine | Exécution au 10 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
 |---|---|---|---|---|---|
 | `space.before.comma` | `punctuation.comma.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | décimales et syntaxe technique protégées par classification |
 | `space.before.period` | `punctuation.period.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | versions, adresses IP, URI et autres constructions classifiées |
-| `space.after.comma` | issue de source seulement | non | non | non | distinguer fin de segment, fin de texte et ponctuation adjacente |
+| `space.after.comma` | `punctuation.comma.space-after` | `SPACE_AFTER_COMMA_RULE` : `fix` contextuel | `comma_spacing_test.ts` | oui | fin de texte et ponctuation adjacente exclues ; décimales, URI, chemins et segments protégés préservés |
 | `space.after.period` | issue de source seulement | non | non | non | distinguer point final, abréviation et texte qui suit |
 | `space.before.semicolon` | `punctuation.semicolon.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée |
 | `space.before.exclamation` | `punctuation.exclamation.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et `!important` |
@@ -63,7 +63,7 @@ supplémentaires propres au comportement.
 | `space.numberEuro` | `number.euro.nbsp-before` | `EURO_SPACING_RULE` : `lint` par défaut, `fix` explicite | `euro_spacing_test.ts` | oui | montant classifié et symbole `€` non ambigu |
 | classification des constructions numériques et techniques | `classify.numeric-constructs` | `NUMERIC_PROTECTION_RULE` : classification et protection | `numeric_classifier_test.ts`, tests des règles dépendantes | oui, `manual-review` dans le catalogue | autorité documentaire sans objet direct ; statut `TO_VERIFY` maintenu |
 
-## 3. Règle retenue pour l’extension atomique
+## 3. Extensions atomiques retenues
 
 La première extension issue de cette matrice est
 `punctuation.ellipsis.after-etc.forbidden`. Le *Lexique* formule deux fois
@@ -79,10 +79,20 @@ segments textuels contigus, mais ne traverse pas un segment protégé. Les token
 plus longs, les chemins et les syntaxes techniques ne sont pas assimilés à
 l’abréviation autonome.
 
+La tranche suivante est `punctuation.comma.space-after`, identifiant autonome
+de la prescription `space.after.comma`. Elle insère `U+0020` lorsque du texte
+suit immédiatement la virgule, y compris quand ce texte commence dans un autre
+segment non protégé. Elle ne signale pas la fin du texte ni une ponctuation
+adjacente. Elle préserve les décimales réparties ou non entre segments, les URI,
+les chemins reconnus et toute limite protégée. Une syntaxe technique non
+protégée qui serait lexicalement identique à de la prose reste indécidable dans
+le cœur : l’intégration doit alors fournir un segment protégé.
+
 ## 4. Priorités révélées par la matrice
 
-1. Créer des identifiants documentaires autonomes pour les espaces suivant la
-   ponctuation basse et haute avant d’étendre leur comportement.
+1. Créer les identifiants documentaires autonomes encore manquants pour les
+   espaces suivant le point et la ponctuation haute avant d’étendre leur
+   comportement.
 2. Décider séparément le système de glyphe des points de suspension et la
    classification de leurs trois fonctions d’espacement.
 3. Stabiliser le caractère Unicode du groupement numérique, puis compléter les
