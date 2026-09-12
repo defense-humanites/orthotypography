@@ -1,8 +1,8 @@
 # Matrice de couverture — Imprimerie nationale 2002
 
 **Version :** 0.1  
-**Date de vérification :** 10 septembre 2026
-**Base examinée :** `eb09c85465a555006e38c611c0ec35d2048994a6`
+**Date de vérification :** 12 septembre 2026
+**Base examinée :** `09b599b52fd6fee20c22694b074e93275334075f`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -28,18 +28,20 @@ supplémentaires propres au comportement.
 
 ## 2. Matrice
 
-| Prescription atomique du dépouillement | Catalogue machine | Exécution au 10 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
+| Prescription atomique du dépouillement | Catalogue machine | Exécution au 12 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
 |---|---|---|---|---|---|
 | `space.before.comma` | `punctuation.comma.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | décimales et syntaxe technique protégées par classification |
 | `space.before.period` | `punctuation.period.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | versions, adresses IP, URI et autres constructions classifiées |
 | `space.after.comma` | `punctuation.comma.space-after` | `SPACE_AFTER_COMMA_RULE` : `fix` contextuel | `comma_spacing_test.ts` | oui | fin de texte et ponctuation adjacente exclues ; décimales, URI, chemins et segments protégés préservés |
-| `space.after.period` | issue de source seulement | non | non | non | distinguer point final, abréviation et texte qui suit |
+| `space.after.period` | `punctuation.period.space-after` | non ; `manual-review` documentaire | `catalogue_test.ts` pour le catalogue seulement | oui, `manual-review` | distinguer point final, abréviation et texte qui suit avant toute exécution |
 | `space.before.semicolon` | `punctuation.semicolon.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée |
 | `space.before.exclamation` | `punctuation.exclamation.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et `!important` |
 | `space.before.question` | `punctuation.question.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée |
-| `space.after.highPunctuation` | résultat agrégé dans les quatre règles de ponctuation haute | partielle : `fix` si du texte suit | `punctuation_test.ts`, `integration_test.ts` | oui, indirectement | pas d’identifiant atomique autonome ; préserver les suites expressives |
+| `space.after.semicolon` | `punctuation.semicolon.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.semicolon.nnbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | séparer ultérieurement la provenance d’exécution sans modifier la sortie |
+| `space.after.exclamation` | `punctuation.exclamation.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.exclamation.nnbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | préserver les suites expressives et `!important` lors d’une future séparation du runtime |
+| `space.after.question` | `punctuation.question.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.question.nnbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | préserver les suites expressives lors d’une future séparation du runtime |
 | `space.before.colon` | `punctuation.colon.nbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | heures, ratios, URI, ports, `::` |
-| `space.after.colon` | résultat agrégé dans `punctuation.colon.nbsp-before` | partielle : `fix` si du texte suit | `punctuation_test.ts`, `integration_test.ts` | oui, indirectement | pas d’identifiant atomique autonome |
+| `space.after.colon` | `punctuation.colon.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.colon.nbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | séparer ultérieurement la provenance d’exécution en conservant les protections techniques |
 | `quotes.primary.glyphs` | issue de source seulement | non | négatifs dans `quotes_test.ts` | non | reconnaître sans ambiguïté le rôle ouvrant ou fermant des guillemets droits |
 | `quotes.primary.innerSpacing` | `quotes.french.nbsp-inner` | `FRENCH_GUILLEMETS_SPACING_RULE` : `fix` | `quotes_test.ts`, `integration_test.ts` | oui | guillemets appariés seulement ; support contraint hors cœur |
 | `ellipsis.count` | issue de source seulement | non | non | non | ne pas confondre fonction et choix entre `...` et `…` |
@@ -88,11 +90,20 @@ les chemins reconnus et toute limite protégée. Une syntaxe technique non
 protégée qui serait lexicalement identique à de la prose reste indécidable dans
 le cœur : l’intégration doit alors fournir un segment protégé.
 
+Le catalogue distingue désormais aussi les prescriptions suivant le point, le
+deux-points, le point-virgule, le point d’interrogation et le point
+d’exclamation. Ces cinq entrées sont sélectionnées en `manual-review` dans le
+preset documentaire : aucune nouvelle correction n’est introduite. Pour les
+quatre signes de ponctuation haute, le runtime existant continue de produire
+l’espace suivante sous l’identifiant de la règle qui traite l’espace
+précédente. Cette couverture agrégée reste explicitement transitoire ; une
+future tranche pourra séparer la provenance des changements à sortie
+strictement identique.
+
 ## 4. Priorités révélées par la matrice
 
-1. Créer les identifiants documentaires autonomes encore manquants pour les
-   espaces suivant le point et la ponctuation haute avant d’étendre leur
-   comportement.
+1. Séparer, dans le runtime, la provenance des espaces précédant et suivant la
+   ponctuation haute, sans modifier les sorties ni relâcher les protections.
 2. Décider séparément le système de glyphe des points de suspension et la
    classification de leurs trois fonctions d’espacement.
 3. Stabiliser le caractère Unicode du groupement numérique, puis compléter les

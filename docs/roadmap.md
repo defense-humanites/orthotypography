@@ -1,8 +1,8 @@
 # Feuille de route du cœur
 
-État vérifié le 10 septembre 2026 sur
-[`eb09c854`](https://github.com/defense-humanites/orthotypography/commit/eb09c85465a555006e38c611c0ec35d2048994a6),
-après la fusion de la PR nº 2. Ce document sert de passation ; les prochaines
+État vérifié le 12 septembre 2026 sur
+[`09b599b`](https://github.com/defense-humanites/orthotypography/commit/09b599b52fd6fee20c22694b074e93275334075f),
+après la fusion de la PR nº 3. Ce document sert de passation ; les prochaines
 tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
@@ -10,7 +10,7 @@ tâches sont proposées et ne constituent pas une promesse de release.
 | Chantier                | État vérifié                                                                                                                               | Preuve                                                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | Distribution JavaScript | Alpha publique `0.1.0-alpha.2`, distribution JSR et npm                                                                                    | [Release](https://github.com/defense-humanites/orthotypography/releases/tag/v0.1.0-alpha.2), [manifeste](../deno.json) |
-| Catalogue documentaire  | Modèle de règles, autorités et deux presets français candidats ; couverture documentaire distincte de l'exécution                          | [Catalogue](catalogue-documentaire-v0.1.md), [catalogue français](catalogue-francais-v0.2.md)                          |
+| Catalogue documentaire  | Modèle de règles, autorités et deux presets français candidats ; prescriptions d’espacement après ponctuation représentées par des identifiants autonomes | [Catalogue](catalogue-documentaire-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Normalisation           | Pipeline, classification numérique, ponctuation exécutable et traitement de suites textuelles traversant les nœuds                         | [README](../README.md), [architecture](architecture-v0.4.md)                                                           |
 | Changements localisés   | `TextChange` et `applyTextChanges` avec contrôles du texte attendu, des segments, des bornes UTF-16, des chevauchements et des protections | [Contrat](integration-contract-v0.1.md), [implémentation](../src/changes.ts)                                           |
 | Registres               | Unités et monnaies documentées ; leur présence ne signifie pas que toutes les corrections sont activées par défaut                         | [Unités](registre-unites-v0.7.md), [monnaies](registre-monnaies-v0.7.md)                                               |
@@ -33,11 +33,13 @@ adaptateurs et leur avancement sont suivis dans la
    [`matrice-couverture-in-2002-v0.1.md`](matrice-couverture-in-2002-v0.1.md).
    La maintenir à chaque ajout de catalogue, d’exécution, de test ou de preset.
 3. **Extension atomique des règles.** L’interdiction des points de suspension
-   après `etc.` a été fusionnée dans la PR nº 2. La tranche suivante,
-   `space.after.comma`, possède désormais une implémentation ciblée sur la prose
-   sûre dans la [PR nº 3](https://github.com/defense-humanites/orthotypography/pull/3) ;
-   son examen, sa CI et sa fusion restent distincts. Choisir ensuite une seule
-   nouvelle lacune explicite de la matrice.
+   après `etc.` et `space.after.comma` ont été fusionnées dans les PR
+   [nº 2](https://github.com/defense-humanites/orthotypography/pull/2) et
+   [nº 3](https://github.com/defense-humanites/orthotypography/pull/3). Les
+   prescriptions suivant le point et la ponctuation haute possèdent désormais
+   des identifiants documentaires autonomes, sélectionnés en `manual-review`.
+   La prochaine tranche peut séparer la provenance du runtime à comportement
+   constant ou choisir une autre lacune explicite de la matrice.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite
