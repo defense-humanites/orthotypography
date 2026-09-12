@@ -2,11 +2,14 @@
 
 **Version :** 0.1  
 **Date de vérification :** 12 septembre 2026
-**Base examinée :** `09b599b52fd6fee20c22694b074e93275334075f`
+**Base examinée :** `12ef7c38e6923383c7955cd1f2c445fe6aa32b90`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
 [`depouillement-lexique-v0.3.md`](depouillement-lexique-v0.3.md)
+
+**Conception des ellipses :**
+[`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md)
 
 ## 1. Objet et vocabulaire
 
@@ -44,10 +47,10 @@ supplémentaires propres au comportement.
 | `space.after.colon` | `punctuation.colon.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.colon.nbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | séparer ultérieurement la provenance d’exécution en conservant les protections techniques |
 | `quotes.primary.glyphs` | issue de source seulement | non | négatifs dans `quotes_test.ts` | non | reconnaître sans ambiguïté le rôle ouvrant ou fermant des guillemets droits |
 | `quotes.primary.innerSpacing` | `quotes.french.nbsp-inner` | `FRENCH_GUILLEMETS_SPACING_RULE` : `fix` | `quotes_test.ts`, `integration_test.ts` | oui | guillemets appariés seulement ; support contraint hors cœur |
-| `ellipsis.count` | issue de source seulement | non | non | non | ne pas confondre fonction et choix entre `...` et `…` |
-| `ellipsis.spacing.final` | issue de source seulement | non | non | non | classifier la fonction finale avant toute suppression d’espace |
-| `ellipsis.spacing.initial` | issue de source seulement | non | non | non | classifier l’ellipse remplaçant un début de texte |
-| `ellipsis.spacing.word` | issue de source seulement | non | non | non | classifier l’ellipse tenant lieu d’un mot isolé |
+| `ellipsis.count` | non ; candidat `punctuation.ellipsis.glyph` | non | non | non | `U+2026` retenu comme sortie moderne du projet, distincte de la prescription historique des trois points |
+| `ellipsis.spacing.final` | non ; candidat `punctuation.ellipsis.final.no-space-before` | non | non | non | `fix` seulement si la fonction finale est établie ; espace après si le texte continue |
+| `ellipsis.spacing.initial` | non ; candidat `punctuation.ellipsis.initial.space-after` | non | non | non | `fix` au début structurel certain ; sinon `lint` |
+| `ellipsis.spacing.word` | non ; candidat `punctuation.ellipsis.word.space-around` | non | non | non | `manual-review` sans indice sémantique fourni par la structure |
 | interdiction des points de suspension après `etc.` | `punctuation.ellipsis.after-etc.forbidden` | `ETC_ELLIPSIS_RULE` : `fix` | `ellipsis_test.ts` | oui | token `etc.` autonome ; syntaxes techniques et segments protégés préservés |
 | `dash.parenthetical.glyph` | issue de source seulement | non | non | non | le tiret source `-` est trop ambigu pour une conversion globale |
 | `dash.spacing` | issue de source seulement | non | non | non | reconnaître préalablement le tiret d’incise ; cas fermant particulier |
@@ -100,12 +103,21 @@ précédente. Cette couverture agrégée reste explicitement transitoire ; une
 future tranche pourra séparer la provenance des changements à sortie
 strictement identique.
 
+La conception des points de suspension est stabilisée dans
+[`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md), sans ajout au
+catalogue ni au runtime. Elle choisit `U+2026` comme sortie moderne explicite,
+distingue quatre fonctions textuelles, préserve la ponctuation adjacente et
+réserve la correction automatique aux classifications certaines. Les
+séquences techniques, les suites de longueur différente de trois et les
+coupures éditoriales non structurées restent protégées ou soumises à revue.
+
 ## 4. Priorités révélées par la matrice
 
 1. Séparer, dans le runtime, la provenance des espaces précédant et suivant la
    ponctuation haute, sans modifier les sorties ni relâcher les protections.
-2. Décider séparément le système de glyphe des points de suspension et la
-   classification de leurs trois fonctions d’espacement.
+2. Implémenter séparément la reconnaissance en diagnostic, la règle de glyphe,
+   puis les espacements `final`, `initial` et `word` selon les niveaux de sûreté
+   définis dans la spécification.
 3. Stabiliser le caractère Unicode du groupement numérique, puis compléter les
    exclusions de numérotage avant tout mode `fix`.
 4. Maintenir les règles d’unités et d’euro en `lint` par défaut tant que leurs
