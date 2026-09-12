@@ -39,11 +39,12 @@ adaptateurs et leur avancement sont suivis dans la
    prescriptions suivant le point et la ponctuation haute ont reçu des
    identifiants documentaires autonomes dans la
    [PR nº 4](https://github.com/defense-humanites/orthotypography/pull/4). La
-   [conception des points de suspension](points-de-suspension-v0.1.md) fixe
-   désormais le choix de glyphe, les fonctions d’espacement, les protections et
-   le découpage recommandé, sans ajouter de comportement exécutable. Choisir
-   ensuite une seule tranche d’implémentation ou une autre lacune explicite de
-   la matrice.
+   [conception des points de suspension](points-de-suspension-v0.1.md), proposée
+   dans la [PR nº 5](https://github.com/defense-humanites/orthotypography/pull/5),
+   fixe le choix de glyphe, les fonctions d’espacement, les protections et le
+   découpage recommandé, sans ajouter de comportement exécutable. Sa revue et
+   sa fusion restent distinctes. Choisir ensuite une seule tranche
+   d’implémentation ou une autre lacune explicite de la matrice.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite
