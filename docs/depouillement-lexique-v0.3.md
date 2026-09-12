@@ -113,6 +113,12 @@ Recommandation candidate : `U+202F`, mais conserver l’état `VERIFIED_SEMANTIC
 
 Le *Lexique* prescrit la fonction et le nombre de points, non un point de code Unicode. `...` et `…` ne doivent donc pas être confondus dans les données documentaires. Le glyphe `U+2026` peut être choisi par le preset moderne, avec l’OQLF comme autorité complémentaire, mais il ne doit pas être présenté comme une citation Unicode de l’Imprimerie nationale.
 
+La [spécification de conception](points-de-suspension-v0.1.md) retient
+`U+2026` comme sortie canonique candidate du preset moderne, au moyen d’une
+règle de glyphe explicite et désactivable. Elle sépare cette transposition
+Unicode de la classification des fonctions `final`, `initial`, `word` et
+`editorial-omission`.
+
 ### 5.5 Espaces justifiantes
 
 Dans un flux Unicode ou HTML courant, l’espace justifiante après un signe est représentée par `U+0020`. La justification relève ensuite du moteur de mise en page. Elle ne doit pas être remplacée par une espace insécable.
@@ -140,7 +146,7 @@ Dans un flux Unicode ou HTML courant, l’espace justifiante après un signe est
 | espace avant `%` | `fix` après reconnaissance du nombre | concordance Lexique/OQLF |
 | espace entre nombre et unité | `fix` avec registre d’unités | éviter noms communs et identifiants |
 | position de `€` | `fix` si construction monétaire certaine | risque de modifier une donnée citée dans une autre convention |
-| conversion `...` → `…` | option de preset | le point de code n’est pas imposé par le Lexique |
+| conversion `...` → `…` | `lint`, puis `fix` après classification sûre | règle atomique de preset ; le point de code n’est pas imposé par le *Lexique* |
 | conversion de `-` en tiret | `manual-review` par défaut | caractère source trop ambigu |
 | espaces autour d’un tiret déjà reconnu | `fix` | règle du tableau, avec exception avant point final |
 
