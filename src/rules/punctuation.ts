@@ -334,9 +334,173 @@ function applyEdits(value: string, edits: readonly TextEdit[]): string {
   return result;
 }
 
-function highPunctuationRule(
+type HighPunctuationMark = ":" | ";" | "?" | "!";
+
+interface HighPunctuationContext {
+  readonly start: number;
+  readonly end: number;
+  readonly preceding: BoundaryContext;
+  readonly following: BoundaryContext;
+  readonly previous?: string;
+  readonly next?: string;
+}
+
+function inspectHighPunctuation(
+  value: string,
+  markIndex: number,
+  context: RuleContext,
+): HighPunctuationContext {
+  let start = markIndex;
+  while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
+  let end = markIndex + 1;
+  while (end < value.length && spacingCharacters.has(value[end])) end++;
+
+  const preceding = start === 0 ? precedingBoundary(context) : {
+    blocked: false,
+    character: value[start - 1],
+    segmentEdits: [],
+  };
+  const following = end === value.length ? followingBoundary(context) : {
+    blocked: false,
+    character: value[end],
+    segmentEdits: [],
+  };
+
+  return {
+    start,
+    end,
+    preceding,
+    following,
+    previous: preceding.character,
+    next: following.character,
+  };
+}
+
+function excludesHighPunctuation(
+  value: string,
+  markIndex: number,
+  context: RuleContext,
+  mark: HighPunctuationMark,
+  inspected: HighPunctuationContext,
+): boolean {
+  const { preceding, following, previous, next } = inspected;
+  if (preceding.blocked || following.blocked || previous === undefined) {
+    return true;
+  }
+  if (
+    mark === "!" &&
+    /^!important\b/iu.test(logicalSuffix(value, markIndex, context, 11))
+  ) return true;
+  if (previous === mark || next === mark) return true;
+  if (mark === ":" && (previous === ":" || next === ":" || next === "/")) {
+    return true;
+  }
+  return (mark === "?" || mark === "!") &&
+    ((previous !== undefined && "?!".includes(previous)) ||
+      (next !== undefined && "?!".includes(next)));
+}
+
+const highPunctuationOrder = new Map<HighPunctuationMark, number>([
+  [":", 0],
+  [";", 1],
+  ["?", 2],
+  ["!", 3],
+]);
+
+function isHighPunctuationMark(value?: string): value is HighPunctuationMark {
+  return value !== undefined && highPunctuationOrder.has(
+    value as HighPunctuationMark,
+  );
+}
+
+function highPunctuationRank(mark: HighPunctuationMark): number {
+  return highPunctuationOrder.get(mark) ?? -1;
+}
+
+interface PunctuationLocation {
+  readonly value: string;
+  readonly index: number;
+  readonly context: RuleContext;
+}
+
+function precedingPunctuationLocation(
+  value: string,
+  start: number,
+  context: RuleContext,
+): PunctuationLocation | undefined {
+  if (start > 0) return { value, index: start - 1, context };
+  for (
+    let segmentIndex = context.segmentIndex - 1;
+    segmentIndex >= 0;
+    segmentIndex--
+  ) {
+    const segment = context.segments[segmentIndex];
+    if (segment.protected) return undefined;
+    let index = segment.value.length;
+    while (index > 0 && spacingCharacters.has(segment.value[index - 1])) {
+      index--;
+    }
+    if (index > 0) {
+      return {
+        value: segment.value,
+        index: index - 1,
+        context: { ...context, segmentIndex },
+      };
+    }
+  }
+  return undefined;
+}
+
+function followingPunctuationLocation(
+  value: string,
+  end: number,
+  context: RuleContext,
+): PunctuationLocation | undefined {
+  if (end < value.length) return { value, index: end, context };
+  for (
+    let segmentIndex = context.segmentIndex + 1;
+    segmentIndex < context.segments.length;
+    segmentIndex++
+  ) {
+    const segment = context.segments[segmentIndex];
+    if (segment.protected) return undefined;
+    let index = 0;
+    while (
+      index < segment.value.length &&
+      spacingCharacters.has(segment.value[index])
+    ) index++;
+    if (index < segment.value.length) {
+      return {
+        value: segment.value,
+        index,
+        context: { ...context, segmentIndex },
+      };
+    }
+  }
+  return undefined;
+}
+
+function punctuationLocationIsExcluded(
+  location: PunctuationLocation,
+  mark: HighPunctuationMark,
+): boolean {
+  const inspected = inspectHighPunctuation(
+    location.value,
+    location.index,
+    location.context,
+  );
+  return excludesHighPunctuation(
+    location.value,
+    location.index,
+    location.context,
+    mark,
+    inspected,
+  );
+}
+
+function highPunctuationBeforeRule(
   id: string,
-  mark: ":" | ";" | "?" | "!",
+  mark: HighPunctuationMark,
   before: "\u00a0" | "\u202f",
 ): RuntimeRule {
   const definition = documentaryDefinition(id);
@@ -349,54 +513,34 @@ function highPunctuationRule(
 
       for (let markIndex = 0; markIndex < value.length; markIndex++) {
         if (value[markIndex] !== mark) continue;
-
-        let start = markIndex;
-        while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
-        let end = markIndex + 1;
-        while (end < value.length && spacingCharacters.has(value[end])) end++;
-
-        const preceding = start === 0 ? precedingBoundary(context) : {
-          blocked: false,
-          character: value[start - 1],
-          segmentEdits: [],
-        };
-        const following = end === value.length ? followingBoundary(context) : {
-          blocked: false,
-          character: value[end],
-          segmentEdits: [],
-        };
-        if (preceding.blocked || following.blocked) continue;
-        const previous = preceding.character;
-        const next = following.character;
-        if (previous === undefined) continue;
+        const inspected = inspectHighPunctuation(value, markIndex, context);
         if (
-          mark === "!" &&
-          /^!important\b/iu.test(logicalSuffix(value, markIndex, context, 11))
+          excludesHighPunctuation(value, markIndex, context, mark, inspected)
         ) continue;
-        if (previous === mark || next === mark) continue;
-        if (
-          mark === ":" && (previous === ":" || next === ":" || next === "/")
-        ) {
-          continue;
-        }
-        if (
-          (mark === "?" || mark === "!") &&
-          ((previous !== undefined && "?!".includes(previous)) ||
-            (next !== undefined && "?!".includes(next)))
-        ) {
-          continue;
+        if (isHighPunctuationMark(inspected.previous)) {
+          const previous = precedingPunctuationLocation(
+            value,
+            inspected.start,
+            context,
+          );
+          if (
+            previous !== undefined &&
+            highPunctuationRank(inspected.previous) >
+              highPunctuationRank(mark) &&
+            !punctuationLocationIsExcluded(previous, inspected.previous)
+          ) continue;
         }
 
-        const replacement = `${before}${mark}${next === undefined ? "" : " "}`;
-        const related = [
-          ...preceding.segmentEdits,
-          ...following.segmentEdits,
-        ];
+        const related = inspected.preceding.segmentEdits;
         if (
-          value.slice(start, end) !== replacement ||
-          related.length > 0
+          value.slice(inspected.start, markIndex) !== before || related.length
         ) {
-          edits.push({ start, end, replacement, related });
+          edits.push({
+            start: inspected.start,
+            end: markIndex,
+            replacement: before,
+            related,
+          });
           segmentEdits.push(...related);
         }
       }
@@ -410,7 +554,78 @@ function highPunctuationRule(
           : edits.map(({ start, end, replacement, related }) => ({
             start,
             end,
-            message: `Unexpected spacing around ${mark}`,
+            message: `Unexpected whitespace before ${mark}`,
+            replacement,
+            ...(related === undefined || related.length === 0 ? {} : {
+              related: related.map(({ segmentIndex, start, end }) => ({
+                segmentIndex,
+                start,
+                end,
+              })),
+            }),
+          })),
+      };
+    },
+  };
+}
+
+function highPunctuationAfterRule(
+  id: string,
+  mark: HighPunctuationMark,
+): RuntimeRule {
+  const definition = documentaryDefinition(id);
+
+  return {
+    definition,
+    apply(value, context): RuleApplication {
+      const edits: TextEdit[] = [];
+      const segmentEdits: RuleApplicationSegmentEdit[] = [];
+
+      for (let markIndex = 0; markIndex < value.length; markIndex++) {
+        if (value[markIndex] !== mark) continue;
+        const inspected = inspectHighPunctuation(value, markIndex, context);
+        if (
+          excludesHighPunctuation(value, markIndex, context, mark, inspected)
+        ) continue;
+        if (isHighPunctuationMark(inspected.next)) {
+          const next = followingPunctuationLocation(
+            value,
+            inspected.end,
+            context,
+          );
+          if (
+            next !== undefined &&
+            highPunctuationRank(inspected.next) > highPunctuationRank(mark) &&
+            !punctuationLocationIsExcluded(next, inspected.next)
+          ) continue;
+        }
+
+        const replacement = inspected.next === undefined ? "" : " ";
+        const related = inspected.following.segmentEdits;
+        if (
+          value.slice(markIndex + 1, inspected.end) !== replacement ||
+          related.length > 0
+        ) {
+          edits.push({
+            start: markIndex + 1,
+            end: inspected.end,
+            replacement,
+            related,
+          });
+          segmentEdits.push(...related);
+        }
+      }
+
+      return {
+        value: context.mode === "fix" ? applyEdits(value, edits) : value,
+        edits,
+        segmentEdits,
+        diagnostics: edits.length === 0
+          ? undefined
+          : edits.map(({ start, end, replacement, related }) => ({
+            start,
+            end,
+            message: `Unexpected whitespace after ${mark}`,
             replacement,
             ...(related === undefined || related.length === 0 ? {} : {
               related: related.map(({ segmentIndex, start, end }) => ({
@@ -427,10 +642,26 @@ function highPunctuationRule(
 
 /** Context-sensitive French high-punctuation rules. */
 export const HIGH_PUNCTUATION_RULES: readonly RuntimeRule[] = [
-  highPunctuationRule("punctuation.colon.nbsp-before", ":", "\u00a0"),
-  highPunctuationRule("punctuation.semicolon.nnbsp-before", ";", "\u202f"),
-  highPunctuationRule("punctuation.question.nnbsp-before", "?", "\u202f"),
-  highPunctuationRule("punctuation.exclamation.nnbsp-before", "!", "\u202f"),
+  highPunctuationBeforeRule("punctuation.colon.nbsp-before", ":", "\u00a0"),
+  highPunctuationAfterRule("punctuation.colon.space-after", ":"),
+  highPunctuationBeforeRule(
+    "punctuation.semicolon.nnbsp-before",
+    ";",
+    "\u202f",
+  ),
+  highPunctuationAfterRule("punctuation.semicolon.space-after", ";"),
+  highPunctuationBeforeRule(
+    "punctuation.question.nnbsp-before",
+    "?",
+    "\u202f",
+  ),
+  highPunctuationAfterRule("punctuation.question.space-after", "?"),
+  highPunctuationBeforeRule(
+    "punctuation.exclamation.nnbsp-before",
+    "!",
+    "\u202f",
+  ),
+  highPunctuationAfterRule("punctuation.exclamation.space-after", "!"),
 ] as const;
 
 /** Imprimerie nationale punctuation composition with numeric protections. */

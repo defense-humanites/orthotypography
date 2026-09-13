@@ -1,8 +1,8 @@
 # Matrice de couverture — Imprimerie nationale 2002
 
 **Version :** 0.1  
-**Date de vérification :** 12 septembre 2026
-**Base examinée :** `3ac6d1b50e0f02c5be21e00323fc0615ca33c52c`
+**Date de vérification :** 13 septembre 2026
+**Base examinée :** `56e13d5b5cada1782da51aed5d23fa51028825af`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -14,7 +14,7 @@ l’Imprimerie nationale*, édition 2002
 **Spécification du groupement des chiffres :**
 [`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
-**PR d’implémentation candidate :**
+**Dernière PR fusionnée :**
 [nº 6](https://github.com/defense-humanites/orthotypography/pull/6)
 
 ## 1. Objet et vocabulaire
@@ -37,7 +37,7 @@ supplémentaires propres au comportement.
 
 ## 2. Matrice
 
-| Prescription atomique du dépouillement | Catalogue machine | Exécution au 12 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
+| Prescription atomique du dépouillement | Catalogue machine | Exécution au 13 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
 |---|---|---|---|---|---|
 | `space.before.comma` | `punctuation.comma.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | décimales et syntaxe technique protégées par classification |
 | `space.before.period` | `punctuation.period.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | versions, adresses IP, URI et autres constructions classifiées |
@@ -46,11 +46,11 @@ supplémentaires propres au comportement.
 | `space.before.semicolon` | `punctuation.semicolon.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée |
 | `space.before.exclamation` | `punctuation.exclamation.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et `!important` |
 | `space.before.question` | `punctuation.question.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée |
-| `space.after.semicolon` | `punctuation.semicolon.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.semicolon.nnbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | séparer ultérieurement la provenance d’exécution sans modifier la sortie |
-| `space.after.exclamation` | `punctuation.exclamation.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.exclamation.nnbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | préserver les suites expressives et `!important` lors d’une future séparation du runtime |
-| `space.after.question` | `punctuation.question.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.question.nnbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | préserver les suites expressives lors d’une future séparation du runtime |
+| `space.after.semicolon` | `punctuation.semicolon.space-after` | `HIGH_PUNCTUATION_RULES` : `fix` atomique | `high_punctuation_atomicity_test.ts`, `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée ; sortie antérieure conservée |
+| `space.after.exclamation` | `punctuation.exclamation.space-after` | `HIGH_PUNCTUATION_RULES` : `fix` atomique | `high_punctuation_atomicity_test.ts`, `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives, `!important` et syntaxe protégée ; sortie antérieure conservée |
+| `space.after.question` | `punctuation.question.space-after` | `HIGH_PUNCTUATION_RULES` : `fix` atomique | `high_punctuation_atomicity_test.ts`, `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée ; sortie antérieure conservée |
 | `space.before.colon` | `punctuation.colon.nbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | heures, ratios, URI, ports, `::` |
-| `space.after.colon` | `punctuation.colon.space-after` | couverture indirecte : l’effet reste agrégé dans `punctuation.colon.nbsp-before` | `punctuation_test.ts`, `integration_test.ts` ; catalogue dans `catalogue_test.ts` | oui, `manual-review` | séparer ultérieurement la provenance d’exécution en conservant les protections techniques |
+| `space.after.colon` | `punctuation.colon.space-after` | `HIGH_PUNCTUATION_RULES` : `fix` atomique | `high_punctuation_atomicity_test.ts`, `punctuation_test.ts`, `integration_test.ts` | oui | heures, ratios, URI, ports et `::` protégés ; sortie antérieure conservée |
 | `quotes.primary.glyphs` | issue de source seulement | non | négatifs dans `quotes_test.ts` | non | reconnaître sans ambiguïté le rôle ouvrant ou fermant des guillemets droits |
 | `quotes.primary.innerSpacing` | `quotes.french.nbsp-inner` | `FRENCH_GUILLEMETS_SPACING_RULE` : `fix` | `quotes_test.ts`, `integration_test.ts` | oui | guillemets appariés seulement ; support contraint hors cœur |
 | `ellipsis.count` | non ; candidat `punctuation.ellipsis.glyph` | non | non | non | `U+2026` retenu comme sortie moderne du projet, distincte de la prescription historique des trois points |
@@ -99,15 +99,14 @@ les chemins reconnus et toute limite protégée. Une syntaxe technique non
 protégée qui serait lexicalement identique à de la prose reste indécidable dans
 le cœur : l’intégration doit alors fournir un segment protégé.
 
-Le catalogue distingue désormais aussi les prescriptions suivant le point, le
-deux-points, le point-virgule, le point d’interrogation et le point
-d’exclamation. Ces cinq entrées sont sélectionnées en `manual-review` dans le
-preset documentaire : aucune nouvelle correction n’est introduite. Pour les
-quatre signes de ponctuation haute, le runtime existant continue de produire
-l’espace suivante sous l’identifiant de la règle qui traite l’espace
-précédente. Cette couverture agrégée reste explicitement transitoire ; une
-future tranche pourra séparer la provenance des changements à sortie
-strictement identique.
+Le catalogue distingue les prescriptions suivant le point, le deux-points, le
+point-virgule, le point d’interrogation et le point d’exclamation. La règle du
+point reste en `manual-review`. Pour les quatre signes de ponctuation haute,
+les entrées documentaires sont désormais en `fix` et le preset les sélectionne
+sans surcharge de mode. Le runtime produit séparément l’espace précédente et
+l’espace suivante sous leurs identifiants propres. Les deux règles partagent
+les mêmes exclusions contextuelles : cette atomisation affine la provenance
+des diagnostics et des `TextChange` sans modifier la sortie utilisateur.
 
 La conception des points de suspension est stabilisée dans
 [`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md), sans ajout au
@@ -119,14 +118,12 @@ coupures éditoriales non structurées restent protégées ou soumises à revue.
 
 ## 4. Priorités révélées par la matrice
 
-1. Séparer, dans le runtime, la provenance des espaces précédant et suivant la
-   ponctuation haute, sans modifier les sorties ni relâcher les protections.
-2. Implémenter séparément la reconnaissance en diagnostic, la règle de glyphe,
+1. Implémenter séparément la reconnaissance en diagnostic, la règle de glyphe,
    puis les espacements `final`, `initial` et `word` selon les niveaux de sûreté
    définis dans la spécification.
-3. Étendre le lint de groupement aux quantités autonomes seulement après avoir
+2. Étendre le lint de groupement aux quantités autonomes seulement après avoir
    stabilisé leurs indices sémantiques et les exclusions de numérotage ; définir
    ensuite une représentation sûre des corrections inter-segments avant tout
    mode `fix`.
-4. Maintenir les règles d’unités et d’euro en `lint` par défaut tant que leurs
+3. Maintenir les règles d’unités et d’euro en `lint` par défaut tant que leurs
    ambiguïtés documentées ne sont pas levées.

@@ -105,7 +105,7 @@ export const RULES: readonly RuleDefinition[] = [
     locales: ["fr-FR"],
     phase: "punctuation-spacing",
     status: "VERIFIED_MAPPING",
-    defaultMode: "manual-review",
+    defaultMode: "fix",
     sources: [
       {
         sourceId: "imprimerie-nationale-2002",
@@ -119,6 +119,7 @@ export const RULES: readonly RuleDefinition[] = [
       "technical syntax",
       "protected content",
     ],
+    dependsOn: ["classify.numeric-constructs"],
   },
   {
     id: "punctuation.semicolon.nnbsp-before",
@@ -143,7 +144,7 @@ export const RULES: readonly RuleDefinition[] = [
     locales: ["fr-FR"],
     phase: "punctuation-spacing",
     status: "VERIFIED_MAPPING",
-    defaultMode: "manual-review",
+    defaultMode: "fix",
     sources: [
       {
         sourceId: "imprimerie-nationale-2002",
@@ -157,6 +158,7 @@ export const RULES: readonly RuleDefinition[] = [
       "technical syntax",
       "protected content",
     ],
+    dependsOn: ["classify.numeric-constructs"],
   },
   {
     id: "punctuation.question.nnbsp-before",
@@ -187,7 +189,7 @@ export const RULES: readonly RuleDefinition[] = [
     locales: ["fr-FR"],
     phase: "punctuation-spacing",
     status: "VERIFIED_MAPPING",
-    defaultMode: "manual-review",
+    defaultMode: "fix",
     sources: [
       {
         sourceId: "imprimerie-nationale-2002",
@@ -201,6 +203,7 @@ export const RULES: readonly RuleDefinition[] = [
       "technical syntax",
       "protected content",
     ],
+    dependsOn: ["classify.numeric-constructs"],
   },
   {
     id: "punctuation.exclamation.nnbsp-before",
@@ -231,7 +234,7 @@ export const RULES: readonly RuleDefinition[] = [
     locales: ["fr-FR"],
     phase: "punctuation-spacing",
     status: "VERIFIED_MAPPING",
-    defaultMode: "manual-review",
+    defaultMode: "fix",
     sources: [
       {
         sourceId: "imprimerie-nationale-2002",
@@ -245,6 +248,7 @@ export const RULES: readonly RuleDefinition[] = [
       "technical syntax",
       "protected content",
     ],
+    dependsOn: ["classify.numeric-constructs"],
   },
   {
     id: "punctuation.ellipsis.after-etc.forbidden",

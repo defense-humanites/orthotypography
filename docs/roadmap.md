@@ -1,8 +1,8 @@
 # Feuille de route du cœur
 
-État vérifié le 12 septembre 2026 sur
-[`3ac6d1b`](https://github.com/defense-humanites/orthotypography/commit/3ac6d1b50e0f02c5be21e00323fc0615ca33c52c),
-après la fusion de la PR nº 5. Ce document sert de passation ; les prochaines
+État vérifié le 13 septembre 2026 sur
+[`56e13d5`](https://github.com/defense-humanites/orthotypography/commit/56e13d5b5cada1782da51aed5d23fa51028825af),
+après la fusion de la PR nº 6. Ce document sert de passation ; les prochaines
 tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
@@ -16,6 +16,7 @@ tâches sont proposées et ne constituent pas une promesse de release.
 | Registres               | Unités et monnaies documentées ; leur présence ne signifie pas que toutes les corrections sont activées par défaut                         | [Unités](registre-unites-v0.7.md), [monnaies](registre-monnaies-v0.7.md)                                               |
 | Matrice de couverture   | Prescriptions du dépouillement reliées au catalogue, à l’exécution, aux tests, aux exclusions et au preset IN 2002                   | [Matrice](matrice-couverture-in-2002-v0.1.md)                                                                          |
 | Groupement des chiffres | Prescription historique et transposition Unicode spécifiées ; premier lint candidat limité aux quantités déjà classifiées, hors preset et sans correction | [Spécification](groupement-chiffres-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
+| Ponctuation haute       | Règles d’espace avant et après exécutées et diagnostiquées sous huit identifiants atomiques, à sortie inchangée ; tranche candidate en attente de revue | [Catalogue](../src/catalogue/rules.ts), [tests](../tests/high_punctuation_atomicity_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Validation de release   | 87 tests annoncés pour alpha.2, contrôles JSR et npm                                                                                       | Notes de la release ci-dessus ; ce nombre n'est pas une nouvelle exécution des tests                                   |
 
 Le cœur reste indépendant des parseurs Markdown/HTML et des API d'éditeurs. Les
@@ -44,13 +45,17 @@ adaptateurs et leur avancement sont suivis dans la
    dans la [PR nº 5](https://github.com/defense-humanites/orthotypography/pull/5),
    fixe le choix de glyphe, les fonctions d’espacement, les protections et le
    découpage recommandé, sans ajouter de comportement exécutable. La
-   [spécification du groupement des chiffres](groupement-chiffres-v0.1.md)
-   proposée dans la
-   [PR nº 6](https://github.com/defense-humanites/orthotypography/pull/6)
+   [spécification du groupement des chiffres](groupement-chiffres-v0.1.md),
+   fusionnée dans la
+   [PR nº 6](https://github.com/defense-humanites/orthotypography/pull/6),
    stabilise ensuite la transposition Unicode et borne un premier lint aux
    mesures, pourcentages et monnaies classifiés. La règle reste hors preset,
    sans correction automatique ; les quantités autonomes et les autres règles
-   numériques demeurent exclues.
+   numériques demeurent exclues. La présente tranche candidate atomise ensuite
+   l’exécution des espaces suivant les quatre signes de ponctuation haute sous
+   leurs identifiants documentaires propres. Elle conserve l’ordre, les
+   protections et les sorties du preset ; seule la provenance des diagnostics
+   et des changements est affinée.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite
