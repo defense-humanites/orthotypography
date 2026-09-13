@@ -51,6 +51,9 @@ Deno.test("numeric classifier identifies transformable candidates", () => {
     ["25 GBP", "currency"],
     ["25 €", "currency"],
     ["€25", "currency"],
+    ["12 345 kg", "measurement"],
+    ["12 345,678 9 %", "percentage"],
+    ["12 345 CAD", "currency"],
   ];
 
   for (const [input, kind] of vectors) {

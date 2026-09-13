@@ -13,12 +13,18 @@ interface NumericMatcher {
   readonly accept?: (value: string) => boolean;
 }
 
+const numericSpacingSource = String.raw`[\t \u00a0\u202f]`;
+const integerSource = String.raw`\d+(?:${numericSpacingSource}\d{3})*`;
+const fractionSource = String.raw`\d+(?:${numericSpacingSource}\d{1,3})*`;
+export const numericValueSource = String
+  .raw`${integerSource}(?:[.,]${fractionSource})?`;
+
 const unitAtomSource = String.raw`[\p{L}µΩ°′″]+(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?`;
 const unitPrimarySource = String
   .raw`(?:${unitAtomSource}|\((?:${unitAtomSource})(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*${unitAtomSource})*\)(?:[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)`;
 const measurementPattern = new RegExp(
   String
-    .raw`\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*${unitPrimarySource}(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*${unitPrimarySource})*(?![\p{L}\p{N}µΩ°′″⁰¹²³⁴⁵⁶⁷⁸⁹⁻⋅/·*^()])`,
+    .raw`\b${numericValueSource}[\t \u00a0\u202f]*${unitPrimarySource}(?:[\t \u00a0\u202f]*[⋅/][\t \u00a0\u202f]*${unitPrimarySource})*(?![\p{L}\p{N}µΩ°′″⁰¹²³⁴⁵⁶⁷⁸⁹⁻⋅/·*^()])`,
   "gu",
 );
 
@@ -69,18 +75,27 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "percentage",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[%‰]/gu,
+    pattern: new RegExp(
+      String.raw`\b${numericValueSource}[\t \u00a0\u202f]*[%‰]`,
+      "gu",
+    ),
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /[€$£][\t \u00a0\u202f]*\d+(?:[.,]\d+)?\b/gu,
+    pattern: new RegExp(
+      String.raw`[€$£][\t \u00a0\u202f]*${numericValueSource}\b`,
+      "gu",
+    ),
     accept: (value) => resolveCurrencyNotation(value[0]) !== null,
   },
   {
     kind: "currency",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[A-Z]{3}\b/gu,
+    pattern: new RegExp(
+      String.raw`\b${numericValueSource}[\t \u00a0\u202f]*[A-Z]{3}\b`,
+      "gu",
+    ),
     accept: (value) => {
       const code = /[A-Z]{3}$/u.exec(value)?.[0];
       return code !== undefined && resolveCurrencyNotation(code) !== null;
@@ -89,7 +104,10 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "currency",
     disposition: "target",
-    pattern: /\b\d+(?:[.,]\d+)?[\t \u00a0\u202f]*[€$£]/gu,
+    pattern: new RegExp(
+      String.raw`\b${numericValueSource}[\t \u00a0\u202f]*[€$£]`,
+      "gu",
+    ),
     accept: (value) => resolveCurrencyNotation(value.at(-1) ?? "") !== null,
   },
   {
@@ -97,9 +115,10 @@ const MATCHERS: readonly NumericMatcher[] = [
     disposition: "target",
     pattern: measurementPattern,
     accept: (value) => {
-      const expression = /^\d+(?:[.,]\d+)?[\t \u00a0\u202f]*(.+)$/u.exec(
-        value,
-      )?.[1];
+      const expression = new RegExp(
+        String.raw`^${numericValueSource}[\t \u00a0\u202f]*(.+)$`,
+        "u",
+      ).exec(value)?.[1];
       return expression !== undefined &&
         resolveUnitExpression(expression)?.spacing === "space";
     },
@@ -107,7 +126,10 @@ const MATCHERS: readonly NumericMatcher[] = [
   {
     kind: "decimal",
     disposition: "protect",
-    pattern: /\b\d+[.,]\d+\b/gu,
+    pattern: new RegExp(
+      String.raw`\b${integerSource}[.,]${fractionSource}\b`,
+      "gu",
+    ),
   },
 ] as const;
 

@@ -5,6 +5,7 @@ export {
   SPACE_AFTER_COMMA_RULE,
 } from "./punctuation.ts";
 export {
+  DIGIT_GROUPING_RULE,
   EURO_SPACING_RULE,
   PERCENTAGE_SPACING_RULE,
   UNIT_SPACING_RULE,

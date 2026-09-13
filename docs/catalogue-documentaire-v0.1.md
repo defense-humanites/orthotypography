@@ -88,7 +88,7 @@ Un guide administratif ne devient donc pas automatiquement le preset général d
 | `space.after.punctuation` | Une espace sécable après la ponctuation lorsqu'un nouveau segment suit | Six variantes | `contextual` | `VERIFIED` partiel | Exceptions : fin de bloc, ponctuation adjacente, décimales, URL, heures |
 | `space.numberUnit` | Une espace insécable entre valeur et symbole d'unité | `fr-CA` | `safe` si unité reconnue | `VERIFIED` | `SRC-OQLF-SPACING`, `SRC-OQLF-WEB` ; extension aux autres variantes à documenter |
 | `space.numberPercent` | Une espace insécable entre nombre et `%` | `fr-CA` | `safe` si nombre reconnu | `VERIFIED` | `SRC-OQLF-SPACING`; ne pas généraliser à l'anglais |
-| `space.groupDigits` | Grouper les grands nombres avec une espace insécable selon le preset | `fr-CA` | `contextual` | `VERIFIED` partiel | `SRC-OQLF-WEB`; seuils et exceptions à préciser |
+| `number.groupDigits` | Grouper par trois les chiffres des quantités, de part et d’autre de la virgule | `fr-FR`, extension `fr-CA` à comparer | `diagnostic-only` initialement | `VERIFIED_SEMANTICS` pour IN 2002 | `SRC-IN-LEXIQUE` ; `U+202F` est la sortie projet candidate, `U+00A0` reste accepté ; voir la [spécification](groupement-chiffres-v0.1.md) |
 
 ### 4.2 Français — ponctuation et guillemets
 
