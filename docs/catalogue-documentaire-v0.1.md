@@ -94,11 +94,14 @@ Un guide administratif ne devient donc pas automatiquement le preset général d
 
 | ID atomique proposé | `fr-CA` | `fr-FR` | Force | État | Sources / observations |
 |---|---|---|---|---|---|
-| `punctuation.colon.spaceBefore` | NBSP `U+00A0` | À établir entre NBSP et NNBSP selon la marche | `safe` après analyse du contexte | `VERIFIED` / `TO_VERIFY` | `SRC-OQLF-SPACING`, `SRC-OQLF-COLON` |
-| `punctuation.colon.spaceAfter` | Espace sécable | Probablement espace sécable | `safe` | `VERIFIED` / `TO_VERIFY` | Exceptions : heures, ratios, URL, émoticônes |
-| `punctuation.semicolon.spaceBefore` | aucune ou fine ; fine insécable préférée en composition | Fine insécable généralement attendue, à confirmer | `editorial` | `DIVERGENT` | `SRC-OQLF-SPACING`, `SRC-OQLF-SPACE-TYPES` |
-| `punctuation.question.spaceBefore` | aucune ou fine ; fine insécable préférée en composition | Fine insécable généralement attendue, à confirmer | `editorial` | `DIVERGENT` | `SRC-OQLF-SPACING`, `SRC-OQLF-SPACE-TYPES` |
-| `punctuation.exclamation.spaceBefore` | aucune ou fine ; fine insécable préférée en composition | Fine insécable généralement attendue, à confirmer | `editorial` | `DIVERGENT` | `SRC-OQLF-SPACING`, `SRC-OQLF-SPACE-TYPES` |
+| `punctuation.colon.nbsp-before` | NBSP `U+00A0` | NBSP `U+00A0` dans le preset IN 2002 | `safe` après classification | `VERIFIED_MAPPING`, `fix` | `SRC-OQLF-SPACING`, `SRC-OQLF-COLON`, `SRC-IN-LEXIQUE` ; heures, ratios et syntaxes techniques exclus |
+| `punctuation.colon.space-after` | Espace sécable `U+0020` | Espace sécable `U+0020` | `safe` après classification | `VERIFIED_MAPPING`, `fix` | Exécutée séparément de l’espace précédente ; mêmes exclusions techniques |
+| `punctuation.semicolon.nnbsp-before` | aucune ou fine ; fine insécable préférée en composition | Fine insécable `U+202F` dans le preset IN 2002 | `editorial` selon le preset | `VERIFIED_MAPPING`, `fix` pour IN 2002 | `SRC-OQLF-SPACING`, `SRC-OQLF-SPACE-TYPES`, `SRC-IN-LEXIQUE` |
+| `punctuation.semicolon.space-after` | Espace sécable `U+0020` | Espace sécable `U+0020` | `safe` après classification | `VERIFIED_MAPPING`, `fix` | Exécutée et diagnostiquée sous son identifiant propre |
+| `punctuation.question.nnbsp-before` | aucune ou fine ; fine insécable préférée en composition | Fine insécable `U+202F` dans le preset IN 2002 | `editorial` selon le preset | `VERIFIED_MAPPING`, `fix` pour IN 2002 | Suites expressives et syntaxes protégées exclues |
+| `punctuation.question.space-after` | Espace sécable `U+0020` | Espace sécable `U+0020` | `safe` après classification | `VERIFIED_MAPPING`, `fix` | Exécutée séparément ; suites expressives préservées |
+| `punctuation.exclamation.nnbsp-before` | aucune ou fine ; fine insécable préférée en composition | Fine insécable `U+202F` dans le preset IN 2002 | `editorial` selon le preset | `VERIFIED_MAPPING`, `fix` pour IN 2002 | Suites expressives, `!important` et syntaxes protégées exclus |
+| `punctuation.exclamation.space-after` | Espace sécable `U+0020` | Espace sécable `U+0020` | `safe` après classification | `VERIFIED_MAPPING`, `fix` | Exécutée séparément ; suites expressives et `!important` préservés |
 | `quotes.primary.glyphs` | `«` et `»` | `«` et `»` attendu | `contextual` | `VERIFIED` / `TO_VERIFY` | `SRC-OQLF-QUOTES`; source `fr-FR` à acquérir |
 | `quotes.primary.innerSpacing` | NBSP de part et d'autre du contenu | Traditionnellement espace insécable ou fine insécable selon marche | `contextual` | `VERIFIED` / `TO_VERIFY` | `SRC-OQLF-QUOTES`; le choix du point de code doit être explicite |
 | `quotes.secondary.glyphs` | doubles anglais, puis simples au niveau suivant | À documenter selon marche | `editorial` | `VERIFIED` / `TO_VERIFY` | `SRC-OQLF-QUOTES` |

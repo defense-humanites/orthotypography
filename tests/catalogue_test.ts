@@ -5,6 +5,7 @@ import {
   SOURCES,
   validateCatalogue,
 } from "../src/catalogue/mod.ts";
+import type { PresetRuleSelection } from "../src/model.ts";
 
 Deno.test("the documentary catalogue is internally consistent", () => {
   assert.deepEqual(validateCatalogue(SOURCES, RULES, PRESETS), []);
@@ -39,11 +40,18 @@ Deno.test("the Imprimerie nationale preset catalogues atomic post-punctuation sp
   for (const ruleId of ruleIds) {
     const rule = RULES.find((candidate) => candidate.id === ruleId);
     assert.ok(rule, `missing documentary rule ${ruleId}`);
-    assert.equal(rule.defaultMode, "manual-review");
+    assert.equal(
+      rule.defaultMode,
+      ruleId === "punctuation.period.space-after" ? "manual-review" : "fix",
+    );
     assert.deepEqual(rule.outcome, { after: "U+0020" });
-    assert.ok(
-      preset.rules.some((selection) => selection.ruleId === ruleId),
-      `missing preset selection ${ruleId}`,
+    const presetSelection: PresetRuleSelection | undefined = preset.rules.find(
+      (candidate) => candidate.ruleId === ruleId,
+    );
+    assert.ok(presetSelection, `missing preset selection ${ruleId}`);
+    assert.equal(
+      presetSelection.mode,
+      ruleId === "punctuation.period.space-after" ? "manual-review" : undefined,
     );
   }
 

@@ -128,7 +128,7 @@ Deno.test("high punctuation supports lint mode", () => {
   );
 
   assert.equal(result.value, input);
-  assert.equal(result.diagnostics.length, 3);
+  assert.equal(result.diagnostics.length, 4);
 });
 
 Deno.test("French punctuation rules do not run for another locale", () => {
