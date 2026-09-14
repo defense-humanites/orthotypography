@@ -68,3 +68,24 @@ Deno.test("the Imprimerie nationale preset catalogues atomic post-punctuation sp
     assert.equal(Object.hasOwn(rule.outcome, "after"), false);
   }
 });
+
+Deno.test("ellipsis glyph and spacing functions are catalogued but not selected", () => {
+  const expected = new Map([
+    ["punctuation.ellipsis.glyph", "lint"],
+    ["punctuation.ellipsis.final.no-space-before", "fix"],
+    ["punctuation.ellipsis.initial.space-after", "lint"],
+    ["punctuation.ellipsis.word.space-around", "manual-review"],
+  ]);
+
+  for (const [ruleId, defaultMode] of expected) {
+    const rule = RULES.find((candidate) => candidate.id === ruleId);
+    assert.ok(rule, `missing documentary rule ${ruleId}`);
+    assert.equal(rule.defaultMode, defaultMode);
+    assert.ok(
+      PRESETS.every((preset) =>
+        preset.rules.every((selection) => selection.ruleId !== ruleId)
+      ),
+      `${ruleId} must remain outside every preset`,
+    );
+  }
+});

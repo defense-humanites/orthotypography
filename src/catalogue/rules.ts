@@ -251,6 +251,96 @@ export const RULES: readonly RuleDefinition[] = [
     dependsOn: ["classify.numeric-constructs"],
   },
   {
+    id: "punctuation.ellipsis.glyph",
+    description:
+      "Prefer U+2026 for a conservatively recognized ellipsis represented by exactly three U+002E characters.",
+    locales: ["fr-FR"],
+    phase: "glyphs",
+    status: "VERIFIED_SEMANTICS",
+    defaultMode: "lint",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Points de suspension",
+      },
+    ],
+    outcome: { glyph: "U+2026", sourceSequence: "U+002E U+002E U+002E" },
+    exceptions: [
+      "ambiguous function",
+      "etc. abbreviation",
+      "technical syntax",
+      "editorial omission in brackets",
+      "protected content",
+    ],
+    dependsOn: ["classify.numeric-constructs"],
+  },
+  {
+    id: "punctuation.ellipsis.final.no-space-before",
+    description:
+      "Require no whitespace before an ellipsis with an established final function.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_SEMANTICS",
+    defaultMode: "fix",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Points de suspension",
+      },
+    ],
+    outcome: { before: "" },
+    exceptions: [
+      "unestablished function",
+      "technical syntax",
+      "editorial omission in brackets",
+      "protected content",
+    ],
+  },
+  {
+    id: "punctuation.ellipsis.initial.space-after",
+    description:
+      "Require a word space after an ellipsis replacing a structurally established beginning.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_SEMANTICS",
+    defaultMode: "lint",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Points de suspension",
+      },
+    ],
+    outcome: { after: "U+0020" },
+    exceptions: [
+      "unestablished structural beginning",
+      "technical syntax",
+      "editorial omission in brackets",
+      "protected content",
+    ],
+  },
+  {
+    id: "punctuation.ellipsis.word.space-around",
+    description:
+      "Require word spaces around an ellipsis established as replacing one word.",
+    locales: ["fr-FR"],
+    phase: "punctuation-spacing",
+    status: "VERIFIED_SEMANTICS",
+    defaultMode: "manual-review",
+    sources: [
+      {
+        sourceId: "imprimerie-nationale-2002",
+        locator: "Ponctuation/Points de suspension",
+      },
+    ],
+    outcome: { before: "U+0020", after: "U+0020" },
+    exceptions: [
+      "missing semantic evidence",
+      "technical syntax",
+      "editorial omission in brackets",
+      "protected content",
+    ],
+  },
+  {
     id: "punctuation.ellipsis.after-etc.forbidden",
     description: "Remove suspension points that follow the abbreviation etc.",
     locales: ["fr-FR"],

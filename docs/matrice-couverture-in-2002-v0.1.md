@@ -1,8 +1,8 @@
 # Matrice de couverture — Imprimerie nationale 2002
 
 **Version :** 0.1  
-**Date de vérification :** 13 septembre 2026
-**Base examinée :** `56e13d5b5cada1782da51aed5d23fa51028825af`
+**Date de vérification :** 14 septembre 2026
+**Base examinée :** `8870bd4a04f0ae9523c01bdf886e60f037557956`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -15,15 +15,20 @@ l’Imprimerie nationale*, édition 2002
 [`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
 **Dernière PR fusionnée :**
-[nº 6](https://github.com/defense-humanites/orthotypography/pull/6)
+[nº 7](https://github.com/defense-humanites/orthotypography/pull/7)
 
 ## 1. Objet et vocabulaire
 
-Cette matrice distingue cinq niveaux qui ne doivent pas être confondus :
+Cette matrice distingue huit niveaux qui ne doivent pas être confondus :
 
 - **attesté** : la prescription figure dans le dépouillement de la source ;
 - **catalogué** : un `RuleDefinition` machine la représente, seul ou avec
   d’autres prescriptions proches ;
+- **reconnu** : un mécanisme interne classe la séquence sans constituer à lui
+  seul un signal destiné à l’utilisateur ;
+- **diagnostiqué** : un `RuntimeRule` émet un diagnostic sans nécessairement
+  proposer ou appliquer une correction ;
+- **corrigé** : un `RuntimeRule` produit une modification en mode `fix` ;
 - **exécutable** : un `RuntimeRule` produit un diagnostic ou une correction ;
 - **testé** : un test automatisé couvre le comportement indiqué ;
 - **activé** : le preset documentaire et la composition exécutable de
@@ -53,10 +58,10 @@ supplémentaires propres au comportement.
 | `space.after.colon` | `punctuation.colon.space-after` | `HIGH_PUNCTUATION_RULES` : `fix` atomique | `high_punctuation_atomicity_test.ts`, `punctuation_test.ts`, `integration_test.ts` | oui | heures, ratios, URI, ports et `::` protégés ; sortie antérieure conservée |
 | `quotes.primary.glyphs` | issue de source seulement | non | négatifs dans `quotes_test.ts` | non | reconnaître sans ambiguïté le rôle ouvrant ou fermant des guillemets droits |
 | `quotes.primary.innerSpacing` | `quotes.french.nbsp-inner` | `FRENCH_GUILLEMETS_SPACING_RULE` : `fix` | `quotes_test.ts`, `integration_test.ts` | oui | guillemets appariés seulement ; support contraint hors cœur |
-| `ellipsis.count` | non ; candidat `punctuation.ellipsis.glyph` | non | non | non | `U+2026` retenu comme sortie moderne du projet, distincte de la prescription historique des trois points |
-| `ellipsis.spacing.final` | non ; candidat `punctuation.ellipsis.final.no-space-before` | non | non | non | `fix` seulement si la fonction finale est établie ; espace après si le texte continue |
-| `ellipsis.spacing.initial` | non ; candidat `punctuation.ellipsis.initial.space-after` | non | non | non | `fix` au début structurel certain ; sinon `lint` |
-| `ellipsis.spacing.word` | non ; candidat `punctuation.ellipsis.word.space-around` | non | non | non | `manual-review` sans indice sémantique fourni par la structure |
+| `ellipsis.count` | `punctuation.ellipsis.glyph` | `ELLIPSIS_RECOGNITION_RULE` : reconnaissance de `U+2026` ou exactement trois `U+002E` ; lint des seuls trois points ASCII classés `final` ou `initial` certains ; aucune correction | `ellipsis_recognition_test.ts`, `catalogue_test.ts` | non | `U+2026` est la sortie moderne projetée ; conversion reportée ; `etc.`, suites de longueur différente, syntaxes techniques, coupures entre crochets et limites protégées exclues |
+| `ellipsis.spacing.final` | `punctuation.ellipsis.final.no-space-before` | fonction `final` reconnue en interne lorsque l’ellipse est attachée à une lettre et possède une limite sûre ; aucun diagnostic d’espacement, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance | non | exécution de l’espacement reportée ; cas collés des deux côtés conservés comme ambigus |
+| `ellipsis.spacing.initial` | `punctuation.ellipsis.initial.space-after` | fonction `initial` reconnue en interne au début structurel certain ; aucun diagnostic d’espacement, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance, y compris inter-segments | non | exécution de l’espacement reportée ; un simple délimiteur ouvrant ne suffit pas |
+| `ellipsis.spacing.word` | `punctuation.ellipsis.word.space-around` | fonction `word` reconnue en interne mais marquée indéterminée ; aucun diagnostic, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance et l’indétermination | non | indice sémantique absent ; maintien en `manual-review` documentaire |
 | interdiction des points de suspension après `etc.` | `punctuation.ellipsis.after-etc.forbidden` | `ETC_ELLIPSIS_RULE` : `fix` | `ellipsis_test.ts` | oui | token `etc.` autonome ; syntaxes techniques et segments protégés préservés |
 | `dash.parenthetical.glyph` | issue de source seulement | non | non | non | le tiret source `-` est trop ambigu pour une conversion globale |
 | `dash.spacing` | issue de source seulement | non | non | non | reconnaître préalablement le tiret d’incise ; cas fermant particulier |
@@ -109,18 +114,22 @@ les mêmes exclusions contextuelles : cette atomisation affine la provenance
 des diagnostics et des `TextChange` sans modifier la sortie utilisateur.
 
 La conception des points de suspension est stabilisée dans
-[`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md), sans ajout au
-catalogue ni au runtime. Elle choisit `U+2026` comme sortie moderne explicite,
-distingue quatre fonctions textuelles, préserve la ponctuation adjacente et
-réserve la correction automatique aux classifications certaines. Les
-séquences techniques, les suites de longueur différente de trois et les
-coupures éditoriales non structurées restent protégées ou soumises à revue.
+[`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md). Sa première
+tranche d’implémentation ajoute quatre définitions au catalogue et une
+classification interne `final`, `initial`, `word` ou `unknown`. Le runtime
+diagnostique uniquement les trois `U+002E` des fonctions finales ou initiales
+certaines. Il reconnaît aussi `U+2026`, mais ne signale pas un glyphe déjà
+canonique. Il ne produit ni remplacement, ni `TextChange`, ni correction
+d’espacement et ne rejoint pas `IMPRIMERIE_NATIONALE_RULES`. Les syntaxes
+techniques, les suites de longueur différente de trois, `etc...`, les coupures
+éditoriales entre crochets et les séquences interrompues par une protection
+sont exclues ; la ponctuation adjacente est laissée intacte.
 
 ## 4. Priorités révélées par la matrice
 
-1. Implémenter séparément la reconnaissance en diagnostic, la règle de glyphe,
-   puis les espacements `final`, `initial` et `word` selon les niveaux de sûreté
-   définis dans la spécification.
+1. Après la reconnaissance et son lint conservateur, implémenter séparément la
+   correction de glyphe, puis les espacements `final`, `initial` et `word`
+   selon les niveaux de sûreté définis dans la spécification.
 2. Étendre le lint de groupement aux quantités autonomes seulement après avoir
    stabilisé leurs indices sémantiques et les exclusions de numérotage ; définir
    ensuite une représentation sûre des corrections inter-segments avant tout

@@ -1,8 +1,8 @@
 # Feuille de route du cœur
 
-État vérifié le 13 septembre 2026 sur
-[`56e13d5`](https://github.com/defense-humanites/orthotypography/commit/56e13d5b5cada1782da51aed5d23fa51028825af),
-après la fusion de la PR nº 6. Ce document sert de passation ; les prochaines
+État vérifié le 14 septembre 2026 sur
+[`8870bd4`](https://github.com/defense-humanites/orthotypography/commit/8870bd4a04f0ae9523c01bdf886e60f037557956),
+après la fusion de la PR nº 7. Ce document sert de passation ; les prochaines
 tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
@@ -16,7 +16,8 @@ tâches sont proposées et ne constituent pas une promesse de release.
 | Registres               | Unités et monnaies documentées ; leur présence ne signifie pas que toutes les corrections sont activées par défaut                         | [Unités](registre-unites-v0.7.md), [monnaies](registre-monnaies-v0.7.md)                                               |
 | Matrice de couverture   | Prescriptions du dépouillement reliées au catalogue, à l’exécution, aux tests, aux exclusions et au preset IN 2002                   | [Matrice](matrice-couverture-in-2002-v0.1.md)                                                                          |
 | Groupement des chiffres | Prescription historique et transposition Unicode spécifiées ; premier lint candidat limité aux quantités déjà classifiées, hors preset et sans correction | [Spécification](groupement-chiffres-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
-| Ponctuation haute       | Règles d’espace avant et après exécutées et diagnostiquées sous huit identifiants atomiques, à sortie inchangée ; tranche candidate en attente de revue | [Catalogue](../src/catalogue/rules.ts), [tests](../tests/high_punctuation_atomicity_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
+| Ponctuation haute       | Règles d’espace avant et après exécutées et diagnostiquées sous huit identifiants atomiques, à sortie inchangée ; tranche fusionnée dans la PR nº 7 | [Catalogue](../src/catalogue/rules.ts), [tests](../tests/high_punctuation_atomicity_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
+| Points de suspension    | Quatre fonctions atomiques cataloguées ; reconnaissance interne de `U+2026` et de trois `U+002E`, avec lint limité aux formes ASCII finales ou initiales certaines ; aucune correction ni activation dans le preset | [Conception](points-de-suspension-v0.1.md), [tests](../tests/ellipsis_recognition_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Validation de release   | 87 tests annoncés pour alpha.2, contrôles JSR et npm                                                                                       | Notes de la release ci-dessus ; ce nombre n'est pas une nouvelle exécution des tests                                   |
 
 Le cœur reste indépendant des parseurs Markdown/HTML et des API d'éditeurs. Les
@@ -51,11 +52,17 @@ adaptateurs et leur avancement sont suivis dans la
    stabilise ensuite la transposition Unicode et borne un premier lint aux
    mesures, pourcentages et monnaies classifiés. La règle reste hors preset,
    sans correction automatique ; les quantités autonomes et les autres règles
-   numériques demeurent exclues. La présente tranche candidate atomise ensuite
-   l’exécution des espaces suivant les quatre signes de ponctuation haute sous
-   leurs identifiants documentaires propres. Elle conserve l’ordre, les
-   protections et les sorties du preset ; seule la provenance des diagnostics
-   et des changements est affinée.
+   numériques demeurent exclues. La PR
+   [nº 7](https://github.com/defense-humanites/orthotypography/pull/7) atomise
+   ensuite l’exécution des espaces suivant les quatre signes de ponctuation
+   haute sous leurs identifiants documentaires propres. Elle conserve l’ordre,
+   les protections et les sorties du preset ; seule la provenance des
+   diagnostics et des changements est affinée. La première tranche des points
+   de suspension catalogue désormais le glyphe et les trois fonctions
+   d’espacement. Elle reconnaît les deux représentations dans le cœur et
+   diagnostique seulement les trois points ASCII de fonction finale ou initiale
+   certaine. Elle ne convertit aucun glyphe, ne corrige aucun espacement et
+   reste absente du preset exécutable.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite

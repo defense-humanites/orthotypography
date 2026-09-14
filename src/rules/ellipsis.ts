@@ -1,4 +1,8 @@
 import { RULES } from "../catalogue/rules.ts";
+import {
+  classifyEllipsisCandidates,
+  ellipsisLogicalRun,
+} from "../classify/ellipsis.ts";
 import type {
   RuleApplication,
   RuleApplicationEdit,
@@ -17,6 +21,13 @@ if (definition === undefined) {
   );
 }
 
+const recognitionDefinition = RULES.find((rule) =>
+  rule.id === "punctuation.ellipsis.glyph"
+);
+if (recognitionDefinition === undefined) {
+  throw new Error("Missing documentary rule: punctuation.ellipsis.glyph");
+}
+
 interface LogicalPart {
   readonly segmentIndex: number;
   readonly start: number;
@@ -31,6 +42,34 @@ interface LogicalRun {
 interface MatchEdits {
   readonly local: readonly RuleApplicationEdit[];
   readonly related: readonly RuleApplicationSegmentEdit[];
+}
+
+function candidateLocations(
+  context: RuleContext,
+  parts: readonly LogicalPart[],
+  start: number,
+  end: number,
+) {
+  const locations = [];
+  for (const part of parts) {
+    const overlapStart = Math.max(start, part.start);
+    const overlapEnd = Math.min(end, part.end);
+    if (overlapStart >= overlapEnd) continue;
+    locations.push({
+      segmentIndex: part.segmentIndex,
+      start: overlapStart - part.start,
+      end: overlapEnd - part.start,
+    });
+  }
+  const primary = locations.find(({ segmentIndex }) =>
+    segmentIndex === context.segmentIndex
+  );
+  return primary === undefined ? undefined : {
+    primary,
+    related: locations.filter(({ segmentIndex }) =>
+      segmentIndex !== context.segmentIndex
+    ),
+  };
 }
 
 const forbiddenEtcEllipsis =
@@ -155,6 +194,48 @@ export const ETC_ELLIPSIS_RULE: RuntimeRule = {
       value: context.mode === "fix" ? applyEdits(value, localEdits) : value,
       edits: localEdits,
       segmentEdits,
+      diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
+    };
+  },
+};
+
+/** Diagnoses certain three-full-stop ellipses without proposing edits. */
+export const ELLIPSIS_RECOGNITION_RULE: RuntimeRule = {
+  definition: recognitionDefinition as RuleDefinition,
+  apply(value, context): RuleApplication {
+    const run = ellipsisLogicalRun(context.segments, context.segmentIndex);
+    const owner = run.parts.find(({ segmentIndex }) =>
+      segmentIndex === context.segmentIndex
+    );
+    if (owner === undefined) return { value };
+
+    const diagnostics = classifyEllipsisCandidates(
+      run.value,
+      run.structurallyInitial,
+    ).flatMap((candidate) => {
+      if (
+        candidate.value !== "..." || !candidate.certain ||
+        candidate.start < owner.start || candidate.start >= owner.end
+      ) return [];
+      const locations = candidateLocations(
+        context,
+        run.parts,
+        candidate.start,
+        candidate.end,
+      );
+      if (locations === undefined) return [];
+      return [{
+        start: locations.primary.start,
+        end: locations.primary.end,
+        message: `Use U+2026 for a recognized ${candidate.function} ellipsis`,
+        ...(locations.related.length === 0
+          ? {}
+          : { related: locations.related }),
+      }];
+    });
+
+    return {
+      value,
       diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
     };
   },
