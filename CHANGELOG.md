@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add conservative ellipsis recognition and an opt-in diagnostic rule without
+  text changes or preset activation.
 - Add atomic documentary catalogue entries for word spacing after periods,
   colons, semicolons, question marks, and exclamation marks.
 - Add a source-backed coverage matrix for the Imprimerie nationale preset.
