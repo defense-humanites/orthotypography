@@ -24,6 +24,13 @@ Le cœur reste indépendant des parseurs Markdown/HTML et des API d'éditeurs. L
 adaptateurs et leur avancement sont suivis dans la
 [feuille de route des intégrations](https://github.com/defense-humanites/orthotypography-integrations/blob/main/docs/roadmap.md).
 
+Une tranche CI candidate conserve les vérifications Deno sur chaque PR et
+chaque push vers `main`, mais limite les contrôles de paquets JSR et npm aux
+changements du cœur, du manifeste, des scripts et des workflows de publication
+ou de CI. Elle permet aussi une exécution manuelle complète, parallélise les
+contrôles de paquets avec les tests et annule les exécutions de PR dépassées.
+Le workflow de publication garde tous ses contrôles sur le tag de release.
+
 ## Prochaines tâches proposées
 
 1. **Cohérence documentaire et linguistique.** Auditer les textes hors de

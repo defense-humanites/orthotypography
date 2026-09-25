@@ -27,6 +27,11 @@ For a prerelease, run `deno task check`, `deno task test`,
 a `v` prefix; then enable `PUBLISH_ENABLED` only for the authorized publication
 window.
 
+The CI workflow runs the Deno checks on every pull request and push to `main`.
+JSR and npm package checks run for package-related changes, or on a manual CI
+dispatch. Documentation-only pull requests do not build packages. The Publish
+workflow always repeats all four checks at the release tag before publishing.
+
 ## Partial publication recovery
 
 The workflow resolves the exact version independently on JSR and npm before

@@ -3,9 +3,38 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  package-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.paths.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check package-related changes
+        id: paths
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            changed=true
+          elif git diff --quiet "$BASE_SHA" HEAD -- src/ deno.json scripts/ .github/workflows/ci.yml .github/workflows/publish.yml; then
+            changed=false
+          else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+              exit "$status"
+            fi
+            changed=true
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
   test:
     runs-on: ubuntu-latest
     steps:
@@ -15,9 +44,19 @@ jobs:
           deno-version: v2.x
       - run: deno task check
       - run: deno task test
+  jsr-package:
+    needs: package-changes
+    if: needs.package-changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - run: deno task publish:check
   npm-package:
-    needs: test
+    needs: package-changes
+    if: needs.package-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
