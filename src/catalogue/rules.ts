@@ -267,6 +267,7 @@ export const RULES: readonly RuleDefinition[] = [
     outcome: { glyph: "U+2026", sourceSequence: "U+002E U+002E U+002E" },
     exceptions: [
       "ambiguous function",
+      "sequences other than exactly three full stops",
       "etc. abbreviation",
       "technical syntax",
       "editorial omission in brackets",

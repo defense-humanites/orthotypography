@@ -199,8 +199,8 @@ export const ETC_ELLIPSIS_RULE: RuntimeRule = {
   },
 };
 
-/** Diagnoses certain three-full-stop ellipses without proposing edits. */
-export const ELLIPSIS_RECOGNITION_RULE: RuntimeRule = {
+/** Diagnoses certain ASCII ellipses and replaces their glyph in fix mode. */
+export const ELLIPSIS_GLYPH_RULE: RuntimeRule = {
   definition: recognitionDefinition as RuleDefinition,
   apply(value, context): RuleApplication {
     const run = ellipsisLogicalRun(context.segments, context.segmentIndex);
@@ -209,6 +209,8 @@ export const ELLIPSIS_RECOGNITION_RULE: RuntimeRule = {
     );
     if (owner === undefined) return { value };
 
+    const localEdits: RuleApplicationEdit[] = [];
+    const segmentEdits: RuleApplicationSegmentEdit[] = [];
     const diagnostics = classifyEllipsisCandidates(
       run.value,
       run.structurallyInitial,
@@ -224,6 +226,16 @@ export const ELLIPSIS_RECOGNITION_RULE: RuntimeRule = {
         candidate.end,
       );
       if (locations === undefined) return [];
+      if (context.mode === "fix") {
+        localEdits.push({
+          start: locations.primary.start,
+          end: locations.primary.end,
+          replacement: "…",
+        });
+        for (const related of locations.related) {
+          segmentEdits.push({ ...related, replacement: "" });
+        }
+      }
       return [{
         start: locations.primary.start,
         end: locations.primary.end,
@@ -235,8 +247,12 @@ export const ELLIPSIS_RECOGNITION_RULE: RuntimeRule = {
     });
 
     return {
-      value,
+      value: context.mode === "fix" ? applyEdits(value, localEdits) : value,
+      ...(context.mode === "fix" ? { edits: localEdits, segmentEdits } : {}),
       diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
     };
   },
 };
+
+/** Compatibility alias for the original recognition-only export. */
+export const ELLIPSIS_RECOGNITION_RULE = ELLIPSIS_GLYPH_RULE;
