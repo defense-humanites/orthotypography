@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { classifyEllipsisCandidates } from "../src/classify/ellipsis.ts";
 import {
+  compilePipeline,
+  ELLIPSIS_GLYPH_RULE,
   ELLIPSIS_RECOGNITION_RULE,
   IMPRIMERIE_NATIONALE_RULES,
   NUMERIC_PROTECTION_RULE,
@@ -183,20 +185,32 @@ Deno.test("recognition does not cross protected boundaries", () => {
   }
 });
 
-Deno.test("recognition never mutates in either pipeline mode", () => {
+Deno.test("recognition remains non-mutating in lint mode", () => {
   const input = "Il hésite... puis répond; ... Suite.";
-  for (const mode of ["lint", "fix"] as const) {
-    const result = runPipeline(input, recognitionRules, {
-      locale: "fr-FR",
-      mode,
-    });
-    assert.equal(result.value, input);
-    assert.deepEqual(result.changes, []);
-    assert.equal(result.diagnostics.length, 1);
-    assert.ok(
-      result.diagnostics.every(({ replacement }) => replacement === undefined),
-    );
-  }
+  const result = runPipeline(input, recognitionRules, {
+    locale: "fr-FR",
+    mode: "lint",
+  });
+  assert.equal(result.value, input);
+  assert.deepEqual(result.changes, []);
+  assert.equal(result.diagnostics.length, 1);
+  assert.ok(
+    result.diagnostics.every(({ replacement }) => replacement === undefined),
+  );
+});
+
+Deno.test("recognition export aliases the glyph rule without a second diagnostic", () => {
+  assert.strictEqual(ELLIPSIS_RECOGNITION_RULE, ELLIPSIS_GLYPH_RULE);
+  assert.throws(
+    () => compilePipeline([ELLIPSIS_RECOGNITION_RULE, ELLIPSIS_GLYPH_RULE]),
+    /Duplicate runtime rule: punctuation\.ellipsis\.glyph/,
+  );
+  const result = runPipeline("Il hésite...", recognitionRules, {
+    locale: "fr-FR",
+    mode: "fix",
+  });
+  assert.equal(result.value, "Il hésite…");
+  assert.equal(result.diagnostics.length, 1);
 });
 
 Deno.test("recognition remains outside the executable preset", () => {

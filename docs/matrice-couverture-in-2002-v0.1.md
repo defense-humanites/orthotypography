@@ -1,8 +1,8 @@
 # Matrice de couverture — Imprimerie nationale 2002
 
 **Version :** 0.1  
-**Date de vérification :** 14 septembre 2026
-**Base examinée :** `8870bd4a04f0ae9523c01bdf886e60f037557956`
+**Date de vérification :** 25 septembre 2026
+**Base examinée :** `ea6aa454b1b58af33b11e6a6493cc69e97da8636`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -15,7 +15,7 @@ l’Imprimerie nationale*, édition 2002
 [`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
 **Dernière PR fusionnée :**
-[nº 7](https://github.com/defense-humanites/orthotypography/pull/7)
+[nº 9](https://github.com/defense-humanites/orthotypography/pull/9)
 
 ## 1. Objet et vocabulaire
 
@@ -42,7 +42,7 @@ supplémentaires propres au comportement.
 
 ## 2. Matrice
 
-| Prescription atomique du dépouillement | Catalogue machine | Exécution au 13 septembre 2026 | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
+| Prescription atomique du dépouillement | Catalogue machine | Exécution candidate dans cette PR | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
 |---|---|---|---|---|---|
 | `space.before.comma` | `punctuation.comma.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | décimales et syntaxe technique protégées par classification |
 | `space.before.period` | `punctuation.period.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | versions, adresses IP, URI et autres constructions classifiées |
@@ -58,7 +58,7 @@ supplémentaires propres au comportement.
 | `space.after.colon` | `punctuation.colon.space-after` | `HIGH_PUNCTUATION_RULES` : `fix` atomique | `high_punctuation_atomicity_test.ts`, `punctuation_test.ts`, `integration_test.ts` | oui | heures, ratios, URI, ports et `::` protégés ; sortie antérieure conservée |
 | `quotes.primary.glyphs` | issue de source seulement | non | négatifs dans `quotes_test.ts` | non | reconnaître sans ambiguïté le rôle ouvrant ou fermant des guillemets droits |
 | `quotes.primary.innerSpacing` | `quotes.french.nbsp-inner` | `FRENCH_GUILLEMETS_SPACING_RULE` : `fix` | `quotes_test.ts`, `integration_test.ts` | oui | guillemets appariés seulement ; support contraint hors cœur |
-| `ellipsis.count` | `punctuation.ellipsis.glyph` | `ELLIPSIS_RECOGNITION_RULE` : reconnaissance de `U+2026` ou exactement trois `U+002E` ; lint des seuls trois points ASCII classés `final` ou `initial` certains ; aucune correction | `ellipsis_recognition_test.ts`, `catalogue_test.ts` | non | `U+2026` est la sortie moderne projetée ; conversion reportée ; `etc.`, suites de longueur différente, syntaxes techniques, coupures entre crochets et limites protégées exclues |
+| `ellipsis.count` | `punctuation.ellipsis.glyph` | `ELLIPSIS_GLYPH_RULE` : reconnaissance de `U+2026` ou exactement trois `U+002E` ; diagnostic des seuls trois points ASCII classés `final` ou `initial` certains ; correction atomique en mode explicite `fix`, mode par défaut `lint` ; `ELLIPSIS_RECOGNITION_RULE` reste un alias du même objet | `ellipsis_recognition_test.ts`, `ellipsis_glyph_test.ts`, `catalogue_test.ts` | non | `etc.`, suites de longueur différente, syntaxes techniques, coupures entre crochets et limites protégées exclues ; aucune version publiée de cette tranche |
 | `ellipsis.spacing.final` | `punctuation.ellipsis.final.no-space-before` | fonction `final` reconnue en interne lorsque l’ellipse est attachée à une lettre et possède une limite sûre ; aucun diagnostic d’espacement, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance | non | exécution de l’espacement reportée ; cas collés des deux côtés conservés comme ambigus |
 | `ellipsis.spacing.initial` | `punctuation.ellipsis.initial.space-after` | fonction `initial` reconnue en interne au début structurel certain ; aucun diagnostic d’espacement, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance, y compris inter-segments | non | exécution de l’espacement reportée ; un simple délimiteur ouvrant ne suffit pas |
 | `ellipsis.spacing.word` | `punctuation.ellipsis.word.space-around` | fonction `word` reconnue en interne mais marquée indéterminée ; aucun diagnostic, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance et l’indétermination | non | indice sémantique absent ; maintien en `manual-review` documentaire |
@@ -125,11 +125,25 @@ techniques, les suites de longueur différente de trois, `etc...`, les coupures
 éditoriales entre crochets et les séquences interrompues par une protection
 sont exclues ; la ponctuation adjacente est laissée intacte.
 
+La tranche H rend le même identifiant `punctuation.ellipsis.glyph` correcteur
+sur demande explicite du mode `fix`. Le mode documentaire par défaut reste
+`lint`. Les trois points peuvent traverser plusieurs segments : le premier
+fragment reçoit `U+2026`, les fragments suivants sont supprimés par des
+`TextChange` gardés, exprimés dans les coordonnées UTF-16 de leurs segments
+sources. L’export public `ELLIPSIS_RECOGNITION_RULE` est un alias de
+`ELLIPSIS_GLYPH_RULE`, non une seconde règle ; une composition contenant les
+deux références identiques reste rejetée comme identifiant dupliqué. Son
+comportement en mode explicite `fix` évolue ainsi de diagnostic seul à
+correction. Aucun espacement adjacent n’est modifié et le preset ne sélectionne
+toujours pas ce glyphe. La tranche est proposée pour revue, non fusionnée ni
+publiée.
+
 ## 4. Priorités révélées par la matrice
 
-1. Après la reconnaissance et son lint conservateur, implémenter séparément la
-   correction de glyphe, puis les espacements `final`, `initial` et `word`
-   selon les niveaux de sûreté définis dans la spécification.
+1. Après la reconnaissance, son lint conservateur et la correction de glyphe
+   proposée dans la tranche H, implémenter séparément les espacements `final`,
+   `initial` et `word` selon les niveaux de sûreté définis dans la
+   spécification.
 2. Étendre le lint de groupement aux quantités autonomes seulement après avoir
    stabilisé leurs indices sémantiques et les exclusions de numérotage ; définir
    ensuite une représentation sûre des corrections inter-segments avant tout
