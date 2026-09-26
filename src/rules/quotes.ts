@@ -4,6 +4,7 @@ import type {
   RuleContext,
   RuleDefinition,
   RuntimeRule,
+  TextSegment,
 } from "../model.ts";
 
 interface TextEdit {
@@ -24,61 +25,81 @@ if (definition === undefined) {
   throw new Error("Missing documentary rule: quotes.french.nbsp-inner");
 }
 
-function pairedOffsets(context: RuleContext): ReadonlyMap<number, number> {
-  const source = context.segments.map(({ value }) => value).join("");
+interface Pairing {
+  /** Segment objects the pairing was computed from. */
+  readonly snapshot: readonly TextSegment[];
+  /** Absolute offset of each paired guillemet mapped to its partner. */
+  readonly paired: ReadonlyMap<number, number>;
+  /** Absolute start offset of each segment, then the total length. */
+  readonly offsets: readonly number[];
+}
+
+// The pipeline calls a rule once per fragment with the same segment array.
+// Pairing depends on the whole run, so it is computed once per distinct run
+// and reused while the array still holds the same segment objects.
+const pairingCache = new WeakMap<readonly TextSegment[], Pairing>();
+
+function computePairing(segments: readonly TextSegment[]): Pairing {
+  const offsets = new Array<number>(segments.length + 1);
+  offsets[0] = 0;
+  for (let index = 0; index < segments.length; index++) {
+    offsets[index + 1] = offsets[index] + segments[index].value.length;
+  }
+  const source = segments.map(({ value }) => value).join("");
   const paired = new Map<number, number>();
   const openings: number[] = [];
-  let offset = 0;
 
-  for (const segment of context.segments) {
-    if (!segment.protected) {
-      for (let index = 0; index < segment.value.length; index++) {
-        const character = segment.value[index];
-        const absoluteIndex = offset + index;
-        if (character === "«") {
-          openings.push(absoluteIndex);
-        } else if (character === "»") {
-          const opening = openings.pop();
-          if (
-            opening !== undefined &&
-            source.slice(opening + 1, absoluteIndex).trim().length > 0
-          ) {
-            paired.set(opening, absoluteIndex);
-            paired.set(absoluteIndex, opening);
-          }
+  for (const [segmentIndex, segment] of segments.entries()) {
+    if (segment.protected) continue;
+    for (let index = 0; index < segment.value.length; index++) {
+      const character = segment.value[index];
+      const absoluteIndex = offsets[segmentIndex] + index;
+      if (character === "«") {
+        openings.push(absoluteIndex);
+      } else if (character === "»") {
+        const opening = openings.pop();
+        if (
+          opening !== undefined &&
+          source.slice(opening + 1, absoluteIndex).trim().length > 0
+        ) {
+          paired.set(opening, absoluteIndex);
+          paired.set(absoluteIndex, opening);
         }
       }
     }
-    offset += segment.value.length;
   }
-  return paired;
+  return { snapshot: [...segments], paired, offsets };
+}
+
+function pairingFor(context: RuleContext): Pairing {
+  const segments = context.segments;
+  const cached = pairingCache.get(segments);
+  if (
+    cached !== undefined && cached.snapshot.length === segments.length &&
+    cached.snapshot.every((segment, index) => segment === segments[index])
+  ) return cached;
+  const pairing = computePairing(segments);
+  pairingCache.set(segments, pairing);
+  return pairing;
 }
 
 function locateOffset(
-  context: RuleContext,
+  pairing: Pairing,
   absoluteOffset: number,
 ): { segmentIndex: number; start: number; end: number } {
-  let offset = 0;
-  for (
-    let segmentIndex = 0;
-    segmentIndex < context.segments.length;
-    segmentIndex++
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (absoluteOffset < offset + segment.value.length) {
-      const start = absoluteOffset - offset;
-      return { segmentIndex, start, end: start + 1 };
+  const { offsets } = pairing;
+  let low = 0;
+  let high = offsets.length - 2;
+  while (low <= high) {
+    const middle = (low + high) >>> 1;
+    if (absoluteOffset < offsets[middle]) high = middle - 1;
+    else if (absoluteOffset >= offsets[middle + 1]) low = middle + 1;
+    else {
+      const start = absoluteOffset - offsets[middle];
+      return { segmentIndex: middle, start, end: start + 1 };
     }
-    offset += segment.value.length;
   }
   throw new Error(`Unlocatable paired quote offset: ${absoluteOffset}`);
-}
-
-function segmentOffset(context: RuleContext): number {
-  return context.segments.slice(0, context.segmentIndex).reduce(
-    (length, segment) => length + segment.value.length,
-    0,
-  );
 }
 
 function applyEdits(value: string, edits: readonly TextEdit[]): string {
@@ -96,8 +117,9 @@ function applyEdits(value: string, edits: readonly TextEdit[]): string {
 export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = {
   definition: definition as RuleDefinition,
   apply(value, context): RuleApplication {
-    const paired = pairedOffsets(context);
-    const offset = segmentOffset(context);
+    const pairing = pairingFor(context);
+    const paired = pairing.paired;
+    const offset = pairing.offsets[context.segmentIndex];
     const edits: TextEdit[] = [];
 
     for (let index = 0; index < value.length; index++) {
@@ -113,7 +135,7 @@ export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = {
             start: index + 1,
             end,
             replacement: "\u00a0",
-            related: locateOffset(context, pairedOffset),
+            related: locateOffset(pairing, pairedOffset),
           });
         }
       } else if (character === "»") {
@@ -124,7 +146,7 @@ export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = {
             start,
             end: index,
             replacement: "\u00a0",
-            related: locateOffset(context, pairedOffset),
+            related: locateOffset(pairing, pairedOffset),
           });
         }
       }

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Compute the pairing of French guillemets once per logical run instead of once
+  per fragment. With the linear ledger, 500,000 characters take about 0.4 s in
+  fix mode as one segment and 0.5 s as 3,977 nodes, instead of 33 s and 26 s in
+  `0.1.0-alpha.3`. Outputs are unchanged.
 - Apply each rule's edits to the change ledger in one pass, and locate
   diagnostics and rebuild source changes without rescanning the ledger. Fix mode
   no longer grows quadratically with the number of edits: 500,000 characters in
