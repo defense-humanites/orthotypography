@@ -4,21 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-- Add conservative ellipsis recognition and an opt-in diagnostic rule without
-  text changes or preset activation.
-- Add atomic documentary catalogue entries for word spacing after periods,
-  colons, semicolons, question marks, and exclamation marks.
-- Add a source-backed coverage matrix for the Imprimerie nationale preset.
-- Remove suspension points after standalone `etc.` across unprotected text
-  segments while preserving source UTF-16 coordinates.
+## [0.1.0-alpha.3] - 2026-09-26
+
 - Insert missing spaces after commas in safe prose contexts, including across
-  unprotected text segments, while preserving numeric and technical syntax.
+  unprotected text segments, while preserving numeric and technical syntax
+  (`SPACE_AFTER_COMMA_RULE`). The rule is part of `IMPRIMERIE_NATIONALE_RULES`
+  and `IMPRIMERIE_NATIONALE_PUNCTUATION_RULES`, so both compositions can now
+  produce additional changes.
+- Remove suspension points after standalone `etc.` across unprotected text
+  segments while preserving source UTF-16 coordinates (`ETC_ELLIPSIS_RULE`, part
+  of `IMPRIMERIE_NATIONALE_RULES`).
+- Execute and diagnose the spaces following colons, semicolons, question marks,
+  and exclamation marks under their own rule IDs. `HIGH_PUNCTUATION_RULES` now
+  contains eight atomic rules instead of four; fixed text is unchanged, but
+  diagnostics, `appliedRuleIds`, and `TextChange.ruleIds` report the new
+  `*.space-after` IDs.
+- Recognize certain final and structurally initial ellipses written as `U+2026`
+  or exactly three `U+002E`. `ELLIPSIS_GLYPH_RULE` diagnoses the ASCII form by
+  default and converts it to `…` in explicit `fix` mode;
+  `ELLIPSIS_RECOGNITION_RULE` is an alias of the same rule.
+- Add `ELLIPSIS_INITIAL_SPACE_AFTER_RULE`, which diagnoses a missing space after
+  a structurally initial `…` followed by a letter and inserts `U+0020` in
+  explicit `fix` mode.
+- Add `DIGIT_GROUPING_RULE` (`number.digits.grouping`), a diagnostic-only rule
+  for ungrouped digits in classified measurements, percentages, and currency
+  amounts. It never emits changes.
+- The ellipsis and digit grouping rules default to `lint` and belong to no
+  preset.
+- Add atomic documentary catalogue entries for word spacing after periods,
+  colons, semicolons, question marks, and exclamation marks, and for the
+  ellipsis glyph and its spacing functions.
+- Add a source-backed coverage matrix for the Imprimerie nationale preset and
+  specifications for ellipses and digit grouping.
 - Add explicit public API types required by current Deno 2 lint checks.
 
-## [0.1.0-alpha.2] - 2026-09-08
+## [0.1.0-alpha.2] - 2026-09-09
 
-- Add `applyTextChanges` for guarded application of source-coordinate changes
-  to strings and segmented documents.
+- Add `applyTextChanges` for guarded application of source-coordinate changes to
+  strings and segmented documents.
 
 ## [0.1.0-alpha.1] - 2026-09-05
 

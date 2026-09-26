@@ -3,15 +3,15 @@
 Source-backed orthotypographic primitives and named editorial presets for the
 JavaScript ecosystem, including browsers and server runtimes.
 
-The `0.1.0-alpha.2` release is a public preview. Its API and rule
-catalogue may change during the alpha series. The canonical TypeScript package
-is distributed through JSR; an equivalent ESM package is generated from the same
-sources for npm.
+The `0.1.0-alpha.3` release is a public preview. Its API and rule catalogue may
+change during the alpha series. The canonical TypeScript package is distributed
+through JSR; an equivalent ESM package is generated from the same sources for
+npm.
 
 ## Installation
 
 ```sh
-deno add jsr:@orthotypography/core@0.1.0-alpha.2
+deno add jsr:@orthotypography/core@0.1.0-alpha.3
 npm install @orthotypography/core@alpha
 ```
 
@@ -22,9 +22,12 @@ two candidate French presets, the generic pipeline infrastructure, a
 numeric-context classifier, and executable punctuation rules. The
 source-specific high-punctuation composition protects technical and numeric
 contexts before transforming text. The Imprimerie nationale composition also
-inserts a missing word space after a comma when prose follows. Text-node
-integrations preserve inline formatting boundaries while punctuation and paired
-guillemets can inspect one logical run across those boundaries.
+inserts a missing word space after a comma when prose follows and removes
+suspension points after `etc.`. Opt-in rules outside the presets diagnose or, in
+explicit `fix` mode, correct certain ellipses, and diagnose ungrouped digits in
+classified quantities. Text-node integrations preserve inline formatting
+boundaries while punctuation and paired guillemets can inspect one logical run
+across those boundaries.
 
 ```ts
 import {
