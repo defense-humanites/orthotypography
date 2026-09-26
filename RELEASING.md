@@ -43,21 +43,28 @@ trusted publishing until the package's trusted publisher is updated on npm.
 
 The Publish workflow runs on the published GitHub release. It checks that the
 tag matches `deno.json`, repeats all four checks at the tag, publishes to JSR
-and npm, and waits until both registries expose the version.
+and npm, and waits until both registries expose the version with the expected
+npm distribution tag.
 
 ## npm distribution tags
 
-The workflow derives the npm distribution tag from the version: `alpha`, `beta`,
-or `next` for prereleases and `latest` for stable versions. Publishing a
-prerelease therefore never moves `latest`, and npm trusted publishing cannot
-change distribution tags.
+npm trusted publishing cannot change distribution tags after publication, so
+`scripts/release_metadata.ts` selects the tag passed to `npm publish`:
 
-Until a stable version exists, `latest` follows the newest published alpha so
-that an unversioned `npm install` does not resolve to an obsolete preview. After
-each authorized prerelease, a maintainer moves it manually:
+- every `0.x` version, prereleases included, is published as `latest`, so that
+  an unversioned `npm install` resolves to the newest preview;
+- from `1.0.0`, stable versions are published as `latest`, and prereleases as
+  `alpha`, `beta`, or `next`, so they never displace a stable version.
+
+The final workflow step fails unless npm reports the selected tag on the
+published version. An explicit `--tag latest` also moves `latest` to a lower
+version, so never publish an older `0.x` version after a newer one.
+
+The `alpha` tag used up to `0.1.0-alpha.2` is no longer updated. Removing it is
+a manual registry operation:
 
 ```sh
-npm dist-tag add @orthotypography/core@<version> latest
+npm dist-tag rm @orthotypography/core alpha
 ```
 
 ## CI
