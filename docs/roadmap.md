@@ -46,7 +46,18 @@ vers `0.1.0-alpha.3` est suivie dans la
 
 ## Prochaines tâches proposées
 
-1. **Cohérence documentaire et linguistique.** Auditer les textes hors de
+1. **Consolidation de l’architecture.** La
+   [revue d’architecture](revue-architecture-v0.1.md) du 26 septembre 2026
+   ouvre les issues [nº 19](https://github.com/defense-humanites/orthotypography/issues/19) à [nº 28](https://github.com/defense-humanites/orthotypography/issues/28). Ordre proposé : filet de
+   tests et mesure de performance ([nº 19](https://github.com/defense-humanites/orthotypography/issues/19)), journal des changements
+   linéaire ([nº 20](https://github.com/defense-humanites/orthotypography/issues/20)), vue de la suite logique, annotations typées et
+   séparation des définitions ([nº 21](https://github.com/defense-humanites/orthotypography/issues/21), [nº 22](https://github.com/defense-humanites/orthotypography/issues/22),
+   [nº 25](https://github.com/defense-humanites/orthotypography/issues/25)), presets compilés et locales ([nº 23](https://github.com/defense-humanites/orthotypography/issues/23),
+   [nº 24](https://github.com/defense-humanites/orthotypography/issues/24)), diagnostics porteurs de corrections, erreurs et messages
+   codés ([nº 26](https://github.com/defense-humanites/orthotypography/issues/26), [nº 27](https://github.com/defense-humanites/orthotypography/issues/27)), matrice générée ([nº 28](https://github.com/defense-humanites/orthotypography/issues/28)).
+   Les ruptures d’API sont à regrouper dans une ligne `0.2` coordonnée avec les
+   intégrations.
+2. **Cohérence documentaire et linguistique.** Auditer les textes hors de
    `docs/`, traduire leur prose en anglais et actualiser les instructions
    devenues obsolètes. `CONTRIBUTING.md` et `RELEASING.md` sont traités dans
    les PR [nº 15](https://github.com/defense-humanites/orthotypography/pull/15) et [nº 14](https://github.com/defense-humanites/orthotypography/pull/14) ; reste à décider si les
@@ -55,12 +66,16 @@ vers `0.1.0-alpha.3` est suivie dans la
    linguistiques nécessaires aux règles et aux tests. Terminé lorsque les
    fichiers concernés respectent `AGENTS.md` et que les commandes documentées
    correspondent au manifeste courant.
-2. **Matrice de couverture.** Première version achevée dans
+3. **Matrice de couverture.** Première version achevée dans
    [`matrice-couverture-in-2002-v0.1.md`](matrice-couverture-in-2002-v0.1.md).
    Son en-tête et ses sections sur les points de suspension sont synchronisés
    dans la [PR nº 16](https://github.com/defense-humanites/orthotypography/pull/16). La maintenir à chaque ajout de catalogue,
    d’exécution, de test ou de preset.
-3. **Extension atomique des règles.** L’interdiction des points de suspension
+   Sa génération à partir de données structurées est proposée dans
+   l’issue [nº 28](https://github.com/defense-humanites/orthotypography/issues/28).
+4. **Extension atomique des règles.** Reprise après les issues
+   [nº 21](https://github.com/defense-humanites/orthotypography/issues/21) et [nº 22](https://github.com/defense-humanites/orthotypography/issues/22), afin d’écrire les nouvelles règles dans le
+   modèle révisé. L’interdiction des points de suspension
    après `etc.` et `space.after.comma` ont été fusionnées dans les PR
    [nº 2](https://github.com/defense-humanites/orthotypography/pull/2) et
    [nº 3](https://github.com/defense-humanites/orthotypography/pull/3). Les
@@ -101,7 +116,8 @@ vers `0.1.0-alpha.3` est suivie dans la
    `punctuation.ellipsis.final.no-space-before` reste documentaire : les
    ellipses finales certaines sont déjà collées à la lettre précédente,
    tandis que `Alors ...` n’a pas de fonction établie.
-4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
+5. **Stabilité du contrat d'intégration.** Les issues [nº 26](https://github.com/defense-humanites/orthotypography/issues/26) et
+   [nº 27](https://github.com/defense-humanites/orthotypography/issues/27) en sont le premier chantier. Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite
    de compatibilité et de versionnement.
