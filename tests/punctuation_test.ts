@@ -70,7 +70,8 @@ Deno.test("high punctuation rules apply source-specific French spacing", () => {
 
 Deno.test("colon spacing preserves classified numeric and technical contexts", () => {
   const input =
-    "À 12:30, ratio 1:2, https://exemple.fr:443/a, localhost:3000 et ::before.";
+    "À 12:30, ratio 1:2, https://exemple.fr:443/a, localhost:3000 et ::before. " +
+    "Sauvegarde à 23:45:10 dans C:\\Temp\\rapport.txt ou D:/data.";
   const result = runPipeline(
     input,
     IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,

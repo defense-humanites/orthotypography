@@ -18,6 +18,9 @@ function only(input: string, expectedKind: NumericConstructKind) {
 Deno.test("numeric classifier protects syntactic numeric contexts", () => {
   const vectors: readonly [string, NumericConstructKind][] = [
     ["Rendez-vous à 12:30", "time"],
+    ["Sauvegarde à 23:45:10", "time"],
+    ["Le fichier C:\\Temp\\rapport.txt", "path"],
+    ["Voir D:/data/x.csv.", "path"],
     ["Un ratio de 1:2", "ratio"],
     ["https://exemple.ca:443/a", "uri"],
     ["Version v1.2345", "version"],
@@ -143,4 +146,12 @@ Deno.test("numeric classifier groups decimal parts by threes only", () => {
     ["decimal", "12,5"],
   ]);
   assert.deepEqual(values("0,5 12"), [["decimal", "0,5"]]);
+});
+
+Deno.test("numeric classifier keeps prose colons and trailing punctuation outside paths", () => {
+  for (const input of ["Question: oui", "Note : a", "Réponse A: oui"]) {
+    assert.deepEqual(classifyNumericConstructs(input), [], input);
+  }
+  assert.equal(only("Voir D:/data/x.csv.", "path").value, "D:/data/x.csv");
+  assert.equal(only("(voir C:\\Temp)", "path").value, "C:\\Temp");
 });

@@ -1236,140 +1236,100 @@
     "source": "Le serveur 192.168.0.12 répond à 10:30 ; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
     "IMPRIMERIE_NATIONALE_RULES": {
       "single/default": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [0,70,70,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,71,71,""," ","punctuation.colon.space-after"]
+          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,70,70,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,71,71," "],
           ["punctuation.semicolon.nnbsp-before","source",0,38,39,"\u202f"]
         ]
       },
       "single/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,70,70,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,71,71," "],
           ["punctuation.semicolon.nnbsp-before","source",0,38,39,"\u202f"]
         ]
       },
       "single/fix": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [0,70,70,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,71,71,""," ","punctuation.colon.space-after"]
+          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,70,70,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,71,71," "],
           ["punctuation.semicolon.nnbsp-before","source",0,38,39,"\u202f"]
         ]
       },
       "segmented/default": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [2,26,26,"","\u00a0","punctuation.colon.nbsp-before"],
-          [2,27,27,""," ","punctuation.colon.space-after"]
+          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",2,26,26,"\u00a0"],
-          ["punctuation.colon.space-after","source",2,27,27," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",2,26,26,"\u00a0"],
-          ["punctuation.colon.space-after","source",2,27,27," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/fix": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [2,26,26,"","\u00a0","punctuation.colon.nbsp-before"],
-          [2,27,27,""," ","punctuation.colon.space-after"]
+          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",2,26,26,"\u00a0"],
-          ["punctuation.colon.space-after","source",2,27,27," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       }
     },
     "IMPRIMERIE_NATIONALE_RULES with opt-in ellipsis rules": {
       "single/default": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [0,70,70,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,71,71,""," ","punctuation.colon.space-after"]
+          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,70,70,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,71,71," "],
           ["punctuation.semicolon.nnbsp-before","source",0,38,39,"\u202f"]
         ]
       },
       "single/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,70,70,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,71,71," "],
           ["punctuation.semicolon.nnbsp-before","source",0,38,39,"\u202f"]
         ]
       },
       "single/fix": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [0,70,70,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,71,71,""," ","punctuation.colon.space-after"]
+          [0,38,39," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,70,70,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,71,71," "],
           ["punctuation.semicolon.nnbsp-before","source",0,38,39,"\u202f"]
         ]
       },
       "segmented/default": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [2,26,26,"","\u00a0","punctuation.colon.nbsp-before"],
-          [2,27,27,""," ","punctuation.colon.space-after"]
+          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",2,26,26,"\u00a0"],
-          ["punctuation.colon.space-after","source",2,27,27," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",2,26,26,"\u00a0"],
-          ["punctuation.colon.space-after","source",2,27,27," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/fix": {
-        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45\u00a0: 10. Le ratio attendu est de 3:2.",
+        "value": "Le serveur 192.168.0.12 répond à 10:30\u202f; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.",
         "changes": [
-          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [2,26,26,"","\u00a0","punctuation.colon.nbsp-before"],
-          [2,27,27,""," ","punctuation.colon.space-after"]
+          [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",2,26,26,"\u00a0"],
-          ["punctuation.colon.space-after","source",2,27,27," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       }
@@ -1502,140 +1462,100 @@
     "source": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo ; la commande git log --oneline -3 affiche trois lignes.",
     "IMPRIMERIE_NATIONALE_RULES": {
       "single/default": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [0,43,44," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",0,43,44,"\u202f"]
         ]
       },
       "single/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",0,43,44,"\u202f"]
         ]
       },
       "single/fix": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [0,43,44," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",0,43,44,"\u202f"]
         ]
       },
       "segmented/default": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/fix": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       }
     },
     "IMPRIMERIE_NATIONALE_RULES with opt-in ellipsis rules": {
       "single/default": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [0,43,44," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",0,43,44,"\u202f"]
         ]
       },
       "single/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",0,43,44,"\u202f"]
         ]
       },
       "single/fix": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [0,43,44," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",0,43,44,"\u202f"]
         ]
       },
       "segmented/default": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       },
       "segmented/fix": {
-        "value": "Le fichier C\u00a0: \\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
+        "value": "Le fichier C:\\Temp\\rapport.txt pèse 12,5 Mo\u202f; la commande git log --oneline -3 affiche trois lignes.",
         "changes": [
-          [0,12,12,"","\u00a0","punctuation.colon.nbsp-before"],
-          [0,13,13,""," ","punctuation.colon.space-after"],
           [1,7,8," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.colon.nbsp-before","source",0,12,12,"\u00a0"],
-          ["punctuation.colon.space-after","source",0,13,13," "],
           ["punctuation.semicolon.nnbsp-before","source",1,7,8,"\u202f"]
         ]
       }

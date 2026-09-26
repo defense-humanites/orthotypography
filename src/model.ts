@@ -185,6 +185,7 @@ export interface PipelineResult extends ChangeSet {
 /** Numeric contexts recognized before punctuation and spacing rules run. */
 export type NumericConstructKind =
   | "uri"
+  | "path"
   | "ipv4"
   | "version"
   | "date"
