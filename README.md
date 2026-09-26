@@ -12,7 +12,7 @@ npm.
 
 ```sh
 deno add jsr:@orthotypography/core@0.1.0-alpha.3
-npm install @orthotypography/core@alpha
+npm install @orthotypography/core
 ```
 
 ## Current status
