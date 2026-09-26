@@ -12,6 +12,7 @@ export {
 } from "./numeric.ts";
 export {
   ELLIPSIS_GLYPH_RULE,
+  ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
   ELLIPSIS_RECOGNITION_RULE,
   ETC_ELLIPSIS_RULE,
 } from "./ellipsis.ts";

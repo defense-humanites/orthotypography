@@ -1,8 +1,8 @@
 # Feuille de route du cœur
 
-État vérifié le 14 septembre 2026 sur
-[`8870bd4`](https://github.com/defense-humanites/orthotypography/commit/8870bd4a04f0ae9523c01bdf886e60f037557956),
-après la fusion de la PR nº 7. Ce document sert de passation ; les prochaines
+État vérifié le 26 septembre 2026 sur
+[`25a649d`](https://github.com/defense-humanites/orthotypography/commit/25a649d73ccefe2e31ac4af8ba36d3a16932b9a2),
+après la fusion de la PR nº 10. Ce document sert de passation ; les prochaines
 tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
@@ -17,14 +17,14 @@ tâches sont proposées et ne constituent pas une promesse de release.
 | Matrice de couverture   | Prescriptions du dépouillement reliées au catalogue, à l’exécution, aux tests, aux exclusions et au preset IN 2002                   | [Matrice](matrice-couverture-in-2002-v0.1.md)                                                                          |
 | Groupement des chiffres | Prescription historique et transposition Unicode spécifiées ; premier lint candidat limité aux quantités déjà classifiées, hors preset et sans correction | [Spécification](groupement-chiffres-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Ponctuation haute       | Règles d’espace avant et après exécutées et diagnostiquées sous huit identifiants atomiques, à sortie inchangée ; tranche fusionnée dans la PR nº 7 | [Catalogue](../src/catalogue/rules.ts), [tests](../tests/high_punctuation_atomicity_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
-| Points de suspension    | Quatre fonctions atomiques cataloguées ; reconnaissance interne de `U+2026` et de trois `U+002E`, lint des formes ASCII finales ou initiales certaines ; correction de glyphe proposée dans la tranche H, non fusionnée, hors preset et sans espacement | [Conception](points-de-suspension-v0.1.md), [tests](../tests/ellipsis_glyph_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
+| Points de suspension    | Quatre règles atomiques cataloguées ; reconnaissance interne de `U+2026` et de trois `U+002E`, correction du glyphe des formes finales ou initiales certaines fusionnée dans la PR nº 10 ; espace après `…` initiale structurelle ajoutée dans la présente tranche, hors preset | [Conception](points-de-suspension-v0.1.md), [tests](../tests/ellipsis_initial_spacing_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Validation de release   | 87 tests annoncés pour alpha.2, contrôles JSR et npm                                                                                       | Notes de la release ci-dessus ; ce nombre n'est pas une nouvelle exécution des tests                                   |
 
 Le cœur reste indépendant des parseurs Markdown/HTML et des API d'éditeurs. Les
 adaptateurs et leur avancement sont suivis dans la
 [feuille de route des intégrations](https://github.com/defense-humanites/orthotypography-integrations/blob/main/docs/roadmap.md).
 
-La [PR nº 9](https://github.com/defense-humanites/orthotypography/pull/9) conserve les vérifications Deno sur chaque PR et
+La [PR nº 9](https://github.com/defense-humanites/orthotypography/pull/9), fusionnée, conserve les vérifications Deno sur chaque PR et
 chaque push vers `main`, mais limite les contrôles de paquets JSR et npm aux
 changements du cœur, du manifeste, des scripts et des workflows de publication
 ou de CI. Elle permet aussi une exécution manuelle complète, parallélise les
@@ -70,11 +70,18 @@ Le workflow de publication garde tous ses contrôles sur le tag de release.
    diagnostique seulement les trois points ASCII de fonction finale ou initiale
    certaine. Elle ne convertit aucun glyphe, ne corrige aucun espacement et
    reste absente du preset exécutable.
-   La tranche H ajoute la correction atomique `...` → `…` pour les fonctions
+   La [PR nº 10](https://github.com/defense-humanites/orthotypography/pull/10) a fusionné la tranche H : correction atomique `...` → `…` pour les fonctions
    `final` et `initial` certaines, en mode explicite `fix`. Le mode par défaut
    reste `lint`, l’export de reconnaissance demeure un alias du même objet et
-   aucune règle d’espacement ne devient exécutable. Cette tranche est proposée
-   dans une PR dédiée ; elle n’est ni fusionnée ni publiée.
+   aucune règle d’espacement n’y devient exécutable. La présente tranche I
+   exécute `punctuation.ellipsis.initial.space-after` uniquement pour `…`
+   au début structurel certain et suivie immédiatement d’une lettre. Elle
+   diagnostique par défaut et insère `U+0020` en mode `fix` explicite, hors
+   preset. `...Suite` reste exclu par le classificateur actuel. La règle
+   `punctuation.ellipsis.final.no-space-before` reste documentaire : les
+   ellipses finales certaines sont déjà collées à la lettre précédente,
+   tandis que `Alors ...` n’a pas de fonction établie. La tranche I est
+   proposée pour revue, ni fusionnée ni publiée.
 4. **Stabilité du contrat d'intégration.** Examiner les besoins remontés par les
    adaptateurs sans transférer leurs contraintes natives dans le cœur. Toute
    évolution publique doit avoir des tests de contrat et une stratégie explicite

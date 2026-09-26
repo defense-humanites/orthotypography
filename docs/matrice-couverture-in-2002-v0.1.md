@@ -2,7 +2,7 @@
 
 **Version :** 0.1  
 **Date de vérification :** 25 septembre 2026
-**Base examinée :** `ea6aa454b1b58af33b11e6a6493cc69e97da8636`
+**Base examinée :** `25a649d73ccefe2e31ac4af8ba36d3a16932b9a2`
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -15,7 +15,7 @@ l’Imprimerie nationale*, édition 2002
 [`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
 **Dernière PR fusionnée :**
-[nº 9](https://github.com/defense-humanites/orthotypography/pull/9)
+[nº 10](https://github.com/defense-humanites/orthotypography/pull/10)
 
 ## 1. Objet et vocabulaire
 
@@ -59,8 +59,8 @@ supplémentaires propres au comportement.
 | `quotes.primary.glyphs` | issue de source seulement | non | négatifs dans `quotes_test.ts` | non | reconnaître sans ambiguïté le rôle ouvrant ou fermant des guillemets droits |
 | `quotes.primary.innerSpacing` | `quotes.french.nbsp-inner` | `FRENCH_GUILLEMETS_SPACING_RULE` : `fix` | `quotes_test.ts`, `integration_test.ts` | oui | guillemets appariés seulement ; support contraint hors cœur |
 | `ellipsis.count` | `punctuation.ellipsis.glyph` | `ELLIPSIS_GLYPH_RULE` : reconnaissance de `U+2026` ou exactement trois `U+002E` ; diagnostic des seuls trois points ASCII classés `final` ou `initial` certains ; correction atomique en mode explicite `fix`, mode par défaut `lint` ; `ELLIPSIS_RECOGNITION_RULE` reste un alias du même objet | `ellipsis_recognition_test.ts`, `ellipsis_glyph_test.ts`, `catalogue_test.ts` | non | `etc.`, suites de longueur différente, syntaxes techniques, coupures entre crochets et limites protégées exclues ; aucune version publiée de cette tranche |
-| `ellipsis.spacing.final` | `punctuation.ellipsis.final.no-space-before` | fonction `final` reconnue en interne lorsque l’ellipse est attachée à une lettre et possède une limite sûre ; aucun diagnostic d’espacement, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance | non | exécution de l’espacement reportée ; cas collés des deux côtés conservés comme ambigus |
-| `ellipsis.spacing.initial` | `punctuation.ellipsis.initial.space-after` | fonction `initial` reconnue en interne au début structurel certain ; aucun diagnostic d’espacement, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance, y compris inter-segments | non | exécution de l’espacement reportée ; un simple délimiteur ouvrant ne suffit pas |
+| `ellipsis.spacing.final` | `punctuation.ellipsis.final.no-space-before` | fonction `final` reconnue en interne lorsque l’ellipse est attachée à une lettre ; règle d’espacement cataloguée, non exécutable | `ellipsis_recognition_test.ts` pour la reconnaissance | non | les cas certains sont déjà collés au mot précédent ; `Alors ...` reste indéterminé |
+| `ellipsis.spacing.initial` | `punctuation.ellipsis.initial.space-after` | fonction `initial` certaine au début structurel : diagnostic si une lettre suit immédiatement `…`, insertion de `U+0020` en mode `fix` explicite ; mode par défaut `lint` | `ellipsis_recognition_test.ts`, `ellipsis_initial_spacing_test.ts` pour modes, exclusions, protections, segments et UTF-16 | non | `...Suite` reste exclu comme syntaxe potentiellement technique ; simple délimiteur ouvrant insuffisant ; tranche I non fusionnée ni publiée |
 | `ellipsis.spacing.word` | `punctuation.ellipsis.word.space-around` | fonction `word` reconnue en interne mais marquée indéterminée ; aucun diagnostic, aucune correction | `ellipsis_recognition_test.ts` pour la reconnaissance et l’indétermination | non | indice sémantique absent ; maintien en `manual-review` documentaire |
 | interdiction des points de suspension après `etc.` | `punctuation.ellipsis.after-etc.forbidden` | `ETC_ELLIPSIS_RULE` : `fix` | `ellipsis_test.ts` | oui | token `etc.` autonome ; syntaxes techniques et segments protégés préservés |
 | `dash.parenthetical.glyph` | issue de source seulement | non | non | non | le tiret source `-` est trop ambigu pour une conversion globale |
@@ -125,7 +125,7 @@ techniques, les suites de longueur différente de trois, `etc...`, les coupures
 éditoriales entre crochets et les séquences interrompues par une protection
 sont exclues ; la ponctuation adjacente est laissée intacte.
 
-La tranche H rend le même identifiant `punctuation.ellipsis.glyph` correcteur
+La PR nº 10 a fusionné la tranche H, qui rend le même identifiant `punctuation.ellipsis.glyph` correcteur
 sur demande explicite du mode `fix`. Le mode documentaire par défaut reste
 `lint`. Les trois points peuvent traverser plusieurs segments : le premier
 fragment reçoit `U+2026`, les fragments suivants sont supprimés par des
@@ -135,15 +135,25 @@ sources. L’export public `ELLIPSIS_RECOGNITION_RULE` est un alias de
 deux références identiques reste rejetée comme identifiant dupliqué. Son
 comportement en mode explicite `fix` évolue ainsi de diagnostic seul à
 correction. Aucun espacement adjacent n’est modifié et le preset ne sélectionne
-toujours pas ce glyphe. La tranche est proposée pour revue, non fusionnée ni
-publiée.
+toujours pas ce glyphe. Cette fonctionnalité est fusionnée, mais pas publiée.
+
+La tranche I ajoute un runtime distinct pour l’espace après `…` lorsque le
+classificateur établit la fonction `initial` à un début structurel et qu’une
+lettre suit sans blanc. Le diagnostic par défaut ne modifie rien ; `fix`
+explicite ajoute une espace avec des coordonnées source gardées. Les ellipses
+déjà espacées, les trois points ASCII suivis d’une lettre, les autres
+fonctions, les délimiteurs seuls et les protections restent intacts. Le preset
+ne sélectionne pas cette règle. `final.no-space-before` demeure documentaire :
+les ellipses finales reconnues avec certitude touchent déjà la lettre avant
+elles, tandis que `Alors ...` n’est pas classé final. Tranche I proposée pour
+revue, non fusionnée et non publiée.
 
 ## 4. Priorités révélées par la matrice
 
-1. Après la reconnaissance, son lint conservateur et la correction de glyphe
-   proposée dans la tranche H, implémenter séparément les espacements `final`,
-   `initial` et `word` selon les niveaux de sûreté définis dans la
-   spécification.
+1. Après la correction de glyphe fusionnée dans la tranche H et la règle
+   initiale proposée dans la tranche I, réexaminer séparément les espacements
+   `final` et `word` seulement si leur fonction devient déterminable ; le
+   premier ne présente actuellement aucun cas certain à corriger.
 2. Étendre le lint de groupement aux quantités autonomes seulement après avoir
    stabilisé leurs indices sémantiques et les exclusions de numérotage ; définir
    ensuite une représentation sûre des corrections inter-segments avant tout
