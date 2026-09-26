@@ -1,17 +1,15 @@
 # Feuille de route du cœur
 
 État vérifié le 26 septembre 2026 sur
-[`5811be4`](https://github.com/defense-humanites/orthotypography/commit/5811be4),
-après la fusion des PR nº 13 à 16, qui préparent `0.1.0-alpha.3`. La
-[PR nº 17](https://github.com/defense-humanites/orthotypography/pull/17) doit être fusionnée avant sa publication, qui n’a pas eu lieu
-à cette date. Ce document sert de passation ; les prochaines
+[`7905702`](https://github.com/defense-humanites/orthotypography/commit/7905702e1a56ec3b0130504b766835896ce48c49),
+commit publié sous `0.1.0-alpha.3`. Ce document sert de passation ; les prochaines
 tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
 
 | Chantier                | État vérifié                                                                                                                               | Preuve                                                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Distribution JavaScript | Alpha publique `0.1.0-alpha.2`, distribution JSR et npm ; `0.1.0-alpha.3` préparée dans la [PR nº 16](https://github.com/defense-humanites/orthotypography/pull/16), fusionnée, non publiée | [Release](https://github.com/defense-humanites/orthotypography/releases/tag/v0.1.0-alpha.2), [manifeste](../deno.json) |
+| Distribution JavaScript | Alpha publique `0.1.0-alpha.3`, publiée le 26 septembre 2026 sur JSR et npm, sous le tag npm `latest` | [Release](https://github.com/defense-humanites/orthotypography/releases/tag/v0.1.0-alpha.3), [manifeste](../deno.json) |
 | Catalogue documentaire  | Modèle de règles, autorités et deux presets français candidats ; prescriptions d’espacement après ponctuation représentées par des identifiants autonomes | [Catalogue](catalogue-documentaire-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Normalisation           | Pipeline, classification numérique, ponctuation exécutable et traitement de suites textuelles traversant les nœuds                         | [README](../README.md), [architecture](architecture-v0.4.md)                                                           |
 | Changements localisés   | `TextChange` et `applyTextChanges` avec contrôles du texte attendu, des segments, des bornes UTF-16, des chevauchements et des protections | [Contrat](integration-contract-v0.1.md), [implémentation](../src/changes.ts)                                           |
@@ -20,7 +18,7 @@ tâches sont proposées et ne constituent pas une promesse de release.
 | Groupement des chiffres | Prescription historique et transposition Unicode spécifiées ; premier lint candidat limité aux quantités déjà classifiées, hors preset et sans correction | [Spécification](groupement-chiffres-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Ponctuation haute       | Règles d’espace avant et après exécutées et diagnostiquées sous huit identifiants atomiques, à sortie inchangée ; tranche fusionnée dans la PR nº 7 | [Catalogue](../src/catalogue/rules.ts), [tests](../tests/high_punctuation_atomicity_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Points de suspension    | Quatre règles atomiques cataloguées ; reconnaissance interne de `U+2026` et de trois `U+002E`, correction du glyphe des formes finales ou initiales certaines (PR nº 10) et espace après `…` initiale structurelle (PR nº 11), tous deux hors preset | [Conception](points-de-suspension-v0.1.md), [tests](../tests/ellipsis_initial_spacing_test.ts), [matrice](matrice-couverture-in-2002-v0.1.md) |
-| Validation de release   | 87 tests annoncés pour alpha.2, contrôles JSR et npm ; 146 tests exécutés localement sur la branche de préparation d’alpha.3 | Notes de la release ci-dessus ; ce nombre n'est pas une nouvelle exécution des tests                                   |
+| Validation de release   | 151 tests, contrôles JSR et npm répétés au tag par le workflow de publication, puis présence de la version sur les deux registres et tag npm `latest` vérifiés | [Workflow de publication](https://github.com/defense-humanites/orthotypography/actions/runs/36237577147) |
 
 Le cœur reste indépendant des parseurs Markdown/HTML et des API d'éditeurs. Les
 adaptateurs et leur avancement sont suivis dans la
@@ -33,32 +31,18 @@ ou de CI. Elle permet aussi une exécution manuelle complète, parallélise les
 contrôles de paquets avec les tests et annule les exécutions de PR dépassées.
 Le workflow de publication garde tous ses contrôles sur le tag de release.
 
-La [CI de la PR nº 11](https://github.com/defense-humanites/orthotypography/actions/runs/36231507386)
-a réussi `deno task check`, `deno task test`, le contrôle JSR et le contrôle
-npm. Cette validation de PR ne constitue ni une publication ni un essai dans
-un éditeur. Sur `main`, le manifeste est à `0.1.0-alpha.3` ; le dernier tag et
-la dernière version publiée restent `0.1.0-alpha.2`.
+La version `0.1.0-alpha.3` réunit les PR fusionnées depuis `0.1.0-alpha.2`,
+dont la préparation de release : renommage de `number.digits.grouping`
+([nº 13](https://github.com/defense-humanites/orthotypography/pull/13)), publication npm de confiance sans jeton ([nº 14](https://github.com/defense-humanites/orthotypography/pull/14)),
+guide de contribution ([nº 15](https://github.com/defense-humanites/orthotypography/pull/15)), version, `CHANGELOG` et matrice
+([nº 16](https://github.com/defense-humanites/orthotypography/pull/16)), puis publication de toute version `0.x` sous le tag npm
+`latest`, vérifié en fin de workflow ([nº 17](https://github.com/defense-humanites/orthotypography/pull/17)). La version npm porte une
+attestation de provenance émise par la publication de confiance. Aucun essai
+dans un éditeur n’accompagne cette publication.
 
-La préparation de `0.1.0-alpha.3` comprend quatre PR fusionnées et une PR ouverte :
-
-- [nº 13](https://github.com/defense-humanites/orthotypography/pull/13) renomme l’identifiant non publié `number.groupDigits` en
-  `number.digits.grouping`, selon la convention des autres règles ; le
-  dépouillement conserve `number.groupDigits` comme identifiant de prescription ;
-- [nº 14](https://github.com/defense-humanites/orthotypography/pull/14) retire le jeton npm du workflow de publication, la publication
-  de confiance étant configurée, et réécrit `RELEASING.md` ;
-- [nº 15](https://github.com/defense-humanites/orthotypography/pull/15) actualise `CONTRIBUTING.md` ;
-- [nº 16](https://github.com/defense-humanites/orthotypography/pull/16), qui dépend de la nº 13, fixe la version, complète le
-  `CHANGELOG`, actualise le README et synchronise la matrice de couverture ;
-- [nº 17](https://github.com/defense-humanites/orthotypography/pull/17), ouverte, publie toute version `0.x` sous le tag npm `latest`
-  et vérifie ce tag en fin de publication : la publication de confiance ne
-  permet pas de déplacer un tag après coup.
-
-La publication suivra `RELEASING.md` après la fusion de la nº 17 et sur
-instruction explicite.
-Côté intégrations, les tests hors ligne des adaptateurs Markdown/Astro passent
-contre `main`, mais cinq tests du SDK Google Docs dépendent du nombre exact de
-requêtes ou de l’ordre du preset et devront être adaptés lors de la montée de
-version.
+Les intégrations dépendent encore de versions antérieures du cœur ; leur montée
+vers `0.1.0-alpha.3` est suivie dans la
+[feuille de route des intégrations](https://github.com/defense-humanites/orthotypography-integrations/blob/main/docs/roadmap.md).
 
 ## Prochaines tâches proposées
 
@@ -112,7 +96,7 @@ version.
    a ensuite fusionné la tranche I : `punctuation.ellipsis.initial.space-after`
    diagnostique par défaut l’absence d’espace après `…` au début structurel
    certain, puis insère `U+0020` en mode `fix` explicite. Ces deux règles
-   restent hors du preset et ne sont pas encore publiées. `...Suite` demeure
+   restent hors du preset ; elles sont publiées dans `0.1.0-alpha.3`. `...Suite` demeure
    exclu par le classificateur actuel. La règle
    `punctuation.ellipsis.final.no-space-before` reste documentaire : les
    ellipses finales certaines sont déjà collées à la lettre précédente,
