@@ -12,7 +12,7 @@ npm.
 
 ```sh
 deno add jsr:@orthotypography/core@0.1.0-alpha.3
-npm install @orthotypography/core@alpha
+npm install @orthotypography/core
 ```
 
 ## Current status
@@ -72,5 +72,6 @@ deno task currency:update
 
 ## License
 
-MIT © Antoine Boquet. Contributions are accepted under the same license; see
-[`CONTRIBUTING.md`](./CONTRIBUTING.md).
+[MIT](./LICENSE) License. Contributions are accepted under the same license; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+Copyright (c) 2026 Antoine Boquet.
