@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { fetchRegistryPresence } from "../scripts/release_registry.ts";
+import {
+  fetchNpmDistTags,
+  fetchRegistryPresence,
+} from "../scripts/release_registry.ts";
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -100,4 +103,41 @@ Deno.test("registry errors and malformed metadata fail closed", async () => {
     Error,
     "versions metadata",
   );
+});
+
+Deno.test("npm dist-tags are read from the scoped package endpoint", async () => {
+  const requested: string[] = [];
+  const fetcher = (input: string | URL | Request): Promise<Response> => {
+    requested.push(String(input));
+    return Promise.resolve(
+      response({ latest: "0.1.0-alpha.3", alpha: "0.1.0-alpha.2" }),
+    );
+  };
+
+  assert.deepEqual(
+    await fetchNpmDistTags("@orthotypography/core", fetcher),
+    { latest: "0.1.0-alpha.3", alpha: "0.1.0-alpha.2" },
+  );
+  assert.deepEqual(requested, [
+    "https://registry.npmjs.org/-/package/%40orthotypography%2Fcore/dist-tags",
+  ]);
+});
+
+Deno.test("npm dist-tag errors and malformed metadata fail closed", async () => {
+  await assert.rejects(
+    fetchNpmDistTags(
+      "@orthotypography/core",
+      () => Promise.resolve(response({ error: "unavailable" }, 503)),
+    ),
+    /npm registry returned 503/,
+  );
+  for (const body of [null, ["0.1.0"], { latest: 1 }]) {
+    await assert.rejects(
+      fetchNpmDistTags(
+        "@orthotypography/core",
+        () => Promise.resolve(response(body)),
+      ),
+      /Invalid npm dist-tags metadata/,
+    );
+  }
 });

@@ -1,4 +1,5 @@
 import denoConfig from "../deno.json" with { type: "json" };
+import { npmDistTag } from "./release_metadata.ts";
 
 export interface RegistryPresence {
   readonly jsr: boolean;
@@ -87,6 +88,36 @@ export async function fetchRegistryPresence(
   };
 }
 
+/** Resolves the npm distribution tags of a package. */
+export async function fetchNpmDistTags(
+  packageName: string,
+  fetcher: Fetcher = fetch,
+): Promise<Readonly<Record<string, string>>> {
+  const url = `https://registry.npmjs.org/-/package/${
+    encodeURIComponent(packageName)
+  }/dist-tags`;
+  const response = await fetcher(url, {
+    cache: "no-store",
+    headers: {
+      accept: "application/json",
+      "cache-control": "no-cache",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `npm registry returned ${response.status} ${response.statusText}`,
+    );
+  }
+  const tags: unknown = await response.json();
+  if (
+    typeof tags !== "object" || tags === null || Array.isArray(tags) ||
+    Object.values(tags).some((value) => typeof value !== "string")
+  ) {
+    throw new Error("Invalid npm dist-tags metadata");
+  }
+  return tags as Readonly<Record<string, string>>;
+}
+
 async function writeOutputs(presence: RegistryPresence): Promise<void> {
   const outputPath = Deno.env.get("GITHUB_OUTPUT");
   if (outputPath === undefined) {
@@ -100,17 +131,22 @@ async function writeOutputs(presence: RegistryPresence): Promise<void> {
 }
 
 async function requireBothRegistries(): Promise<void> {
+  const distTag = npmDistTag(denoConfig.version);
   const attempts = 30;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     const presence = await fetchRegistryPresence(
       denoConfig.name,
       denoConfig.version,
     );
-    if (presence.jsr && presence.npm) return;
+    const tagged = presence.npm
+      ? (await fetchNpmDistTags(denoConfig.name))[distTag]
+      : undefined;
+    if (presence.jsr && presence.npm && tagged === denoConfig.version) return;
     if (attempt === attempts) {
       throw new Error(
         `Incomplete release ${denoConfig.version}: ` +
-          `JSR=${presence.jsr}, npm=${presence.npm}`,
+          `JSR=${presence.jsr}, npm=${presence.npm}, ` +
+          `npm ${distTag}=${tagged ?? "unverified"}`,
       );
     }
     await new Promise((resolve) => setTimeout(resolve, 10_000));
