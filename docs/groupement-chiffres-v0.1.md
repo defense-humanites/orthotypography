@@ -1,7 +1,8 @@
 # Groupement des chiffres — spécification v0.1
 
 **Date :** 12 septembre 2026  
-**Règle :** `number.groupDigits`  
+**Règle :** `number.digits.grouping` (prescription `number.groupDigits` du
+dépouillement)  
 **Autorité :** *Lexique des règles typographiques en usage à l’Imprimerie
 nationale*, édition 2002  
 **Statut :** prescription historique vérifiée ; transposition Unicode décidée ;
@@ -57,7 +58,7 @@ selon les conventions suivantes :
 3. une partie de trois chiffres ou moins reste compacte ;
 4. le signe éventuel et la virgule ne font pas partie des groupes et ne sont pas
    modifiés par cette règle ;
-5. `number.groupDigits` ne décide ni ne convertit le séparateur décimal. Un
+5. `number.digits.grouping` ne décide ni ne convertit le séparateur décimal. Un
    point décimal, une notation scientifique, une fraction, un ratio ou une base
    autre que dix restent hors de cette première spécification exécutable.
 
