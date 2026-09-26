@@ -67,6 +67,8 @@ deno task check
 deno task test
 deno task publish:check
 deno task npm:check
+deno task bench
+deno task corpus:update
 deno task currency:update
 ```
 

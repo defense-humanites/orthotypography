@@ -26,12 +26,22 @@ deno task check          # formatting, lint, type checks, and API documentation
 deno task test           # test suite
 deno task publish:check  # JSR dry run
 deno task npm:check      # npm build, smoke test, and pack dry run
+deno task bench          # pipeline timing on repeated corpus text
 ```
 
 Run `check` and `test` for every source change. Run `publish:check` and
 `npm:check` as well when a change affects the public API, dependencies, or
 packaging. The formatter configuration does not include Markdown, so format
 changed Markdown files explicitly, for example with `deno fmt CONTRIBUTING.md`.
+
+`deno task test` includes generic pipeline invariants
+(`tests/invariants_test.ts`) and corpus snapshots (`tests/corpus_test.ts`). A
+behavior change that alters the corpus output requires `deno task corpus:update`
+and a review of the resulting diff in `tests/fixtures/corpus/snapshots.json`. An
+invariant violation found in existing code is reported in an issue and listed in
+`KNOWN_VIOLATIONS` (`tests/support/invariants.ts`) until it is fixed. For
+changes that may affect performance, compare `deno task bench` with the baseline
+in [`docs/performances-v0.1.md`](docs/performances-v0.1.md) on the same machine.
 
 `deno task currency:update` refreshes the ISO 4217 currency data from its
 official source; submit the regenerated data in a dedicated change.

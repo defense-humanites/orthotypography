@@ -56,7 +56,12 @@ vers `0.1.0-alpha.3` est suivie dans la
    [nº 24](https://github.com/defense-humanites/orthotypography/issues/24)), diagnostics porteurs de corrections, erreurs et messages
    codés ([nº 26](https://github.com/defense-humanites/orthotypography/issues/26), [nº 27](https://github.com/defense-humanites/orthotypography/issues/27)), matrice générée ([nº 28](https://github.com/defense-humanites/orthotypography/issues/28)).
    Les ruptures d’API sont à regrouper dans une ligne `0.2` coordonnée avec les
-   intégrations.
+   intégrations ; la version `0.2.0` suivra les étapes 3 et 5 de la revue. Le
+   filet de tests ([nº 19](https://github.com/defense-humanites/orthotypography/issues/19)) est proposé dans la [PR nº 33](https://github.com/defense-humanites/orthotypography/pull/33) :
+   invariants sur entrées générées, instantanés d’un corpus et
+   [mesures de référence](performances-v0.1.md). Il a révélé les anomalies
+   [nº 30](https://github.com/defense-humanites/orthotypography/issues/30), [nº 31](https://github.com/defense-humanites/orthotypography/issues/31) et [nº 32](https://github.com/defense-humanites/orthotypography/issues/32), à corriger avant les
+   refontes.
 2. **Cohérence documentaire et linguistique.** Auditer les textes hors de
    `docs/`, traduire leur prose en anglais et actualiser les instructions
    devenues obsolètes. `CONTRIBUTING.md` et `RELEASING.md` sont traités dans
