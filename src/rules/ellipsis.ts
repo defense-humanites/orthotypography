@@ -28,6 +28,15 @@ if (recognitionDefinition === undefined) {
   throw new Error("Missing documentary rule: punctuation.ellipsis.glyph");
 }
 
+const initialSpacingDefinition = RULES.find((rule) =>
+  rule.id === "punctuation.ellipsis.initial.space-after"
+);
+if (initialSpacingDefinition === undefined) {
+  throw new Error(
+    "Missing documentary rule: punctuation.ellipsis.initial.space-after",
+  );
+}
+
 interface LogicalPart {
   readonly segmentIndex: number;
   readonly start: number;
@@ -256,3 +265,46 @@ export const ELLIPSIS_GLYPH_RULE: RuntimeRule = {
 
 /** Compatibility alias for the original recognition-only export. */
 export const ELLIPSIS_RECOGNITION_RULE = ELLIPSIS_GLYPH_RULE;
+
+/** Inserts a word space after a certain structurally initial ellipsis. */
+export const ELLIPSIS_INITIAL_SPACE_AFTER_RULE: RuntimeRule = {
+  definition: initialSpacingDefinition as RuleDefinition,
+  apply(value, context): RuleApplication {
+    const run = ellipsisLogicalRun(context.segments, context.segmentIndex);
+    const owner = run.parts.find(({ segmentIndex }) =>
+      segmentIndex === context.segmentIndex
+    );
+    if (owner === undefined) return { value };
+
+    const edits: RuleApplicationEdit[] = [];
+    const diagnostics = classifyEllipsisCandidates(
+      run.value,
+      run.structurallyInitial,
+    ).flatMap((candidate) => {
+      if (
+        candidate.value !== "…" || candidate.function !== "initial" ||
+        !candidate.certain || candidate.start < owner.start ||
+        candidate.start >= owner.end ||
+        !/[\p{L}\p{M}]/u.test(
+          String.fromCodePoint(run.value.codePointAt(candidate.end) ?? 0),
+        )
+      ) return [];
+
+      const position = candidate.end - owner.start;
+      if (context.mode === "fix") {
+        edits.push({ start: position, end: position, replacement: " " });
+      }
+      return [{
+        start: candidate.start - owner.start,
+        end: Math.min(candidate.end - owner.start, value.length),
+        message: "Insert a word space after a structurally initial ellipsis",
+      }];
+    });
+
+    return {
+      value: context.mode === "fix" ? applyEdits(value, edits) : value,
+      ...(context.mode === "fix" ? { edits } : {}),
+      diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
+    };
+  },
+};

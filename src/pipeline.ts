@@ -342,6 +342,7 @@ function diagnosticLocation(
   segments: readonly PipelineSegment[],
   sourceSegments: readonly TextSegment[],
   sourceCoordinates: boolean,
+  ledgers: readonly ChangeLedger[],
 ): DiagnosticLocation {
   const segment = segments[location.segmentIndex];
   if (segment === undefined) {
@@ -354,16 +355,36 @@ function diagnosticLocation(
     "diagnostic",
   );
 
-  if (sourceCoordinates) {
+  const ledger = ledgers[segment.sourceIndex];
+  const runtimeOffset = segments.slice(0, location.segmentIndex).reduce(
+    (offset, part) =>
+      offset +
+      (part.sourceIndex === segment.sourceIndex ? part.value.length : 0),
+    0,
+  );
+  const absoluteStart = runtimeOffset + location.start;
+  const absoluteEnd = runtimeOffset + location.end;
+  let pieceOffset = 0;
+  const unchangedPiece = ledger.pieces.find((piece) => {
+    const start = pieceOffset;
+    pieceOffset += piece.value.length;
+    return piece.ruleIds.length === 0 && absoluteStart >= start &&
+      absoluteEnd <= pieceOffset;
+  });
+  if (sourceCoordinates || unchangedPiece !== undefined) {
     const source = sourceSegments[segment.sourceIndex];
+    const start = unchangedPiece === undefined
+      ? segment.sourceStart + location.start
+      : unchangedPiece.sourceStart + absoluteStart -
+        (pieceOffset - unchangedPiece.value.length);
     return {
       coordinateSpace: "source",
       segmentIndex: segment.sourceIndex,
       ...(source.id === undefined ? {} : { segmentId: source.id }),
       segmentValue: source.value,
       segmentRevision: 0,
-      start: segment.sourceStart + location.start,
-      end: segment.sourceStart + location.end,
+      start,
+      end: start + location.end - location.start,
     };
   }
 
@@ -480,6 +501,10 @@ export function runPipeline(
   for (const rule of orderedRules) {
     if (!rule.definition.locales.includes(options.locale)) continue;
     const mode = options.mode ?? rule.definition.defaultMode;
+    const diagnosticLedgers = ledgers.map(({ source, pieces }) => ({
+      source,
+      pieces: [...pieces],
+    }));
     appliedRuleIds.push(rule.definition.id);
     const applications = segments.map((segment, segmentIndex) => {
       if (segment.protected) return undefined;
@@ -615,6 +640,7 @@ export function runPipeline(
           segments,
           sourceSegments,
           sourceCoordinates,
+          diagnosticLedgers,
         );
         diagnostics.push({
           ...location,
@@ -630,6 +656,7 @@ export function runPipeline(
                 segments,
                 sourceSegments,
                 sourceCoordinates,
+                diagnosticLedgers,
               )
             ),
           }),
