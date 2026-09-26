@@ -172,33 +172,100 @@ function sourcePositionAt(
   return pieces[boundary]?.sourceStart ?? pieces[boundary - 1]?.sourceEnd ?? 0;
 }
 
-function applyLedgerEdit(
+/**
+ * Applies one rule's edits to a source ledger.
+ *
+ * Edits use the ledger coordinates that precede the rule. They are applied from
+ * right to left with the same expansion, splitting, and coalescing as single
+ * edits, but each one only rewrites the window of pieces around it. Positions
+ * left of the current edit are therefore never recomputed, and the cost stays
+ * linear in the number of edits and pieces.
+ */
+function applyLedgerEdits(
   ledger: ChangeLedger,
-  rawEdit: RuleApplicationEdit,
+  edits: readonly RuleApplicationEdit[],
   ruleId: string,
 ): void {
-  validateRange(rawEdit.start, rawEdit.end, ledgerValue(ledger).length, "edit");
-  const edit = expandChangedBoundaries(ledger.pieces, rawEdit);
-  splitUnchangedPieceAt(ledger.pieces, edit.start);
-  splitUnchangedPieceAt(ledger.pieces, edit.end);
+  if (edits.length === 0) return;
+  const left = ledger.pieces;
+  const offsets = new Array<number>(left.length + 1);
+  offsets[0] = 0;
+  for (let index = 0; index < left.length; index++) {
+    offsets[index + 1] = offsets[index] + left[index].value.length;
+  }
+  let leftCount = left.length;
+  // Pieces right of the current edit, leftmost last.
+  const right: LedgerPiece[] = [];
+  let length = offsets[leftCount];
 
-  const startIndex = ledgerBoundaryIndex(ledger.pieces, edit.start, "start");
-  const endIndex = ledgerBoundaryIndex(ledger.pieces, edit.end, "end");
-  const removed = ledger.pieces.slice(startIndex, endIndex);
-  const sourceStart = removed.length === 0
-    ? sourcePositionAt(ledger.pieces, startIndex)
-    : Math.min(...removed.map((piece) => piece.sourceStart));
-  const sourceEnd = removed.length === 0
-    ? sourceStart
-    : Math.max(...removed.map((piece) => piece.sourceEnd));
+  for (const edit of [...edits].sort((a, b) => b.start - a.start)) {
+    validateRange(edit.start, edit.end, length, "edit");
 
-  ledger.pieces.splice(startIndex, endIndex - startIndex, {
-    value: edit.replacement,
-    sourceStart,
-    sourceEnd,
-    ruleIds: addRuleIds(removed, ruleId),
-  });
-  ledger.pieces = coalesceLedgerPieces(ledger.pieces);
+    // Pieces that contain or follow the edit start, then the left neighbour.
+    const window: LedgerPiece[] = [];
+    while (
+      leftCount > 0 &&
+      (offsets[leftCount - 1] >= edit.start || offsets[leftCount] > edit.start)
+    ) window.push(left[--leftCount]);
+    if (leftCount > 0) window.push(left[--leftCount]);
+    window.reverse();
+    const base = offsets[leftCount];
+
+    // Pieces before the edit end, empty pieces at the end, then one neighbour.
+    let position = base;
+    for (const piece of window) position += piece.value.length;
+    while (right.length > 0) {
+      const piece = right[right.length - 1];
+      if (
+        position < edit.end ||
+        (position === edit.end && piece.value.length === 0)
+      ) {
+        window.push(piece);
+        right.pop();
+        position += piece.value.length;
+      } else {
+        break;
+      }
+    }
+    const neighbour = right.pop();
+    if (neighbour !== undefined) window.push(neighbour);
+
+    const local = expandChangedBoundaries(window, {
+      start: edit.start - base,
+      end: edit.end - base,
+      replacement: edit.replacement,
+    });
+    splitUnchangedPieceAt(window, local.start);
+    splitUnchangedPieceAt(window, local.end);
+    const startIndex = ledgerBoundaryIndex(window, local.start, "start");
+    const endIndex = ledgerBoundaryIndex(window, local.end, "end");
+    const removed = window.slice(startIndex, endIndex);
+    let sourceStart = sourcePositionAt(window, startIndex);
+    let sourceEnd = sourceStart;
+    if (removed.length > 0) {
+      sourceStart = Infinity;
+      sourceEnd = -Infinity;
+      for (const piece of removed) {
+        sourceStart = Math.min(sourceStart, piece.sourceStart);
+        sourceEnd = Math.max(sourceEnd, piece.sourceEnd);
+      }
+    }
+    window.splice(startIndex, endIndex - startIndex, {
+      value: local.replacement,
+      sourceStart,
+      sourceEnd,
+      ruleIds: addRuleIds(removed, ruleId),
+    });
+    length += local.replacement.length - (local.end - local.start);
+
+    const merged = coalesceLedgerPieces(window);
+    for (let index = merged.length - 1; index >= 0; index--) {
+      right.push(merged[index]);
+    }
+  }
+
+  right.reverse();
+  ledger.pieces = left.slice(0, leftCount).concat(right);
 }
 
 function applyEdits(
@@ -250,17 +317,22 @@ function ledgerChanges(ledgers: readonly ChangeLedger[]): TextChange[] {
         );
       }
     }
-    let reconstructed = ledger.source.value;
-    for (const change of [...segmentChanges].reverse()) {
+    const parts: string[] = [];
+    let cursor = 0;
+    for (const change of segmentChanges) {
       if (
         ledger.source.value.slice(change.start, change.end) !== change.expected
       ) {
         throw new Error(`Invalid expected value in segment ${segmentIndex}`);
       }
-      reconstructed = reconstructed.slice(0, change.start) +
-        change.replacement + reconstructed.slice(change.end);
+      parts.push(
+        ledger.source.value.slice(cursor, change.start),
+        change.replacement,
+      );
+      cursor = change.end;
     }
-    if (reconstructed !== ledgerValue(ledger)) {
+    parts.push(ledger.source.value.slice(cursor));
+    if (parts.join("") !== ledgerValue(ledger)) {
       throw new Error(`Source changes diverged for segment ${segmentIndex}`);
     }
     changes.push(...segmentChanges);
@@ -337,9 +409,60 @@ function validateRange(
   }
 }
 
+/** Offset of each runtime fragment inside its source segment. */
+function fragmentOffsets(segments: readonly PipelineSegment[]): number[] {
+  const running = new Map<number, number>();
+  return segments.map((segment) => {
+    const offset = running.get(segment.sourceIndex) ?? 0;
+    running.set(segment.sourceIndex, offset + segment.value.length);
+    return offset;
+  });
+}
+
+const pieceOffsetCache = new WeakMap<readonly LedgerPiece[], number[]>();
+
+/** Cumulative piece offsets of a ledger snapshot, computed once. */
+function pieceOffsets(pieces: readonly LedgerPiece[]): number[] {
+  let offsets = pieceOffsetCache.get(pieces);
+  if (offsets === undefined) {
+    offsets = new Array<number>(pieces.length + 1);
+    offsets[0] = 0;
+    for (let index = 0; index < pieces.length; index++) {
+      offsets[index + 1] = offsets[index] + pieces[index].value.length;
+    }
+    pieceOffsetCache.set(pieces, offsets);
+  }
+  return offsets;
+}
+
+/** First unchanged piece containing a range, as a linear scan would find it. */
+function unchangedPieceAt(
+  pieces: readonly LedgerPiece[],
+  start: number,
+  end: number,
+): { readonly piece: LedgerPiece; readonly offset: number } | undefined {
+  const offsets = pieceOffsets(pieces);
+  let low = 0;
+  let high = pieces.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (offsets[middle + 1] < start) low = middle + 1;
+    else high = middle;
+  }
+  for (let index = low; index < pieces.length; index++) {
+    if (offsets[index] > start) break;
+    const piece = pieces[index];
+    if (piece.ruleIds.length === 0 && end <= offsets[index + 1]) {
+      return { piece, offset: offsets[index] };
+    }
+  }
+  return undefined;
+}
+
 function diagnosticLocation(
   location: ApplicationDiagnosticLocation,
   segments: readonly PipelineSegment[],
+  runtimeOffsets: readonly number[],
   sourceSegments: readonly TextSegment[],
   sourceCoordinates: boolean,
   ledgers: readonly ChangeLedger[],
@@ -356,27 +479,15 @@ function diagnosticLocation(
   );
 
   const ledger = ledgers[segment.sourceIndex];
-  const runtimeOffset = segments.slice(0, location.segmentIndex).reduce(
-    (offset, part) =>
-      offset +
-      (part.sourceIndex === segment.sourceIndex ? part.value.length : 0),
-    0,
-  );
+  const runtimeOffset = runtimeOffsets[location.segmentIndex];
   const absoluteStart = runtimeOffset + location.start;
   const absoluteEnd = runtimeOffset + location.end;
-  let pieceOffset = 0;
-  const unchangedPiece = ledger.pieces.find((piece) => {
-    const start = pieceOffset;
-    pieceOffset += piece.value.length;
-    return piece.ruleIds.length === 0 && absoluteStart >= start &&
-      absoluteEnd <= pieceOffset;
-  });
-  if (sourceCoordinates || unchangedPiece !== undefined) {
+  const unchanged = unchangedPieceAt(ledger.pieces, absoluteStart, absoluteEnd);
+  if (sourceCoordinates || unchanged !== undefined) {
     const source = sourceSegments[segment.sourceIndex];
-    const start = unchangedPiece === undefined
+    const start = unchanged === undefined
       ? segment.sourceStart + location.start
-      : unchangedPiece.sourceStart + absoluteStart -
-        (pieceOffset - unchangedPiece.value.length);
+      : unchanged.piece.sourceStart + absoluteStart - unchanged.offset;
     return {
       coordinateSpace: "source",
       segmentIndex: segment.sourceIndex,
@@ -586,17 +697,22 @@ export function runPipeline(
     }
 
     const nextSegments: PipelineSegment[] = [];
-    const processedLengths = new Map<number, number>();
+    const runtimeOffsets = fragmentOffsets(segments);
+    const ledgerEdits = new Map<number, RuleApplicationEdit[]>();
+    const locate = (location: ApplicationDiagnosticLocation) =>
+      diagnosticLocation(
+        location,
+        segments,
+        runtimeOffsets,
+        sourceSegments,
+        sourceCoordinates,
+        diagnosticLedgers,
+      );
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
       const segment = segments[segmentIndex];
-      const nodeOffset = processedLengths.get(segment.sourceIndex) ?? 0;
       const application = applications[segmentIndex];
       if (application === undefined) {
         nextSegments.push(segment);
-        processedLengths.set(
-          segment.sourceIndex,
-          nodeOffset + segment.value.length,
-        );
         continue;
       }
 
@@ -605,17 +721,16 @@ export function runPipeline(
         ? application.value
         : applyEdits(segment.value, edits);
       if (edits.length > 0) {
-        for (
-          const edit of [...edits].sort((left, right) =>
-            right.start - left.start
-          )
-        ) {
-          applyLedgerEdit(ledgers[segment.sourceIndex], {
+        const sourceEdits = ledgerEdits.get(segment.sourceIndex) ?? [];
+        const nodeOffset = runtimeOffsets[segmentIndex];
+        for (const edit of edits) {
+          sourceEdits.push({
             start: nodeOffset + edit.start,
             end: nodeOffset + edit.end,
             replacement: edit.replacement,
-          }, rule.definition.id);
+          });
         }
+        ledgerEdits.set(segment.sourceIndex, sourceEdits);
       }
       const appliedSegment: PipelineSegment = {
         ...segment,
@@ -630,18 +745,12 @@ export function runPipeline(
           application.protections ?? [],
         ),
       );
-      processedLengths.set(
-        segment.sourceIndex,
-        nodeOffset + value.length,
-      );
       for (const diagnostic of application.diagnostics ?? []) {
-        const location = diagnosticLocation(
-          { segmentIndex, start: diagnostic.start, end: diagnostic.end },
-          segments,
-          sourceSegments,
-          sourceCoordinates,
-          diagnosticLedgers,
-        );
+        const location = locate({
+          segmentIndex,
+          start: diagnostic.start,
+          end: diagnostic.end,
+        });
         diagnostics.push({
           ...location,
           ruleId: rule.definition.id,
@@ -650,29 +759,27 @@ export function runPipeline(
             ? {}
             : { replacement: diagnostic.replacement }),
           ...(diagnostic.related === undefined ? {} : {
-            related: diagnostic.related.map((related) =>
-              diagnosticLocation(
-                related,
-                segments,
-                sourceSegments,
-                sourceCoordinates,
-                diagnosticLedgers,
-              )
-            ),
+            related: diagnostic.related.map(locate),
           }),
         });
       }
+    }
+    for (const [sourceIndex, edits] of ledgerEdits) {
+      applyLedgerEdits(ledgers[sourceIndex], edits, rule.definition.id);
+    }
+    const reconstructed = sourceSegments.map(() => [] as string[]);
+    for (const segment of nextSegments) {
+      reconstructed[segment.sourceIndex].push(segment.value);
     }
     for (
       let sourceIndex = 0;
       sourceIndex < sourceSegments.length;
       sourceIndex++
     ) {
-      const reconstructed = nextSegments
-        .filter((segment) => segment.sourceIndex === sourceIndex)
-        .map(({ value }) => value)
-        .join("");
-      if (ledgerValue(ledgers[sourceIndex]) !== reconstructed) {
+      if (
+        ledgerValue(ledgers[sourceIndex]) !==
+          reconstructed[sourceIndex].join("")
+      ) {
         throw new Error(`Change ledger diverged for segment ${sourceIndex}`);
       }
     }

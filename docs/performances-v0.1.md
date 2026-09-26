@@ -34,3 +34,24 @@ issues [nº 20](https://github.com/defense-humanites/orthotypography/issues/20)
 [nº 21](https://github.com/defense-humanites/orthotypography/issues/21)
 (reconstruction de la suite logique à chaque segment). Toute modification de ces
 chantiers compare ses mesures à ce tableau, sur la même machine.
+
+## Après le journal linéaire
+
+Mesures de la même commande après la
+[PR de l’issue nº 20](https://github.com/defense-humanites/orthotypography/issues/20),
+dans le même environnement :
+
+| Entrée      | Caractères | Mode   |     Avant |     Après |
+| ----------- | ---------: | ------ | --------: | --------: |
+| un segment  |     24 997 | `fix`  |     98 ms |     41 ms |
+| un segment  |    124 996 | `fix`  |  1 575 ms |    519 ms |
+| un segment  |    499 999 | `fix`  | 33 104 ms |  7 195 ms |
+| 3 977 nœuds |    499 999 | `fix`  | 25 910 ms | 22 017 ms |
+| un segment  |    499 999 | `lint` |  8 318 ms |  8 095 ms |
+
+Le mode `fix` coûte désormais autant que le mode `lint` : sur 250 000 caractères
+en un segment, le pipeline hors règles prend environ 90 ms. La croissance
+restante vient des règles elles-mêmes, qui reconstruisent la suite logique à
+chaque fragment ; la règle des guillemets français en représente à elle seule
+plus de 90 %. Ce coût relève de
+l’[issue nº 21](https://github.com/defense-humanites/orthotypography/issues/21).
