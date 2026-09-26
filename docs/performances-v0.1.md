@@ -55,3 +55,24 @@ restante vient des règles elles-mêmes, qui reconstruisent la suite logique à
 chaque fragment ; la règle des guillemets français en représente à elle seule
 plus de 90 %. Ce coût relève de
 l’[issue nº 21](https://github.com/defense-humanites/orthotypography/issues/21).
+
+## Après la mise en cache de l’appariement des guillemets
+
+La règle des guillemets français recalculait l’appariement de toute la suite
+logique pour chaque fragment. Il est désormais calculé une fois par suite et
+réutilisé tant que les segments sont les mêmes objets.
+
+| Entrée      | Caractères | Mode   | Journal linéaire | Avec le cache |
+| ----------- | ---------: | ------ | ---------------: | ------------: |
+| un segment  |    124 996 | `fix`  |           519 ms |         97 ms |
+| un segment  |    499 999 | `lint` |         8 095 ms |        324 ms |
+| un segment  |    499 999 | `fix`  |         7 195 ms |        417 ms |
+| 3 977 nœuds |    499 999 | `lint` |        21 882 ms |        423 ms |
+| 3 977 nœuds |    499 999 | `fix`  |        22 017 ms |        506 ms |
+
+Entre 125 000 et 500 000 caractères, le temps est multiplié par 3,3 à 4,6 pour
+une taille multipliée par 4 : la croissance est désormais presque linéaire. Les
+autres règles consultent encore les segments voisins à chaque fragment ; la vue
+unique de la suite logique de
+l’[issue nº 21](https://github.com/defense-humanites/orthotypography/issues/21)
+supprimera ce coût résiduel.
