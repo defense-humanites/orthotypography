@@ -11,15 +11,23 @@ Deno.test("the documentary catalogue is internally consistent", () => {
   assert.deepEqual(validateCatalogue(SOURCES, RULES, PRESETS), []);
 });
 
+Deno.test("catalogue rule IDs use lowercase dotted kebab-case segments", () => {
+  const pattern = /^[a-z]+(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$/;
+  assert.deepEqual(
+    RULES.map(({ id }) => id).filter((id) => !pattern.test(id)),
+    [],
+  );
+});
+
 Deno.test("digit grouping is catalogued as lint but remains outside presets", () => {
-  const rule = RULES.find(({ id }) => id === "number.groupDigits");
+  const rule = RULES.find(({ id }) => id === "number.digits.grouping");
   assert.ok(rule);
   assert.equal(rule.defaultMode, "lint");
   assert.equal(rule.status, "VERIFIED_SEMANTICS");
   assert.deepEqual(rule.outcome, { separator: "U+202F", groupSize: "3" });
   assert.ok(
     PRESETS.every((preset) =>
-      preset.rules.every(({ ruleId }) => ruleId !== "number.groupDigits")
+      preset.rules.every(({ ruleId }) => ruleId !== "number.digits.grouping")
     ),
   );
 });

@@ -184,10 +184,10 @@ export const EURO_SPACING_RULE: RuntimeRule = {
 };
 
 const groupingDefinition = RULES.find((rule) =>
-  rule.id === "number.groupDigits"
+  rule.id === "number.digits.grouping"
 );
 if (groupingDefinition === undefined) {
-  throw new Error("Missing documentary rule: number.groupDigits");
+  throw new Error("Missing documentary rule: number.digits.grouping");
 }
 
 interface LogicalSegment {

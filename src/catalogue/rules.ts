@@ -388,7 +388,7 @@ export const RULES: readonly RuleDefinition[] = [
     ],
   },
   {
-    id: "number.groupDigits",
+    id: "number.digits.grouping",
     description:
       "Group digits in quantities by threes on both sides of the decimal comma.",
     locales: ["fr-FR"],
