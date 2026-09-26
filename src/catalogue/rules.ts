@@ -57,7 +57,13 @@ export const RULES: readonly RuleDefinition[] = [
       { sourceId: "oqlf-spacing", locator: "Point" },
     ],
     outcome: { before: "" },
-    exceptions: ["abréviation", "version", "adresse IP", "syntaxe protégée"],
+    exceptions: [
+      "abréviation",
+      "version",
+      "adresse IP",
+      "syntaxe protégée",
+      "suite de points (points de suspension)",
+    ],
   },
   {
     id: "punctuation.period.space-after",

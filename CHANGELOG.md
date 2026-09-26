@@ -12,6 +12,12 @@ All notable changes to this project will be documented in this file.
 - Protect times with seconds (`23:45:10`) and drive-letter paths
   (`C:\Temp\rapport.txt`, `D:/data`) from colon spacing. The numeric classifier
   reports the new `path` construct kind (#32).
+- Stop removing the space before a run of periods in
+  `punctuation.period.no-space-before`. Suspension points follow their own
+  spacing rules, and a space before them is correct when they stand for a word
+  (`Il m’a traité de ... devant tout le monde.`); `Alors ...` is now left
+  unchanged, like `Alors …`, and the composition with the ellipsis glyph rule is
+  stable in one pass (#31).
 
 ## [0.1.0-alpha.3] - 2026-09-26
 
