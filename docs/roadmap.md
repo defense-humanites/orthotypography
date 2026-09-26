@@ -1,16 +1,17 @@
 # Feuille de route du cœur
 
 État vérifié le 26 septembre 2026 sur
-[`713339a`](https://github.com/defense-humanites/orthotypography/commit/713339a5cb5a5b0f0c0e237795dd41022a468b34),
-après la fusion de la PR nº 12. La préparation de `0.1.0-alpha.3` est proposée
-dans les PR nº 13 à 16, ni fusionnées ni publiées à cette date. Ce document sert de passation ; les prochaines
+[`5811be4`](https://github.com/defense-humanites/orthotypography/commit/5811be4),
+après la fusion des PR nº 13 à 16, qui préparent `0.1.0-alpha.3`. La
+[PR nº 17](https://github.com/defense-humanites/orthotypography/pull/17) doit être fusionnée avant sa publication, qui n’a pas eu lieu
+à cette date. Ce document sert de passation ; les prochaines
 tâches sont proposées et ne constituent pas une promesse de release.
 
 ## État acquis
 
 | Chantier                | État vérifié                                                                                                                               | Preuve                                                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Distribution JavaScript | Alpha publique `0.1.0-alpha.2`, distribution JSR et npm ; `0.1.0-alpha.3` préparée dans la [PR nº 16](https://github.com/defense-humanites/orthotypography/pull/16), non publiée | [Release](https://github.com/defense-humanites/orthotypography/releases/tag/v0.1.0-alpha.2), [manifeste](../deno.json) |
+| Distribution JavaScript | Alpha publique `0.1.0-alpha.2`, distribution JSR et npm ; `0.1.0-alpha.3` préparée dans la [PR nº 16](https://github.com/defense-humanites/orthotypography/pull/16), fusionnée, non publiée | [Release](https://github.com/defense-humanites/orthotypography/releases/tag/v0.1.0-alpha.2), [manifeste](../deno.json) |
 | Catalogue documentaire  | Modèle de règles, autorités et deux presets français candidats ; prescriptions d’espacement après ponctuation représentées par des identifiants autonomes | [Catalogue](catalogue-documentaire-v0.1.md), [matrice](matrice-couverture-in-2002-v0.1.md) |
 | Normalisation           | Pipeline, classification numérique, ponctuation exécutable et traitement de suites textuelles traversant les nœuds                         | [README](../README.md), [architecture](architecture-v0.4.md)                                                           |
 | Changements localisés   | `TextChange` et `applyTextChanges` avec contrôles du texte attendu, des segments, des bornes UTF-16, des chevauchements et des protections | [Contrat](integration-contract-v0.1.md), [implémentation](../src/changes.ts)                                           |
@@ -35,10 +36,10 @@ Le workflow de publication garde tous ses contrôles sur le tag de release.
 La [CI de la PR nº 11](https://github.com/defense-humanites/orthotypography/actions/runs/36231507386)
 a réussi `deno task check`, `deno task test`, le contrôle JSR et le contrôle
 npm. Cette validation de PR ne constitue ni une publication ni un essai dans
-un éditeur ; sur `main`, le manifeste et le dernier tag restent à
-`0.1.0-alpha.2`.
+un éditeur. Sur `main`, le manifeste est à `0.1.0-alpha.3` ; le dernier tag et
+la dernière version publiée restent `0.1.0-alpha.2`.
 
-La préparation de `0.1.0-alpha.3` comprend quatre PR ouvertes :
+La préparation de `0.1.0-alpha.3` comprend quatre PR fusionnées et une PR ouverte :
 
 - [nº 13](https://github.com/defense-humanites/orthotypography/pull/13) renomme l’identifiant non publié `number.groupDigits` en
   `number.digits.grouping`, selon la convention des autres règles ; le
@@ -47,9 +48,13 @@ La préparation de `0.1.0-alpha.3` comprend quatre PR ouvertes :
   de confiance étant configurée, et réécrit `RELEASING.md` ;
 - [nº 15](https://github.com/defense-humanites/orthotypography/pull/15) actualise `CONTRIBUTING.md` ;
 - [nº 16](https://github.com/defense-humanites/orthotypography/pull/16), qui dépend de la nº 13, fixe la version, complète le
-  `CHANGELOG`, actualise le README et synchronise la matrice de couverture.
+  `CHANGELOG`, actualise le README et synchronise la matrice de couverture ;
+- [nº 17](https://github.com/defense-humanites/orthotypography/pull/17), ouverte, publie toute version `0.x` sous le tag npm `latest`
+  et vérifie ce tag en fin de publication : la publication de confiance ne
+  permet pas de déplacer un tag après coup.
 
-La publication suivra `RELEASING.md` après fusion et sur instruction explicite.
+La publication suivra `RELEASING.md` après la fusion de la nº 17 et sur
+instruction explicite.
 Côté intégrations, les tests hors ligne des adaptateurs Markdown/Astro passent
 contre `main`, mais cinq tests du SDK Google Docs dépendent du nombre exact de
 requêtes ou de l’ordre du preset et devront être adaptés lors de la montée de
