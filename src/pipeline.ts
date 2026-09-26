@@ -1,4 +1,13 @@
 import {
+  buildRun,
+  locateInFragment,
+  type LogicalRun,
+  projectProtections,
+  projectRunEdits,
+  runImplementation,
+  type RunRuleResult,
+} from "./run.ts";
+import {
   type ApplicationDiagnosticLocation,
   type DiagnosticLocation,
   type PipelineResult,
@@ -510,6 +519,204 @@ function diagnosticLocation(
   };
 }
 
+/** Fragment outcome of one rule, before it is committed. */
+interface FragmentPlan {
+  /** Fragment value when no edit applies. */
+  readonly value: string;
+  readonly edits: readonly RuleApplicationEdit[];
+  readonly protections: readonly ProtectionRange[];
+  /** Diagnostics reported by this fragment, in order. */
+  readonly diagnostics: readonly LocatedDiagnostic[];
+}
+
+/** Diagnostic located on runtime fragments, before source projection. */
+interface LocatedDiagnostic {
+  readonly location: ApplicationDiagnosticLocation;
+  readonly message: string;
+  readonly replacement?: string;
+  readonly related?: readonly ApplicationDiagnosticLocation[];
+}
+
+/** Applies a per-fragment rule to every unprotected fragment. */
+function planLegacyRule(
+  rule: RuntimeRule,
+  segments: readonly PipelineSegment[],
+  locale: string,
+  mode: RuleMode,
+  sourceCoordinates: boolean,
+  plans: (FragmentPlan | undefined)[],
+): void {
+  const applications = segments.map((segment, segmentIndex) => {
+    if (segment.protected) return undefined;
+    const application = rule.apply(segment.value, {
+      locale,
+      mode,
+      segments,
+      segmentIndex,
+    });
+    if (sourceCoordinates && application.value !== segment.value) {
+      throw new Error(
+        `Rule ${rule.definition.id} cannot transform text in lint mode`,
+      );
+    }
+    if (
+      (application.protections?.length ?? 0) > 0 &&
+      application.value !== segment.value
+    ) {
+      throw new Error(
+        `Rule ${rule.definition.id} cannot transform and protect in one pass`,
+      );
+    }
+    if (
+      application.value !== segment.value &&
+      application.edits !== undefined &&
+      applyEdits(segment.value, application.edits) !== application.value
+    ) {
+      throw new Error(
+        `Rule ${rule.definition.id} edits do not produce its value`,
+      );
+    }
+    return application;
+  });
+
+  const editsBySegment = new Map<number, RuleApplicationEdit[]>();
+  const addEdit = (segmentIndex: number, edit: RuleApplicationEdit): void => {
+    const target = segments[segmentIndex];
+    if (target === undefined) {
+      throw new Error(
+        `Rule ${rule.definition.id} targets missing segment ${segmentIndex}`,
+      );
+    }
+    if (target.protected) {
+      throw new Error(
+        `Rule ${rule.definition.id} targets protected segment ${segmentIndex}`,
+      );
+    }
+    validateRange(edit.start, edit.end, target.value.length, "edit");
+    const edits = editsBySegment.get(segmentIndex) ?? [];
+    edits.push(edit);
+    editsBySegment.set(segmentIndex, edits);
+  };
+
+  if (!sourceCoordinates) {
+    for (
+      let segmentIndex = 0;
+      segmentIndex < applications.length;
+      segmentIndex++
+    ) {
+      const application = applications[segmentIndex];
+      if (application === undefined) continue;
+      const segment = segments[segmentIndex];
+      if (application.value !== segment.value) {
+        const edits = (application.edits?.length ?? 0) > 0
+          ? application.edits as readonly RuleApplicationEdit[]
+          : [{
+            start: 0,
+            end: segment.value.length,
+            replacement: application.value,
+          }];
+        for (const edit of edits) addEdit(segmentIndex, edit);
+      }
+      if (mode === "fix") {
+        for (const edit of application.segmentEdits ?? []) {
+          addEdit(edit.segmentIndex, edit);
+        }
+      }
+    }
+  }
+
+  for (const [segmentIndex, application] of applications.entries()) {
+    if (application === undefined) {
+      plans.push(undefined);
+      continue;
+    }
+    plans.push({
+      value: application.value,
+      edits: editsBySegment.get(segmentIndex) ?? [],
+      protections: application.protections ?? [],
+      diagnostics: (application.diagnostics ?? []).map((diagnostic) => ({
+        location: {
+          segmentIndex,
+          start: diagnostic.start,
+          end: diagnostic.end,
+        },
+        message: diagnostic.message,
+        ...(diagnostic.replacement === undefined
+          ? {}
+          : { replacement: diagnostic.replacement }),
+        ...(diagnostic.related === undefined
+          ? {}
+          : { related: diagnostic.related }),
+      })),
+    });
+  }
+}
+
+/** Applies a rule once to the logical run and projects its result. */
+function planRunRule(
+  rule: RuntimeRule,
+  apply: (run: LogicalRun) => RunRuleResult,
+  segments: readonly PipelineSegment[],
+  locale: string,
+  mode: RuleMode,
+  plans: (FragmentPlan | undefined)[],
+  diagnostics: LocatedDiagnostic[],
+): void {
+  const id = rule.definition.id;
+  const layout = buildRun(segments, locale, mode);
+  const result = apply(layout.run);
+  const edits = result.edits ?? [];
+  const annotations = result.annotations ?? [];
+  if (edits.length > 0 && mode !== "fix") {
+    throw new Error(`Rule ${id} cannot transform text in ${mode} mode`);
+  }
+  if (annotations.length > 0) {
+    if (rule.definition.phase !== "classify") {
+      throw new Error(`Rule ${id} annotates outside the classify phase`);
+    }
+    if (edits.length > 0) {
+      throw new Error(`Rule ${id} cannot transform and protect in one pass`);
+    }
+    for (const annotation of annotations) {
+      validateRange(
+        annotation.start,
+        annotation.end,
+        layout.run.text.length,
+        "annotation",
+      );
+      if (annotation.protect !== true) {
+        throw new Error(`Rule ${id} returned an unsupported annotation`);
+      }
+    }
+  }
+  const edited = projectRunEdits(id, segments, layout, edits);
+  const protections = projectProtections(layout, segments, annotations);
+  for (const [segmentIndex, segment] of segments.entries()) {
+    plans.push(
+      segment.protected ? undefined : {
+        value: segment.value,
+        edits: edited.get(segmentIndex) ?? [],
+        protections: protections.get(segmentIndex) ?? [],
+        diagnostics: [],
+      },
+    );
+  }
+  for (const diagnostic of result.diagnostics ?? []) {
+    diagnostics.push({
+      location: locateInFragment(id, segments, layout, diagnostic),
+      message: diagnostic.message,
+      ...(diagnostic.replacement === undefined
+        ? {}
+        : { replacement: diagnostic.replacement }),
+      ...(diagnostic.related === undefined ? {} : {
+        related: diagnostic.related.map((related) =>
+          locateInFragment(id, segments, layout, related)
+        ),
+      }),
+    });
+  }
+}
+
 /**
  * Orders executable rules by phase and documentary dependencies.
  *
@@ -617,83 +824,28 @@ export function runPipeline(
       pieces: [...pieces],
     }));
     appliedRuleIds.push(rule.definition.id);
-    const applications = segments.map((segment, segmentIndex) => {
-      if (segment.protected) return undefined;
-      const application = rule.apply(segment.value, {
-        locale: options.locale,
-        mode,
+    const run = runImplementation(rule);
+    const plans: (FragmentPlan | undefined)[] = [];
+    const ruleDiagnostics: LocatedDiagnostic[] = [];
+    if (run !== undefined) {
+      planRunRule(
+        rule,
+        run,
         segments,
-        segmentIndex,
-      });
-      if (sourceCoordinates && application.value !== segment.value) {
-        throw new Error(
-          `Rule ${rule.definition.id} cannot transform text in lint mode`,
-        );
-      }
-      if (
-        (application.protections?.length ?? 0) > 0 &&
-        application.value !== segment.value
-      ) {
-        throw new Error(
-          `Rule ${rule.definition.id} cannot transform and protect in one pass`,
-        );
-      }
-      if (
-        application.value !== segment.value &&
-        application.edits !== undefined &&
-        applyEdits(segment.value, application.edits) !== application.value
-      ) {
-        throw new Error(
-          `Rule ${rule.definition.id} edits do not produce its value`,
-        );
-      }
-      return application;
-    });
-
-    const editsBySegment = new Map<number, RuleApplicationEdit[]>();
-    const addEdit = (segmentIndex: number, edit: RuleApplicationEdit): void => {
-      const target = segments[segmentIndex];
-      if (target === undefined) {
-        throw new Error(
-          `Rule ${rule.definition.id} targets missing segment ${segmentIndex}`,
-        );
-      }
-      if (target.protected) {
-        throw new Error(
-          `Rule ${rule.definition.id} targets protected segment ${segmentIndex}`,
-        );
-      }
-      validateRange(edit.start, edit.end, target.value.length, "edit");
-      const edits = editsBySegment.get(segmentIndex) ?? [];
-      edits.push(edit);
-      editsBySegment.set(segmentIndex, edits);
-    };
-
-    if (!sourceCoordinates) {
-      for (
-        let segmentIndex = 0;
-        segmentIndex < applications.length;
-        segmentIndex++
-      ) {
-        const application = applications[segmentIndex];
-        if (application === undefined) continue;
-        const segment = segments[segmentIndex];
-        if (application.value !== segment.value) {
-          const edits = (application.edits?.length ?? 0) > 0
-            ? application.edits as readonly RuleApplicationEdit[]
-            : [{
-              start: 0,
-              end: segment.value.length,
-              replacement: application.value,
-            }];
-          for (const edit of edits) addEdit(segmentIndex, edit);
-        }
-        if (mode === "fix") {
-          for (const edit of application.segmentEdits ?? []) {
-            addEdit(edit.segmentIndex, edit);
-          }
-        }
-      }
+        options.locale,
+        mode,
+        plans,
+        ruleDiagnostics,
+      );
+    } else {
+      planLegacyRule(
+        rule,
+        segments,
+        options.locale,
+        mode,
+        sourceCoordinates,
+        plans,
+      );
     }
 
     const nextSegments: PipelineSegment[] = [];
@@ -708,17 +860,30 @@ export function runPipeline(
         sourceCoordinates,
         diagnosticLedgers,
       );
+    const report = (diagnostic: LocatedDiagnostic): void => {
+      diagnostics.push({
+        ...locate(diagnostic.location),
+        ruleId: rule.definition.id,
+        message: diagnostic.message,
+        ...(diagnostic.replacement === undefined
+          ? {}
+          : { replacement: diagnostic.replacement }),
+        ...(diagnostic.related === undefined ? {} : {
+          related: diagnostic.related.map(locate),
+        }),
+      });
+    };
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
       const segment = segments[segmentIndex];
-      const application = applications[segmentIndex];
-      if (application === undefined) {
+      const plan = plans[segmentIndex];
+      if (plan === undefined) {
         nextSegments.push(segment);
         continue;
       }
 
-      const edits = editsBySegment.get(segmentIndex) ?? [];
+      const edits = plan.edits;
       const value = edits.length === 0
-        ? application.value
+        ? plan.value
         : applyEdits(segment.value, edits);
       if (edits.length > 0) {
         const sourceEdits = ledgerEdits.get(segment.sourceIndex) ?? [];
@@ -740,30 +905,11 @@ export function runPipeline(
           : segment.revision + 1,
       };
       nextSegments.push(
-        ...splitProtectedRanges(
-          appliedSegment,
-          application.protections ?? [],
-        ),
+        ...splitProtectedRanges(appliedSegment, plan.protections),
       );
-      for (const diagnostic of application.diagnostics ?? []) {
-        const location = locate({
-          segmentIndex,
-          start: diagnostic.start,
-          end: diagnostic.end,
-        });
-        diagnostics.push({
-          ...location,
-          ruleId: rule.definition.id,
-          message: diagnostic.message,
-          ...(diagnostic.replacement === undefined
-            ? {}
-            : { replacement: diagnostic.replacement }),
-          ...(diagnostic.related === undefined ? {} : {
-            related: diagnostic.related.map(locate),
-          }),
-        });
-      }
+      for (const diagnostic of plan.diagnostics) report(diagnostic);
     }
+    for (const diagnostic of ruleDiagnostics) report(diagnostic);
     for (const [sourceIndex, edits] of ledgerEdits) {
       applyLedgerEdits(ledgers[sourceIndex], edits, rule.definition.id);
     }
