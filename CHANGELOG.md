@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Apply each rule's edits to the change ledger in one pass, and locate
+  diagnostics and rebuild source changes without rescanning the ledger. Fix mode
+  no longer grows quadratically with the number of edits: 500,000 characters in
+  one segment take about 7 s instead of 33 s with `IMPRIMERIE_NATIONALE_RULES`.
+  Outputs are unchanged (#20).
 - Fix currency classification so that a symbol already following an amount is no
   longer reattached to the next amount: `25 € 30 €` stays unchanged instead of
   becoming `25 30 € €` with the euro rule in `fix` mode (#30).
