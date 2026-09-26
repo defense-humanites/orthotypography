@@ -15,7 +15,10 @@ interface NumericMatcher {
 
 const numericSpacingSource = String.raw`[\t \u00a0\u202f]`;
 const integerSource = String.raw`\d+(?:${numericSpacingSource}\d{3})*`;
-const fractionSource = String.raw`\d+(?:${numericSpacingSource}\d{1,3})*`;
+// A grouped decimal part is split by threes from the separator; only its last
+// group may be shorter. Other decimal parts are a single run of digits.
+const fractionSource = String
+  .raw`(?:\d{3}(?:${numericSpacingSource}\d{3})*(?:${numericSpacingSource}\d{1,2})?(?!\d)|\d+)`;
 export const numericValueSource = String
   .raw`${integerSource}(?:[.,]${fractionSource})?`;
 
@@ -84,7 +87,9 @@ const MATCHERS: readonly NumericMatcher[] = [
     kind: "currency",
     disposition: "target",
     pattern: new RegExp(
-      String.raw`[€$£][\t \u00a0\u202f]*${numericValueSource}\b`,
+      // A symbol that already follows an amount belongs to that amount.
+      String
+        .raw`(?<!\d[\t \u00a0\u202f]*)[€$£][\t \u00a0\u202f]*${numericValueSource}\b`,
       "gu",
     ),
     accept: (value) => resolveCurrencyNotation(value[0]) !== null,

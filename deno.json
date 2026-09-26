@@ -30,6 +30,9 @@
       "scripts/**/*.mjs",
       ".github/**/*.yml",
       "*.json"
+    ],
+    "exclude": [
+      "tests/fixtures/"
     ]
   },
   "tasks": {

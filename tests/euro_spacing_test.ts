@@ -65,3 +65,30 @@ Deno.test("euro spacing requires classification and is idempotent", () => {
   assert.equal(second.value, first.value);
   assert.deepEqual(second.diagnostics, []);
 });
+
+Deno.test("euro spacing keeps a symbol with the amount it follows", () => {
+  const rules = [NUMERIC_PROTECTION_RULE, EURO_SPACING_RULE];
+  for (
+    const [input, expected] of [
+      ["Prix : 25\u00a0€ 30\u00a0€", "Prix : 25\u00a0€ 30\u00a0€"],
+      ["Prix : 25 € 30 €", "Prix : 25\u00a0€ 30\u00a0€"],
+      ["25 € 12,5", "25\u00a0€ 12,5"],
+      ["€ 25 12,5 12,5", "25\u00a0€ 12,5 12,5"],
+      ["12€ et €30", "12\u00a0€ et 30\u00a0€"],
+    ]
+  ) {
+    const lint = runPipeline(input, rules, { locale: "fr-FR", mode: "lint" });
+    const fix = runPipeline(input, rules, { locale: "fr-FR", mode: "fix" });
+    assert.equal(fix.value, expected, input);
+    assert.deepEqual(
+      lint.diagnostics.map(({ replacement }) => replacement),
+      fix.changes.map(({ replacement }) => replacement),
+      input,
+    );
+    const again = runPipeline(fix.value, rules, {
+      locale: "fr-FR",
+      mode: "fix",
+    });
+    assert.deepEqual(again.changes, [], input);
+  }
+});

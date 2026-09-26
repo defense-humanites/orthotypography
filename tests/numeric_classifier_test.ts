@@ -118,3 +118,29 @@ Deno.test("numeric protection remains stable across later transformations", () =
     ["1.2.3", "12:30"],
   );
 });
+
+Deno.test("numeric classifier attaches a currency symbol to the amount it follows", () => {
+  const values = (input: string) =>
+    classifyNumericConstructs(input).map(({ kind, value }) => [kind, value]);
+  assert.deepEqual(values("25 € 30 €"), [
+    ["currency", "25 €"],
+    ["currency", "30 €"],
+  ]);
+  assert.deepEqual(values("25 € 12,5"), [
+    ["currency", "25 €"],
+    ["decimal", "12,5"],
+  ]);
+  assert.deepEqual(values("12$ 30"), [["currency", "12$"]]);
+});
+
+Deno.test("numeric classifier groups decimal parts by threes only", () => {
+  const values = (input: string) =>
+    classifyNumericConstructs(input).map(({ kind, value }) => [kind, value]);
+  assert.deepEqual(values("3,141 592 65"), [["decimal", "3,141 592 65"]]);
+  assert.deepEqual(values("3,14159"), [["decimal", "3,14159"]]);
+  assert.deepEqual(values("12,5 12,5"), [
+    ["decimal", "12,5"],
+    ["decimal", "12,5"],
+  ]);
+  assert.deepEqual(values("0,5 12"), [["decimal", "0,5"]]);
+});
