@@ -49,8 +49,12 @@ and npm, and waits until both registries expose the version.
 
 The workflow derives the npm distribution tag from the version: `alpha`, `beta`,
 or `next` for prereleases and `latest` for stable versions. Publishing a
-prerelease therefore never moves `latest`. Any change to `latest` during the
-prerelease series is a manual, separately authorized registry operation:
+prerelease therefore never moves `latest`, and npm trusted publishing cannot
+change distribution tags.
+
+Until a stable version exists, `latest` follows the newest published alpha so
+that an unversioned `npm install` does not resolve to an obsolete preview. After
+each authorized prerelease, a maintainer moves it manually:
 
 ```sh
 npm dist-tag add @orthotypography/core@<version> latest
