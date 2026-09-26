@@ -3,6 +3,7 @@ import {
   HIGH_PUNCTUATION_RULES,
   IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
   runPipeline,
+  runTextNodePipeline,
   SAFE_PUNCTUATION_RULES,
 } from "../src/mod.ts";
 
@@ -142,4 +143,31 @@ Deno.test("French punctuation rules do not run for another locale", () => {
 
   assert.equal(result.value, input);
   assert.deepEqual(result.appliedRuleIds, []);
+});
+
+Deno.test("period spacing leaves runs of periods to the ellipsis rules", () => {
+  for (
+    const [input, expected] of [
+      ["Alors ...", "Alors ..."],
+      [
+        "Il m’a traité de ... devant tout le monde.",
+        "Il m’a traité de ... devant tout le monde.",
+      ],
+      ["Espèce de ... !", "Espèce de ... !"],
+      ["Fin ....", "Fin ...."],
+      ["Fin .", "Fin."],
+    ]
+  ) {
+    const result = runPipeline(input, SAFE_PUNCTUATION_RULES, {
+      locale: "fr-FR",
+      mode: "fix",
+    });
+    assert.equal(result.value, expected, input);
+  }
+  const split = runTextNodePipeline(
+    [{ id: "a", value: "Alors ." }, { id: "b", value: ".." }],
+    SAFE_PUNCTUATION_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+  assert.deepEqual(split.changes, []);
 });

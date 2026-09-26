@@ -91,14 +91,7 @@ export interface KnownViolation {
  * Violations tracked in issues. Remove an entry together with its fix: the
  * harness test fails as soon as the example stops reproducing it.
  */
-export const KNOWN_VIOLATIONS: readonly KnownViolation[] = [
-  {
-    issue: 31,
-    compositions: ["IMPRIMERIE_NATIONALE_RULES with opt-in ellipsis rules"],
-    pattern: /^fix mode is not idempotent .*\(punctuation\.ellipsis\.glyph\)$/s,
-    example: [{ id: "n0", value: "Alors ..." }],
-  },
-];
+export const KNOWN_VIOLATIONS: readonly KnownViolation[] = [];
 
 function describe(nodes: readonly TextNodeInput[]): string {
   return JSON.stringify(nodes);

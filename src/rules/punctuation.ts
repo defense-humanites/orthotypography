@@ -35,6 +35,16 @@ function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {
       const segmentEdits: RuleApplicationSegmentEdit[] = [];
       for (let markIndex = 0; markIndex < value.length; markIndex++) {
         if (value[markIndex] !== mark) continue;
+        // A run of periods is not a sentence period: suspension points follow
+        // their own spacing rules, and a space before them may be correct.
+        if (
+          mark === "." &&
+          followingCharacter(value, markIndex + 1, context).character === "."
+        ) {
+          markIndex++;
+          while (value[markIndex + 1] === ".") markIndex++;
+          continue;
+        }
         let start = markIndex;
         while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
         const preceding = start === 0 ? precedingBoundary(context) : {

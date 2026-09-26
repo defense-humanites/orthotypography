@@ -179,3 +179,23 @@ Deno.test("glyph rule is not active in the executable preset", () => {
   assert.equal(result.value, "Il hésite...");
   assert.ok(!result.appliedRuleIds.includes("punctuation.ellipsis.glyph"));
 });
+
+Deno.test("spaced ellipses stay unchanged and stable with the full composition", () => {
+  const rules = [...IMPRIMERIE_NATIONALE_RULES, ELLIPSIS_GLYPH_RULE];
+  for (
+    const input of [
+      "Alors ...",
+      "Alors … fin",
+      "Il m’a traité de ... devant tout le monde.",
+    ]
+  ) {
+    const result = runPipeline(input, rules, { locale: "fr-FR", mode: "fix" });
+    assert.equal(result.value, input);
+    assert.deepEqual(result.changes, []);
+  }
+  const attached = runPipeline("Alors...", rules, {
+    locale: "fr-FR",
+    mode: "fix",
+  });
+  assert.equal(attached.value, "Alors…");
+});
