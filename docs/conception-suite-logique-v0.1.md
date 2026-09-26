@@ -1,0 +1,209 @@
+# Conception — exécution des règles sur la suite logique v0.1
+
+**Date :** 26 septembre 2026
+**Issues :** [nº 21](https://github.com/defense-humanites/orthotypography/issues/21)
+(vue de la suite logique),
+[nº 22](https://github.com/defense-humanites/orthotypography/issues/22)
+(annotations typées),
+[nº 25](https://github.com/defense-humanites/orthotypography/issues/25)
+(règles exécutables séparées des définitions)
+**Base examinée :** `0.1.0-alpha.3` et `main` au commit `27bc64a`
+**Statut :** conception validée ; aucune implémentation dans ce document
+
+## 1. Objet
+
+Une règle est aujourd’hui appelée une fois par fragment. Elle lit les autres
+fragments par `context.segments` et modifie ses voisins par `segmentEdits`.
+Chaque module reconstruit donc la suite logique, ce qui duplique le code, rend
+le coût quadratique et laisse sans traitement les constructions numériques
+coupées entre deux nœuds (`10` suivi de `:30`, `25` suivi de `%`). Voir la
+[revue d’architecture](revue-architecture-v0.1.md).
+
+Ce document fixe le contrat qui remplace cette interface dans la ligne `0.2`.
+
+## 2. Décisions
+
+1. L’interface actuelle des règles est remplacée en `0.2`, sans adaptateur de
+   compatibilité : aucune règle tierce n’est connue.
+2. Le type public garde le nom `RuntimeRule`, afin de limiter les changements
+   dans les intégrations, qui ne manipulent que des tableaux de règles.
+3. Les constructions numériques coupées entre nœuds deviennent traitables ;
+   l’espace insérée entre un nombre et son symbole appartient au nœud du
+   symbole.
+
+## 3. Contrat d’une règle
+
+Une règle est appelée une seule fois par passe, sur une vue en lecture seule
+de toute la suite logique. Ses modifications et diagnostics sont exprimés dans
+les coordonnées UTF-16 de cette suite ; le pipeline les projette sur les nœuds
+et les coordonnées sources.
+
+```ts
+interface LogicalRun {
+  /** Texte courant de toute la suite, nœuds protégés compris. */
+  readonly text: string;
+  readonly locale: string;
+  readonly mode: RuleMode;
+  /** Plages protégées, triées et disjointes. */
+  readonly protectedRanges: readonly Range[];
+  /** Frontières des nœuds sources dans `text`, sans leur contenu. */
+  readonly nodeBoundaries: readonly number[];
+  /** Annotations d’un type, triées par position. */
+  annotations(kind: string): readonly Annotation[];
+}
+
+interface RuntimeRule {
+  readonly id: string;
+  readonly phase: RulePhase;
+  readonly locales: readonly string[];
+  readonly defaultMode: RuleMode;
+  readonly dependsOn?: readonly string[];
+  apply(run: LogicalRun): RuleResult;
+}
+
+interface RuleResult {
+  readonly edits?: readonly RunEdit[];
+  readonly diagnostics?: readonly RunDiagnostic[];
+  /** Réservé aux règles de la phase `classify`. */
+  readonly annotations?: readonly Annotation[];
+}
+
+interface RunEdit {
+  readonly start: number;
+  readonly end: number;
+  readonly replacement: string;
+  /** Nœud qui reçoit le texte inséré à une frontière ; `left` par défaut. */
+  readonly bias?: "left" | "right";
+}
+```
+
+`RunDiagnostic` reprend les champs actuels (`start`, `end`, `message`,
+`replacement`, `related`) dans les coordonnées de la suite. Les nœuds eux-mêmes
+restent invisibles : `nodeBoundaries` sert seulement aux règles qui doivent
+choisir `bias`.
+
+## 4. Validation et projection des modifications
+
+### 4.1 Validité
+
+Le pipeline refuse le résultat entier d’une règle si :
+
+- une modification sort de `[0, text.length]` ou a `end < start` ;
+- deux modifications se chevauchent ou commencent à la même position ;
+- une modification non vide recoupe une plage protégée ;
+- une insertion tombe à l’intérieur d’une plage protégée, ou à une frontière
+  dont le côté désigné par `bias` est protégé ;
+- une règle modifie le texte en mode `lint`.
+
+### 4.2 Projection sur les nœuds
+
+- Une modification contenue dans un nœud devient un changement de ce nœud.
+- Une modification qui traverse plusieurs nœuds est découpée : chaque nœud
+  perd sa part du texte remplacé ; le texte de remplacement entier va au
+  premier nœud touché (`left`) ou au dernier (`right`). Une frontière ne reçoit
+  donc jamais deux insertions.
+- Une insertion placée exactement à une frontière va au dernier nœud non
+  protégé qui se termine à cette position (`left`) ou au premier qui y commence
+  (`right`).
+
+Convention des règles françaises, conforme au comportement actuel : un blanc
+inséré ou normalisé appartient au nœud du signe dont il dépend. Exemples
+mesurés sur `0.1.0-alpha.3` :
+
+| Nœuds | Résultat |
+| --- | --- |
+| `Bonjour,` · `monde` | `Bonjour, ` · `monde` |
+| `Bonjour` · `; oui` | `Bonjour` · ` ; oui` |
+| `Bonjour ` · `;oui` | `Bonjour` · ` ; oui` |
+| `«` · `texte»` | `« ` · `texte »` |
+
+Le ledger des changements, les coordonnées sources, le garde-fou `expected` et
+`applyTextChanges` sont inchangés.
+
+## 5. Annotations
+
+```ts
+interface Annotation {
+  readonly kind: string;
+  readonly start: number;
+  readonly end: number;
+  /** La plage devient protégée pour toutes les règles suivantes. */
+  readonly protect?: boolean;
+  readonly data?: Readonly<Record<string, string>>;
+}
+```
+
+- Les règles de la phase `classify` produisent des annotations sur toute la
+  suite, une seule fois. La classification numérique devient une annotation
+  `numeric` dont `data.kind` et `data.disposition` reprennent
+  `NumericConstructKind` et `NumericConstructDisposition`.
+- Les plages protégées de la vue sont l’union des nœuds protégés et des
+  annotations `protect`.
+- Après les modifications d’une règle, une annotation qui contient entièrement
+  une modification est étendue ou réduite d’autant ; une annotation
+  partiellement recouverte est retirée ; les autres sont décalées.
+- `dependsOn` reste une contrainte d’ordre entre identifiants ; le type
+  d’annotation consommé par une règle est documenté avec elle.
+
+## 6. Règles exécutables et catalogue
+
+- `RuntimeRule` ne contient plus de `RuleDefinition`. Les règles livrées sont
+  construites à partir de leur fiche du catalogue, qui fournit phase, locales,
+  mode par défaut et dépendances ; il n’y a qu’une source pour ces valeurs.
+- Un test vérifie que chaque règle livrée a une fiche au même identifiant.
+- Les règles tierces utilisent des identifiants préfixés par `x-` et n’ont pas
+  besoin de fiche documentaire.
+
+## 7. Ce qui ne change pas
+
+Les entrées (`runPipeline`, `runTextNodePipeline`, `TextSegment`,
+`TextNodeInput`), les sorties (`TextChange`, `RuleDiagnostic`, espaces de
+coordonnées, `appliedRuleIds`) et `applyTextChanges` gardent leur forme. Leur
+évolution relève des issues
+[nº 26](https://github.com/defense-humanites/orthotypography/issues/26) et
+[nº 27](https://github.com/defense-humanites/orthotypography/issues/27). Les
+presets, les modes par règle et les locales relèvent des issues
+[nº 23](https://github.com/defense-humanites/orthotypography/issues/23) et
+[nº 24](https://github.com/defense-humanites/orthotypography/issues/24).
+
+## 8. Compatibilité avec le SDK et Google Docs
+
+`@orthotypography/editor-sdk` exécute `runTextNodePipeline` en `lint` puis en
+`fix` sur des nœuds qui correspondent à des passages de style uniforme, vérifie
+`applyTextChanges`, puis place chaque changement par son nœud. D’où trois
+exigences :
+
+1. **Attribution identique.** Le texte inséré prend le style de son nœud
+   (`google-docs-style.ts`). Chaque règle migrée reproduit le nœud actuel de
+   chaque insertion.
+2. **Une insertion par frontière.** Le SDK refuse deux insertions au même
+   index natif ; la projection du § 4.2 le garantit.
+3. **Bords de paragraphe.** Le SDK refuse les insertions stylées au bord d’un
+   paragraphe ; les règles migrées n’en créent pas de nouvelles.
+
+Le code source du SDK compile sans changement. Ses tests qui fabriquent des
+règles avec l’ancienne interface seront réécrits lors du passage au cœur
+`0.2`.
+
+## 9. Étapes et vérifications
+
+| Étape | Contenu | Sorties |
+| --- | --- | --- |
+| 1 | Pipeline construisant la vue une fois par règle, ancienne interface conservée derrière un adaptateur interne | identiques |
+| 2 | Migration des guillemets, de la ponctuation, puis des points de suspension, une PR par module ; suppression des utilitaires dupliqués | identiques |
+| 3 | Annotations : classification numérique puis règles numériques | identiques, sauf constructions coupées entre nœuds |
+| 4 | Séparation des définitions (§ 6) et bascule publique ; suppression de `segmentEdits` et `context.segments` | identiques |
+
+Chaque étape vérifie :
+
+- les tests, les invariants et les instantanés du corpus ;
+- une comparaison complète avec l’implémentation précédente sur les entrées
+  générées, le corpus et des textes longs ;
+- à partir de l’étape 2, les tests du SDK et une comparaison des lots de
+  requêtes Google Docs, simples et stylés, sur la fixture de validation réelle
+  et sur des paragraphes générés avec de nombreux changements de style ;
+- `deno task bench`, comparé à [`performances-v0.1.md`](performances-v0.1.md).
+
+À l’étape 3, les instantanés segmentés du corpus changent volontairement ; la
+PR liste chaque différence. La publication de `0.2.0` suit ce chantier et
+celui des issues nº 26 et nº 27.
