@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Fix currency classification so that a symbol already following an amount is no
+  longer reattached to the next amount: `25 € 30 €` stays unchanged instead of
+  becoming `25 30 € €` with the euro rule in `fix` mode (#30).
+- Group decimal parts by threes only when classifying numbers, so that `12,5 12`
+  is no longer read as one number (#30).
+
 ## [0.1.0-alpha.3] - 2026-09-26
 
 - Insert missing spaces after commas in safe prose contexts, including across

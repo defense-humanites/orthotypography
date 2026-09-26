@@ -93,12 +93,6 @@ export interface KnownViolation {
  */
 export const KNOWN_VIOLATIONS: readonly KnownViolation[] = [
   {
-    issue: 30,
-    compositions: ["EURO_SPACING_RULE", "IMPRIMERIE_NATIONALE_RULES"],
-    pattern: /^fix mode is not idempotent .*\(number\.euro\.nbsp-before\)$/s,
-    example: [{ id: "n0", value: "€ 25 12,5 12,5" }],
-  },
-  {
     issue: 31,
     compositions: ["IMPRIMERIE_NATIONALE_RULES with opt-in ellipsis rules"],
     pattern: /^fix mode is not idempotent .*\(punctuation\.ellipsis\.glyph\)$/s,
