@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
   becoming `25 30 € €` with the euro rule in `fix` mode (#30).
 - Group decimal parts by threes only when classifying numbers, so that `12,5 12`
   is no longer read as one number (#30).
+- Protect times with seconds (`23:45:10`) and drive-letter paths
+  (`C:\Temp\rapport.txt`, `D:/data`) from colon spacing. The numeric classifier
+  reports the new `path` construct kind (#32).
 
 ## [0.1.0-alpha.3] - 2026-09-26
 

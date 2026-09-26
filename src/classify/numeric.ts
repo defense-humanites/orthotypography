@@ -38,6 +38,12 @@ const MATCHERS: readonly NumericMatcher[] = [
     pattern: /\b[a-z][a-z0-9+.-]*:\/\/[^\s<>"'«»]+/giu,
   },
   {
+    kind: "path",
+    disposition: "protect",
+    // Drive-letter paths; trailing sentence punctuation stays outside.
+    pattern: /\b[a-z]:[\\/](?:[^\s<>"'«»]*[^\s<>"'«».,;:!?)])?/giu,
+  },
+  {
     kind: "ipv4",
     disposition: "protect",
     pattern: /\b(?:\d{1,3}\.){3}\d{1,3}\b/gu,
@@ -62,7 +68,7 @@ const MATCHERS: readonly NumericMatcher[] = [
     kind: "time",
     disposition: "protect",
     pattern:
-      /\b(?:[01]?\d|2[0-3])(?:[\t \u00a0\u202f]?h[\t \u00a0\u202f]?|:)[0-5]\d\b/giu,
+      /\b(?:[01]?\d|2[0-3])(?:[\t \u00a0\u202f]?h[\t \u00a0\u202f]?[0-5]\d|:[0-5]\d(?::[0-5]\d)?)\b/giu,
   },
   {
     kind: "ratio",

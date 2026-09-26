@@ -265,6 +265,7 @@ const TOKENS: readonly string[] = [
   "3.14",
   "2026",
   "10:30",
+  "23:45:10",
   "1.2.3",
   "192.168.0.1",
   "%",
@@ -276,6 +277,7 @@ const TOKENS: readonly string[] = [
   "$",
   "http://ex.org:8080/a?b=1",
   "a::b",
+  "C:\\Temp\\a.txt",
   "!important",
   "v1.2",
 ];
