@@ -1,0 +1,11 @@
+La version 2.4.1 corrige le port 8080 : voir http://exemple.org:8080/notes?id=12 pour le détail.
+
+Le serveur 192.168.0.12 répond à 10:30 ; la sauvegarde démarre à 23:45:10. Le ratio attendu est de 3:2.
+
+En CSS, la règle color: red !important reste prioritaire; en C++, std::vector et a::b ne doivent pas être modifiés.
+
+Le fichier C:\Temp\rapport.txt pèse 12,5 Mo ; la commande git log --oneline -3 affiche trois lignes.
+
+Les dates 2026-09-26 et 26/09/2026 désignent le même jour. Le chemin /usr/local/bin reste intact.
+
+Question: faut-il vraiment écrire a,b,c dans une liste technique ? Oui!Mais pas dans la prose.
