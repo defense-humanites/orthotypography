@@ -2,7 +2,7 @@
 
 This repository owns `@orthotypography/core`. Editor and Markdown adapters
 belong in
-[orthotypography-integrations](https://github.com/defense-humanites/orthotypography-integrations).
+[orthotypography-integrations](https://github.com/orthotypography/orthotypography-integrations).
 
 ## Language
 

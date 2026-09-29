@@ -1,7 +1,7 @@
 # Mesures de performance — référence v0.1
 
 **Date :** 26 septembre 2026 **Base mesurée :** `main` au commit
-[`140b38c`](https://github.com/defense-humanites/orthotypography/commit/140b38c),
+[`140b38c`](https://github.com/orthotypography/orthotypography/commit/140b38c),
 code du cœur identique à `0.1.0-alpha.3` **Commande :** `deno task bench --full`
 **Environnement :** Deno 2.9.6, conteneur Linux x86-64 partagé ; les valeurs
 absolues varient selon la machine, seules les tendances comptent.
@@ -29,16 +29,16 @@ exécutions.
 Quand la taille est multipliée par 20, le temps est multiplié par 200 à 340 : la
 croissance est quadratique en mode `fix` comme dans le découpage en nœuds, y
 compris en `lint`. Les causes et les corrections attendues sont suivies dans les
-issues [nº 20](https://github.com/defense-humanites/orthotypography/issues/20)
+issues [nº 20](https://github.com/orthotypography/orthotypography/issues/20)
 (journal des changements) et
-[nº 21](https://github.com/defense-humanites/orthotypography/issues/21)
+[nº 21](https://github.com/orthotypography/orthotypography/issues/21)
 (reconstruction de la suite logique à chaque segment). Toute modification de ces
 chantiers compare ses mesures à ce tableau, sur la même machine.
 
 ## Après le journal linéaire
 
 Mesures de la même commande après la
-[PR de l’issue nº 20](https://github.com/defense-humanites/orthotypography/issues/20),
+[PR de l’issue nº 20](https://github.com/orthotypography/orthotypography/issues/20),
 dans le même environnement :
 
 | Entrée      | Caractères | Mode   |     Avant |     Après |
@@ -54,7 +54,7 @@ en un segment, le pipeline hors règles prend environ 90 ms. La croissance
 restante vient des règles elles-mêmes, qui reconstruisent la suite logique à
 chaque fragment ; la règle des guillemets français en représente à elle seule
 plus de 90 %. Ce coût relève de
-l’[issue nº 21](https://github.com/defense-humanites/orthotypography/issues/21).
+l’[issue nº 21](https://github.com/orthotypography/orthotypography/issues/21).
 
 ## Après la mise en cache de l’appariement des guillemets
 
@@ -74,5 +74,5 @@ Entre 125 000 et 500 000 caractères, le temps est multiplié par 3,3 à 4,6 pou
 une taille multipliée par 4 : la croissance est désormais presque linéaire. Les
 autres règles consultent encore les segments voisins à chaque fragment ; la vue
 unique de la suite logique de
-l’[issue nº 21](https://github.com/defense-humanites/orthotypography/issues/21)
+l’[issue nº 21](https://github.com/orthotypography/orthotypography/issues/21)
 supprimera ce coût résiduel.

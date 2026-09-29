@@ -1,11 +1,11 @@
 # Conception — exécution des règles sur la suite logique v0.1
 
 **Date :** 26 septembre 2026
-**Issues :** [nº 21](https://github.com/defense-humanites/orthotypography/issues/21)
+**Issues :** [nº 21](https://github.com/orthotypography/orthotypography/issues/21)
 (vue de la suite logique),
-[nº 22](https://github.com/defense-humanites/orthotypography/issues/22)
+[nº 22](https://github.com/orthotypography/orthotypography/issues/22)
 (annotations typées),
-[nº 25](https://github.com/defense-humanites/orthotypography/issues/25)
+[nº 25](https://github.com/orthotypography/orthotypography/issues/25)
 (règles exécutables séparées des définitions)
 **Base examinée :** `0.1.0-alpha.3` et `main` au commit `27bc64a`
 **Statut :** conception validée ; aucune implémentation dans ce document
@@ -111,7 +111,7 @@ Le pipeline refuse le résultat entier d’une règle si :
 - Un diagnostic vide placé à une frontière suit la même règle, `bias` compris,
   sans refus pour les nœuds protégés ; un diagnostic non vide doit tenir dans un
   seul fragment tant que le format des résultats n’évolue pas
-  ([nº 26](https://github.com/defense-humanites/orthotypography/issues/26)).
+  ([nº 26](https://github.com/orthotypography/orthotypography/issues/26)).
 
 Convention des règles françaises, conforme au comportement actuel : un blanc
 inséré ou normalisé appartient au nœud du signe dont il dépend. Exemples
@@ -167,11 +167,11 @@ Les entrées (`runPipeline`, `runTextNodePipeline`, `TextSegment`,
 `TextNodeInput`), les sorties (`TextChange`, `RuleDiagnostic`, espaces de
 coordonnées, `appliedRuleIds`) et `applyTextChanges` gardent leur forme. Leur
 évolution relève des issues
-[nº 26](https://github.com/defense-humanites/orthotypography/issues/26) et
-[nº 27](https://github.com/defense-humanites/orthotypography/issues/27). Les
+[nº 26](https://github.com/orthotypography/orthotypography/issues/26) et
+[nº 27](https://github.com/orthotypography/orthotypography/issues/27). Les
 presets, les modes par règle et les locales relèvent des issues
-[nº 23](https://github.com/defense-humanites/orthotypography/issues/23) et
-[nº 24](https://github.com/defense-humanites/orthotypography/issues/24).
+[nº 23](https://github.com/orthotypography/orthotypography/issues/23) et
+[nº 24](https://github.com/orthotypography/orthotypography/issues/24).
 
 ## 8. Compatibilité avec le SDK et Google Docs
 
