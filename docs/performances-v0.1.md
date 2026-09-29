@@ -133,3 +133,26 @@ vers la suite logique
 
 Chaque migration de l’étape 2 et de l’étape 3 reprend cette commande et doit
 ramener les lignes concernées vers un facteur 2.
+
+## Après la migration de la ponctuation
+
+La migration de la ponctuation vers la suite logique
+([PR nº 45](https://github.com/orthotypography/orthotypography/pull/45)) lit le
+jeton qui précède une virgule à partir de positions calculées une fois par
+passe, et abandonne la copie de l’application des modifications propre à ces
+règles. Mesures de la même commande, lignes concernées :
+
+| Entrée                      | Mode   | 31 250 | 62 500 | 125 000 | Facteur par doublement |
+| --------------------------- | ------ | -----: | -----: | ------: | ---------------------: |
+| virgules dans un seul jeton | `lint` |  56 ms |  59 ms |  108 ms |                    1,4 |
+| virgules dans un seul jeton | `fix`  | 101 ms | 126 ms |  242 ms |                    1,6 |
+| ponctuation haute espacée   | `lint` |  17 ms |  18 ms |   32 ms |                    1,4 |
+| ponctuation haute espacée   | `fix`  |  48 ms |  66 ms |  110 ms |                    1,5 |
+
+Les nœuds d’un caractère et les nœuds d’espaces restent quadratiques avec
+`IMPRIMERIE_NATIONALE_RULES`, à cause de la seule règle `etc.` ; avec
+`IMPRIMERIE_NATIONALE_PUNCTUATION_RULES`, ces entrées et le nœud protégé par
+groupe de mots croissent d’un facteur 2,0 à 2,2 par doublement, mesuré jusqu’à
+250 000 caractères pour les nœuds d’un caractère et jusqu’à 1 000 000 pour les
+deux autres (par exemple 2,5 s, 5,1 s puis 10,9 s en `fix` pour les nœuds
+d’espaces à 250 000, 500 000 et 1 000 000 de caractères).
