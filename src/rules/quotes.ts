@@ -1,169 +1,121 @@
 import { RULES } from "../catalogue/rules.ts";
-import type {
-  RuleApplication,
-  RuleContext,
-  RuleDefinition,
-  RuntimeRule,
-  TextSegment,
-} from "../model.ts";
+import type { RuleDefinition, RuntimeRule } from "../model.ts";
+import {
+  defineRunRule,
+  type LogicalRun,
+  type RunDiagnostic,
+  type RunEdit,
+  type RunRuleResult,
+} from "../run.ts";
 
-interface TextEdit {
-  readonly start: number;
-  readonly end: number;
-  readonly replacement: string;
-  readonly related: {
-    readonly segmentIndex: number;
-    readonly start: number;
-    readonly end: number;
-  };
-}
-
-const spacingCharacters = new Set(["\t", " ", "\u00a0", "\u202f"]);
+const spacingCharacters = new Set(["\t", " ", " ", " "]);
 
 const definition = RULES.find((rule) => rule.id === "quotes.french.nbsp-inner");
 if (definition === undefined) {
   throw new Error("Missing documentary rule: quotes.french.nbsp-inner");
 }
 
-interface Pairing {
-  /** Segment objects the pairing was computed from. */
-  readonly snapshot: readonly TextSegment[];
-  /** Absolute offset of each paired guillemet mapped to its partner. */
-  readonly paired: ReadonlyMap<number, number>;
-  /** Absolute start offset of each segment, then the total length. */
-  readonly offsets: readonly number[];
-}
+const message = "Expected a no-break space inside paired French guillemets";
 
-// The pipeline calls a rule once per fragment with the same segment array.
-// Pairing depends on the whole run, so it is computed once per distinct run
-// and reused while the array still holds the same segment objects.
-const pairingCache = new WeakMap<readonly TextSegment[], Pairing>();
-
-function computePairing(segments: readonly TextSegment[]): Pairing {
-  const offsets = new Array<number>(segments.length + 1);
-  offsets[0] = 0;
-  for (let index = 0; index < segments.length; index++) {
-    offsets[index + 1] = offsets[index] + segments[index].value.length;
-  }
-  const source = segments.map(({ value }) => value).join("");
+/**
+ * Pairs French guillemets outside protected text.
+ *
+ * Guillemets nest; a closing one pairs with the latest unmatched opening one
+ * when the text between them, protected text included, is not blank. The
+ * result maps each paired guillemet to its partner.
+ */
+function pairGuillemets(run: LogicalRun): Map<number, number> {
+  const { text, protectedRanges } = run;
   const paired = new Map<number, number>();
   const openings: number[] = [];
-
-  for (const [segmentIndex, segment] of segments.entries()) {
-    if (segment.protected) continue;
-    for (let index = 0; index < segment.value.length; index++) {
-      const character = segment.value[index];
-      const absoluteIndex = offsets[segmentIndex] + index;
-      if (character === "«") {
-        openings.push(absoluteIndex);
-      } else if (character === "»") {
-        const opening = openings.pop();
-        if (
-          opening !== undefined &&
-          source.slice(opening + 1, absoluteIndex).trim().length > 0
-        ) {
-          paired.set(opening, absoluteIndex);
-          paired.set(absoluteIndex, opening);
-        }
+  let rangeIndex = 0;
+  for (let index = 0; index < text.length; index++) {
+    while (
+      rangeIndex < protectedRanges.length &&
+      protectedRanges[rangeIndex].end <= index
+    ) rangeIndex++;
+    const range = protectedRanges[rangeIndex];
+    if (range !== undefined && range.start <= index) {
+      index = range.end - 1;
+      continue;
+    }
+    const character = text[index];
+    if (character === "«") {
+      openings.push(index);
+    } else if (character === "»") {
+      const opening = openings.pop();
+      if (
+        opening !== undefined &&
+        text.slice(opening + 1, index).trim().length > 0
+      ) {
+        paired.set(opening, index);
+        paired.set(index, opening);
       }
     }
   }
-  return { snapshot: [...segments], paired, offsets };
+  return paired;
 }
 
-function pairingFor(context: RuleContext): Pairing {
-  const segments = context.segments;
-  const cached = pairingCache.get(segments);
-  if (
-    cached !== undefined && cached.snapshot.length === segments.length &&
-    cached.snapshot.every((segment, index) => segment === segments[index])
-  ) return cached;
-  const pairing = computePairing(segments);
-  pairingCache.set(segments, pairing);
-  return pairing;
+/**
+ * Positions where spacing normalization stops: node boundaries and the edges
+ * of protected ranges.
+ *
+ * The rule normalizes only the spacing that sits in the same node and
+ * unprotected stretch as the guillemet, as the per-fragment implementation
+ * did, so that every edit and diagnostic stays with the guillemet's node.
+ */
+function stopPositions(run: LogicalRun): Set<number> {
+  const stops = new Set(run.nodeBoundaries);
+  for (const { start, end } of run.protectedRanges) {
+    stops.add(start);
+    stops.add(end);
+  }
+  return stops;
 }
 
-function locateOffset(
-  pairing: Pairing,
-  absoluteOffset: number,
-): { segmentIndex: number; start: number; end: number } {
-  const { offsets } = pairing;
-  let low = 0;
-  let high = offsets.length - 2;
-  while (low <= high) {
-    const middle = (low + high) >>> 1;
-    if (absoluteOffset < offsets[middle]) high = middle - 1;
-    else if (absoluteOffset >= offsets[middle + 1]) low = middle + 1;
-    else {
-      const start = absoluteOffset - offsets[middle];
-      return { segmentIndex: middle, start, end: start + 1 };
+function applyGuillemetSpacing(run: LogicalRun): RunRuleResult {
+  const { text } = run;
+  const paired = pairGuillemets(run);
+  if (paired.size === 0) return {};
+  const stops = stopPositions(run);
+  const edits: RunEdit[] = [];
+  const diagnostics: RunDiagnostic[] = [];
+
+  const positions = [...paired.keys()].sort((left, right) => left - right);
+  for (const position of positions) {
+    const partner = paired.get(position) as number;
+    let edit: RunEdit;
+    if (text[position] === "«") {
+      let end = position + 1;
+      while (!stops.has(end) && spacingCharacters.has(text[end])) end++;
+      if (text.slice(position + 1, end) === " ") continue;
+      // An inserted space stays in the opening guillemet's node.
+      edit = { start: position + 1, end, replacement: " ", bias: "left" };
+    } else {
+      let start = position;
+      while (!stops.has(start) && spacingCharacters.has(text[start - 1])) {
+        start--;
+      }
+      if (text.slice(start, position) === " ") continue;
+      // An inserted space stays in the closing guillemet's node.
+      edit = { start, end: position, replacement: " ", bias: "right" };
     }
+    edits.push(edit);
+    diagnostics.push({
+      ...edit,
+      message,
+      related: [{ start: partner, end: partner + 1 }],
+    });
   }
-  throw new Error(`Unlocatable paired quote offset: ${absoluteOffset}`);
-}
 
-function applyEdits(value: string, edits: readonly TextEdit[]): string {
-  let result = value;
-  for (
-    const edit of [...edits].sort((left, right) => right.start - left.start)
-  ) {
-    result = result.slice(0, edit.start) + edit.replacement +
-      result.slice(edit.end);
-  }
-  return result;
+  return {
+    ...(run.mode === "fix" && edits.length > 0 ? { edits } : {}),
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
+  };
 }
 
 /** Spaces paired French guillemets without converting ambiguous quote glyphs. */
-export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = {
-  definition: definition as RuleDefinition,
-  apply(value, context): RuleApplication {
-    const pairing = pairingFor(context);
-    const paired = pairing.paired;
-    const offset = pairing.offsets[context.segmentIndex];
-    const edits: TextEdit[] = [];
-
-    for (let index = 0; index < value.length; index++) {
-      const character = value[index];
-      const pairedOffset = paired.get(offset + index);
-      if (pairedOffset === undefined) continue;
-
-      if (character === "«") {
-        let end = index + 1;
-        while (end < value.length && spacingCharacters.has(value[end])) end++;
-        if (value.slice(index + 1, end) !== "\u00a0") {
-          edits.push({
-            start: index + 1,
-            end,
-            replacement: "\u00a0",
-            related: locateOffset(pairing, pairedOffset),
-          });
-        }
-      } else if (character === "»") {
-        let start = index;
-        while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
-        if (value.slice(start, index) !== "\u00a0") {
-          edits.push({
-            start,
-            end: index,
-            replacement: "\u00a0",
-            related: locateOffset(pairing, pairedOffset),
-          });
-        }
-      }
-    }
-
-    return {
-      value: context.mode === "fix" ? applyEdits(value, edits) : value,
-      edits,
-      diagnostics: edits.length === 0
-        ? undefined
-        : edits.map(({ start, end, replacement, related }) => ({
-          start,
-          end,
-          message: "Expected a no-break space inside paired French guillemets",
-          replacement,
-          related: [related],
-        })),
-    };
-  },
-};
+export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = defineRunRule(
+  definition as RuleDefinition,
+  applyGuillemetSpacing,
+);
