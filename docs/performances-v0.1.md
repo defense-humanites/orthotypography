@@ -215,3 +215,40 @@ mesures et décimaux répétés) ; toutes les lignes restent entre 1,4 et 2,6 pa
 doublement. Sur cette entrée, en un segment, le temps passe de 337 ms, 304 ms et
 1 546 ms à 258 ms, 306 ms et 525 ms en `lint` à 31 250, 62 500 et 125 000
 caractères.
+
+## Règles numériques sur la suite
+
+Les règles numériques lisent désormais les annotations de la classification
+([PR nº 49](https://github.com/orthotypography/orthotypography/pull/49)). La
+règle facultative de groupement des chiffres, qui reconstruisait la portion non
+protégée pour chaque fragment (15 s pour 8 000 nœuds d’un caractère, 78 s pour
+16 000), est désormais linéaire et rejoint `deno task bench --scaling`, qui
+mesure ainsi toutes les règles exécutables :
+
+| Entrée                                  | Mode   | 31 250 |   62 500 |  125 000 | Facteur par doublement |
+| --------------------------------------- | ------ | -----: | -------: | -------: | ---------------------: |
+| corpus, un segment                      | `lint` |  24 ms |    57 ms |   117 ms |                    2,2 |
+| corpus, un segment                      | `fix`  |  38 ms |    72 ms |   118 ms |                    1,8 |
+| corpus, nœuds de quatre mots            | `lint` |  40 ms |    78 ms |   142 ms |                    1,9 |
+| corpus, nœuds de quatre mots            | `fix`  |  54 ms |    92 ms |   169 ms |                    1,8 |
+| corpus, nœuds d’un caractère            | `lint` | 756 ms | 1 597 ms | 3 837 ms |                    2,3 |
+| corpus, nœuds d’un caractère            | `fix`  | 674 ms | 1 567 ms | 3 618 ms |                    2,3 |
+| virgules dans un seul jeton             | `lint` |  18 ms |    28 ms |    93 ms |                    2,3 |
+| virgules dans un seul jeton             | `fix`  |  69 ms |   146 ms |   241 ms |                    1,9 |
+| ponctuation haute espacée               | `lint` |   8 ms |    14 ms |    32 ms |                    2,0 |
+| ponctuation haute espacée               | `fix`  |  31 ms |    84 ms |   158 ms |                    2,3 |
+| nombres denses                          | `lint` |  67 ms |   132 ms |   331 ms |                    2,2 |
+| nombres denses                          | `fix`  |  81 ms |   155 ms |   371 ms |                    2,1 |
+| points de suspension denses             | `lint` |  19 ms |    33 ms |    58 ms |                    1,7 |
+| points de suspension denses             | `fix`  |  20 ms |    34 ms |    74 ms |                    1,9 |
+| points de suspension dans un seul jeton | `lint` |  20 ms |    34 ms |    61 ms |                    1,8 |
+| points de suspension dans un seul jeton | `fix`  |  13 ms |    30 ms |    64 ms |                    2,2 |
+| nœuds de points de suspension           | `lint` | 201 ms |   601 ms | 1 485 ms |                    2,7 |
+| nœuds de points de suspension           | `fix`  | 205 ms |   547 ms | 1 455 ms |                    2,7 |
+| nœuds d’espaces autour des signes       | `lint` | 394 ms |   869 ms | 1 855 ms |                    2,2 |
+| nœuds d’espaces autour des signes       | `fix`  | 384 ms |   977 ms | 2 122 ms |                    2,4 |
+| nœud protégé par groupe de mots         | `lint` | 143 ms |   362 ms |   759 ms |                    2,3 |
+| nœud protégé par groupe de mots         | `fix`  | 204 ms |   374 ms |   813 ms |                    2,0 |
+
+Toutes les lignes croissent d’un facteur 1,7 à 2,7 par doublement ; aucune règle
+livrée ne reste quadratique sur ces entrées.

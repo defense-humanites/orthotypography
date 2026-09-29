@@ -1874,6 +1874,7 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,13,14,"\u202f"],
           ["number.unit.nbsp-before","source",0,16,19,"12\u00a0m"],
+          ["number.unit.nbsp-before","source",1,11,15],
           ["number.unit.nbsp-before","source",3,0,5,"54\u00a0m²"]
         ]
       },
@@ -1882,19 +1883,23 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,13,14,"\u202f"],
           ["number.unit.nbsp-before","source",0,16,19,"12\u00a0m"],
+          ["number.unit.nbsp-before","source",1,11,15],
           ["number.unit.nbsp-before","source",3,0,5,"54\u00a0m²"]
         ]
       },
       "segmented/fix": {
-        "value": "La salle mesure 12\u00a0m de long et 4,5 m de large, soit 54\u00a0m² environ\u202f; elle accueille 120 personnes.",
+        "value": "La salle mesure 12\u00a0m de long et 4,5\u00a0m de large, soit 54\u00a0m² environ\u202f; elle accueille 120 personnes.",
         "changes": [
           [0,16,19,"12m","12\u00a0m","number.unit.nbsp-before"],
+          [1,14,15," ","","number.unit.nbsp-before"],
+          [2,0,0,"","\u00a0","number.unit.nbsp-before"],
           [3,0,5,"54 m²","54\u00a0m²","number.unit.nbsp-before"],
           [3,13,14," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,13,14,"\u202f"],
           ["number.unit.nbsp-before","source",0,16,19,"12\u00a0m"],
+          ["number.unit.nbsp-before","source",1,11,15],
           ["number.unit.nbsp-before","source",3,0,5,"54\u00a0m²"]
         ]
       }
@@ -1944,6 +1949,7 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,13,14,"\u202f"],
           ["number.unit.nbsp-before","source",0,16,19,"12\u00a0m"],
+          ["number.unit.nbsp-before","source",1,11,15],
           ["number.unit.nbsp-before","source",3,0,5,"54\u00a0m²"]
         ]
       },
@@ -1952,19 +1958,23 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,13,14,"\u202f"],
           ["number.unit.nbsp-before","source",0,16,19,"12\u00a0m"],
+          ["number.unit.nbsp-before","source",1,11,15],
           ["number.unit.nbsp-before","source",3,0,5,"54\u00a0m²"]
         ]
       },
       "segmented/fix": {
-        "value": "La salle mesure 12\u00a0m de long et 4,5 m de large, soit 54\u00a0m² environ\u202f; elle accueille 120 personnes.",
+        "value": "La salle mesure 12\u00a0m de long et 4,5\u00a0m de large, soit 54\u00a0m² environ\u202f; elle accueille 120 personnes.",
         "changes": [
           [0,16,19,"12m","12\u00a0m","number.unit.nbsp-before"],
+          [1,14,15," ","","number.unit.nbsp-before"],
+          [2,0,0,"","\u00a0","number.unit.nbsp-before"],
           [3,0,5,"54 m²","54\u00a0m²","number.unit.nbsp-before"],
           [3,13,14," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,13,14,"\u202f"],
           ["number.unit.nbsp-before","source",0,16,19,"12\u00a0m"],
+          ["number.unit.nbsp-before","source",1,11,15],
           ["number.unit.nbsp-before","source",3,0,5,"54\u00a0m²"]
         ]
       }
@@ -2013,9 +2023,11 @@
         ]
       },
       "segmented/default": {
-        "value": "Le taux est passé de 3,5\u00a0% à 4,2 % en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
+        "value": "Le taux est passé de 3,5\u00a0% à 4,2\u00a0% en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
         "changes": [
           [1,3,7,"3,5%","3,5\u00a0%","number.percent.nbsp-before"],
+          [1,13,14," ","","number.percent.nbsp-before"],
+          [2,0,0,"","\u00a0","number.percent.nbsp-before"],
           [2,10,11," ","","punctuation.semicolon.nnbsp-before"],
           [3,0,0,"","\u202f","punctuation.semicolon.nnbsp-before"],
           [4,0,4,"20 ‰","20\u00a0‰","number.percent.nbsp-before"]
@@ -2023,6 +2035,7 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,0,0,"\u202f"],
           ["number.percent.nbsp-before","source",1,3,7,"3,5\u00a0%"],
+          ["number.percent.nbsp-before","source",1,10,14],
           ["number.percent.nbsp-before","source",4,0,4,"20\u00a0‰"]
         ]
       },
@@ -2031,13 +2044,16 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,0,0,"\u202f"],
           ["number.percent.nbsp-before","source",1,3,7,"3,5\u00a0%"],
+          ["number.percent.nbsp-before","source",1,10,14],
           ["number.percent.nbsp-before","source",4,0,4,"20\u00a0‰"]
         ]
       },
       "segmented/fix": {
-        "value": "Le taux est passé de 3,5\u00a0% à 4,2 % en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
+        "value": "Le taux est passé de 3,5\u00a0% à 4,2\u00a0% en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
         "changes": [
           [1,3,7,"3,5%","3,5\u00a0%","number.percent.nbsp-before"],
+          [1,13,14," ","","number.percent.nbsp-before"],
+          [2,0,0,"","\u00a0","number.percent.nbsp-before"],
           [2,10,11," ","","punctuation.semicolon.nnbsp-before"],
           [3,0,0,"","\u202f","punctuation.semicolon.nnbsp-before"],
           [4,0,4,"20 ‰","20\u00a0‰","number.percent.nbsp-before"]
@@ -2045,6 +2061,7 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,0,0,"\u202f"],
           ["number.percent.nbsp-before","source",1,3,7,"3,5\u00a0%"],
+          ["number.percent.nbsp-before","source",1,10,14],
           ["number.percent.nbsp-before","source",4,0,4,"20\u00a0‰"]
         ]
       }
@@ -2090,9 +2107,11 @@
         ]
       },
       "segmented/default": {
-        "value": "Le taux est passé de 3,5\u00a0% à 4,2 % en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
+        "value": "Le taux est passé de 3,5\u00a0% à 4,2\u00a0% en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
         "changes": [
           [1,3,7,"3,5%","3,5\u00a0%","number.percent.nbsp-before"],
+          [1,13,14," ","","number.percent.nbsp-before"],
+          [2,0,0,"","\u00a0","number.percent.nbsp-before"],
           [2,10,11," ","","punctuation.semicolon.nnbsp-before"],
           [3,0,0,"","\u202f","punctuation.semicolon.nnbsp-before"],
           [4,0,4,"20 ‰","20\u00a0‰","number.percent.nbsp-before"]
@@ -2100,6 +2119,7 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,0,0,"\u202f"],
           ["number.percent.nbsp-before","source",1,3,7,"3,5\u00a0%"],
+          ["number.percent.nbsp-before","source",1,10,14],
           ["number.percent.nbsp-before","source",4,0,4,"20\u00a0‰"]
         ]
       },
@@ -2108,13 +2128,16 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,0,0,"\u202f"],
           ["number.percent.nbsp-before","source",1,3,7,"3,5\u00a0%"],
+          ["number.percent.nbsp-before","source",1,10,14],
           ["number.percent.nbsp-before","source",4,0,4,"20\u00a0‰"]
         ]
       },
       "segmented/fix": {
-        "value": "Le taux est passé de 3,5\u00a0% à 4,2 % en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
+        "value": "Le taux est passé de 3,5\u00a0% à 4,2\u00a0% en un an\u202f; la hausse atteint 20\u00a0‰ dans certaines régions.",
         "changes": [
           [1,3,7,"3,5%","3,5\u00a0%","number.percent.nbsp-before"],
+          [1,13,14," ","","number.percent.nbsp-before"],
+          [2,0,0,"","\u00a0","number.percent.nbsp-before"],
           [2,10,11," ","","punctuation.semicolon.nnbsp-before"],
           [3,0,0,"","\u202f","punctuation.semicolon.nnbsp-before"],
           [4,0,4,"20 ‰","20\u00a0‰","number.percent.nbsp-before"]
@@ -2122,6 +2145,7 @@
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",3,0,0,"\u202f"],
           ["number.percent.nbsp-before","source",1,3,7,"3,5\u00a0%"],
+          ["number.percent.nbsp-before","source",1,10,14],
           ["number.percent.nbsp-before","source",4,0,4,"20\u00a0‰"]
         ]
       }
@@ -2175,7 +2199,7 @@
           ["punctuation.semicolon.nnbsp-before","source",2,11,12,"\u202f"],
           ["number.euro.nbsp-before","source",0,16,19,"25\u00a0€"],
           ["number.euro.nbsp-before","source",1,14,17,"30\u00a0€"],
-          ["number.euro.nbsp-before","source",4,0,5,"200\u00a0€"]
+          ["number.euro.nbsp-before","source",3,20,22]
         ]
       },
       "segmented/lint": {
@@ -2184,7 +2208,7 @@
           ["punctuation.semicolon.nnbsp-before","source",2,11,12,"\u202f"],
           ["number.euro.nbsp-before","source",0,16,19,"25\u00a0€"],
           ["number.euro.nbsp-before","source",1,14,17,"30\u00a0€"],
-          ["number.euro.nbsp-before","source",4,0,5,"200\u00a0€"]
+          ["number.euro.nbsp-before","source",3,20,22]
         ]
       },
       "segmented/fix": {
@@ -2193,13 +2217,13 @@
           [0,16,19,"25€","25\u00a0€","number.euro.nbsp-before"],
           [1,14,17,"€30","30\u00a0€","number.euro.nbsp-before"],
           [2,11,12," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [4,0,5,"200 €","200\u00a0€","number.euro.nbsp-before"]
+          [4,3,4," ","\u00a0","number.euro.nbsp-before"]
         ],
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",2,11,12,"\u202f"],
           ["number.euro.nbsp-before","source",0,16,19,"25\u00a0€"],
           ["number.euro.nbsp-before","source",1,14,17,"30\u00a0€"],
-          ["number.euro.nbsp-before","source",4,0,5,"200\u00a0€"]
+          ["number.euro.nbsp-before","source",3,20,22]
         ]
       }
     },
@@ -2252,7 +2276,7 @@
           ["punctuation.semicolon.nnbsp-before","source",2,11,12,"\u202f"],
           ["number.euro.nbsp-before","source",0,16,19,"25\u00a0€"],
           ["number.euro.nbsp-before","source",1,14,17,"30\u00a0€"],
-          ["number.euro.nbsp-before","source",4,0,5,"200\u00a0€"],
+          ["number.euro.nbsp-before","source",3,20,22],
           ["number.digits.grouping","source",3,20,22]
         ]
       },
@@ -2262,7 +2286,7 @@
           ["punctuation.semicolon.nnbsp-before","source",2,11,12,"\u202f"],
           ["number.euro.nbsp-before","source",0,16,19,"25\u00a0€"],
           ["number.euro.nbsp-before","source",1,14,17,"30\u00a0€"],
-          ["number.euro.nbsp-before","source",4,0,5,"200\u00a0€"],
+          ["number.euro.nbsp-before","source",3,20,22],
           ["number.digits.grouping","source",3,20,22]
         ]
       },
@@ -2272,13 +2296,13 @@
           [0,16,19,"25€","25\u00a0€","number.euro.nbsp-before"],
           [1,14,17,"€30","30\u00a0€","number.euro.nbsp-before"],
           [2,11,12," ","\u202f","punctuation.semicolon.nnbsp-before"],
-          [4,0,5,"200 €","200\u00a0€","number.euro.nbsp-before"]
+          [4,3,4," ","\u00a0","number.euro.nbsp-before"]
         ],
         "diagnostics": [
           ["punctuation.semicolon.nnbsp-before","source",2,11,12,"\u202f"],
           ["number.euro.nbsp-before","source",0,16,19,"25\u00a0€"],
           ["number.euro.nbsp-before","source",1,14,17,"30\u00a0€"],
-          ["number.euro.nbsp-before","source",4,0,5,"200\u00a0€"],
+          ["number.euro.nbsp-before","source",3,20,22],
           ["number.digits.grouping","source",3,20,22]
         ]
       }
@@ -2325,22 +2349,32 @@
           [1,9,10," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"]
+          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"],
+          ["number.unit.nbsp-before","source",2,25,29],
+          ["number.unit.nbsp-before","source",3,16,20]
         ]
       },
       "segmented/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"]
+          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"],
+          ["number.unit.nbsp-before","source",2,25,29],
+          ["number.unit.nbsp-before","source",3,16,20]
         ]
       },
       "segmented/fix": {
-        "value": "La population compte 67000000 habitants\u202f; la distance Paris-Lyon est d'environ 465 km, parcourue à 300 km/h.",
+        "value": "La population compte 67000000 habitants\u202f; la distance Paris-Lyon est d'environ 465\u00a0km, parcourue à 300\u00a0km/h.",
         "changes": [
-          [1,9,10," ","\u202f","punctuation.semicolon.nnbsp-before"]
+          [1,9,10," ","\u202f","punctuation.semicolon.nnbsp-before"],
+          [2,28,29," ","","number.unit.nbsp-before"],
+          [3,0,0,"","\u00a0","number.unit.nbsp-before"],
+          [3,19,20," ","","number.unit.nbsp-before"],
+          [4,0,0,"","\u00a0","number.unit.nbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"]
+          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"],
+          ["number.unit.nbsp-before","source",2,25,29],
+          ["number.unit.nbsp-before","source",3,16,20]
         ]
       }
     },
@@ -2383,22 +2417,32 @@
           [1,9,10," ","\u202f","punctuation.semicolon.nnbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"]
+          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"],
+          ["number.unit.nbsp-before","source",2,25,29],
+          ["number.unit.nbsp-before","source",3,16,20]
         ]
       },
       "segmented/lint": {
         "changes": [],
         "diagnostics": [
-          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"]
+          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"],
+          ["number.unit.nbsp-before","source",2,25,29],
+          ["number.unit.nbsp-before","source",3,16,20]
         ]
       },
       "segmented/fix": {
-        "value": "La population compte 67000000 habitants\u202f; la distance Paris-Lyon est d'environ 465 km, parcourue à 300 km/h.",
+        "value": "La population compte 67000000 habitants\u202f; la distance Paris-Lyon est d'environ 465\u00a0km, parcourue à 300\u00a0km/h.",
         "changes": [
-          [1,9,10," ","\u202f","punctuation.semicolon.nnbsp-before"]
+          [1,9,10," ","\u202f","punctuation.semicolon.nnbsp-before"],
+          [2,28,29," ","","number.unit.nbsp-before"],
+          [3,0,0,"","\u00a0","number.unit.nbsp-before"],
+          [3,19,20," ","","number.unit.nbsp-before"],
+          [4,0,0,"","\u00a0","number.unit.nbsp-before"]
         ],
         "diagnostics": [
-          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"]
+          ["punctuation.semicolon.nnbsp-before","source",1,9,10,"\u202f"],
+          ["number.unit.nbsp-before","source",2,25,29],
+          ["number.unit.nbsp-before","source",3,16,20]
         ]
       }
     }

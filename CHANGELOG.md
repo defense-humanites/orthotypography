@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Run the numeric rules (`PERCENTAGE_SPACING_RULE`, `UNIT_SPACING_RULE`,
+  `EURO_SPACING_RULE`, `DIGIT_GROUPING_RULE`) once on the logical run, reading
+  the `numeric` annotations instead of reclassifying each fragment (#21).
+  Calling their `apply` methods directly now throws. Constructs split across
+  text nodes are now corrected: `environ 465` · `km` becomes `environ 465` ·
+  `\u00a0km`, the space staying in the symbol's node; a split leading euro sign
+  moves after the amount into the amount's node. Constructs inside one node are
+  replaced whole, as before. Because annotations follow earlier edits instead of
+  being recomputed, a few single-node results change where an earlier numeric
+  fix used to create a new construct: `€1km` now becomes `€1 km` instead of
+  `1 € km`. Digit grouping is now linear in the number of nodes.
 - Classify numeric constructs once per unprotected region of the logical run
   instead of once per text node (#21). A time, ratio, version, or address split
   across text nodes is now protected: `Rendez-vous à 10` · `:30` is no longer

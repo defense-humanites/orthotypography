@@ -7,12 +7,13 @@
  * of about 120 characters, in lint and fix modes.
  *
  * `--scaling` instead measures growth on inputs that stress the pipeline and
- * the rules, with the preset and its opt-in ellipsis rules: sizes of 31,250,
- * 62,500, and 125,000 characters, and the growth factor per doubling of the
- * size. A factor close to 2 is linear; a factor close to 4 is
+ * the rules, with every executable rule (the preset and its opt-in rules):
+ * sizes of 31,250, 62,500, and 125,000 characters, and the growth factor per
+ * doubling of the size. A factor close to 2 is linear; a factor close to 4 is
  * quadratic. A size that takes more than 20 seconds ends its row.
  */
 import {
+  DIGIT_GROUPING_RULE,
   ELLIPSIS_GLYPH_RULE,
   ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
   IMPRIMERIE_NATIONALE_RULES,
@@ -104,16 +105,12 @@ const scalingInputs: Readonly<Record<string, (size: number) => Input>> = {
     })),
 };
 
-/**
- * The preset and its opt-in ellipsis rules. The opt-in digit-grouping rule
- * still reads neighboring fragments for each fragment and grows quadratically
- * with the number of nodes; it joins this list once it runs on the logical
- * run (#21, stage 3).
- */
+/** Every executable rule: the preset and its opt-in rules. */
 const scalingRules = [
   ...IMPRIMERIE_NATIONALE_RULES,
   ELLIPSIS_GLYPH_RULE,
   ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
+  DIGIT_GROUPING_RULE,
 ];
 
 if (Deno.args.includes("--scaling")) {
