@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Keep the pipeline linear in the number of edits, protected ranges, and
+  fragments: edits are assembled in one pass instead of rebuilding the value for
+  each edit, protected ranges are found by binary search, and results no longer
+  pass large arrays as call arguments, which exceeded the call stack beyond
+  about 125,000 changes or fragments. Outputs are unchanged. The benchmark gains
+  a `--scaling` option that measures growth on adversarial inputs.
 - Run `FRENCH_GUILLEMETS_SPACING_RULE` once on the logical run instead of once
   per fragment (#21). Calling its `apply` method directly now throws; run it
   through `runPipeline` or `runTextNodePipeline`. Outputs are unchanged.

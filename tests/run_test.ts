@@ -289,3 +289,34 @@ Deno.test("random run edits keep source changes consistent", () => {
     }
   }
 });
+
+Deno.test("large edit and fragment counts stay within the call stack", () => {
+  const count = 200_000;
+  const text = "ab".repeat(count);
+  const protect = runRule(
+    "x-test.protect-many",
+    () => ({
+      annotations: Array.from({ length: count }, (_, index) => ({
+        kind: "x-test",
+        start: 2 * index,
+        end: 2 * index + 1,
+        protect: true,
+      })),
+    }),
+    "classify",
+  );
+  const insert = runRule("x-test.insert-many", () => ({
+    edits: Array.from({ length: count }, (_, index) => ({
+      start: 2 * index + 2,
+      end: 2 * index + 2,
+      replacement: "-",
+    })),
+  }));
+  const result = runPipeline(text, [protect, insert], {
+    locale: "fr-FR",
+    mode: "fix",
+  });
+  assert.equal(result.value, "ab-".repeat(count));
+  assert.equal(result.changes.length, count);
+  assert.equal(result.segments.length, 2 * count);
+});

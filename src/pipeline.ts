@@ -281,18 +281,25 @@ function applyEdits(
   value: string,
   edits: readonly RuleApplicationEdit[],
 ): string {
-  let result = value;
+  // Edits are validated from right to left, in the order they would be
+  // applied one by one, then assembled in a single left-to-right pass so that
+  // the cost stays linear in the value length and the number of edits.
+  const ordered = [...edits].sort((left, right) => right.start - left.start);
   let previousStart = value.length + 1;
-  for (
-    const edit of [...edits].sort((left, right) => right.start - left.start)
-  ) {
+  for (const edit of ordered) {
     validateRange(edit.start, edit.end, value.length, "edit");
     if (edit.end > previousStart) throw new Error("Overlapping rule edits");
-    result = result.slice(0, edit.start) + edit.replacement +
-      result.slice(edit.end);
     previousStart = edit.start;
   }
-  return result;
+  const parts: string[] = [];
+  let cursor = 0;
+  for (let index = ordered.length - 1; index >= 0; index--) {
+    const edit = ordered[index];
+    parts.push(value.slice(cursor, edit.start), edit.replacement);
+    cursor = edit.end;
+  }
+  parts.push(value.slice(cursor));
+  return parts.join("");
 }
 
 function ledgerChanges(ledgers: readonly ChangeLedger[]): TextChange[] {
@@ -344,7 +351,7 @@ function ledgerChanges(ledgers: readonly ChangeLedger[]): TextChange[] {
     if (parts.join("") !== ledgerValue(ledger)) {
       throw new Error(`Source changes diverged for segment ${segmentIndex}`);
     }
-    changes.push(...segmentChanges);
+    for (const change of segmentChanges) changes.push(change);
   }
   return changes;
 }
@@ -904,9 +911,9 @@ export function runPipeline(
           ? segment.revision
           : segment.revision + 1,
       };
-      nextSegments.push(
-        ...splitProtectedRanges(appliedSegment, plan.protections),
-      );
+      for (
+        const fragment of splitProtectedRanges(appliedSegment, plan.protections)
+      ) nextSegments.push(fragment);
       for (const diagnostic of plan.diagnostics) report(diagnostic);
     }
     for (const diagnostic of ruleDiagnostics) report(diagnostic);
@@ -929,7 +936,8 @@ export function runPipeline(
         throw new Error(`Change ledger diverged for segment ${sourceIndex}`);
       }
     }
-    segments.splice(0, segments.length, ...nextSegments);
+    segments.length = 0;
+    for (const segment of nextSegments) segments.push(segment);
   }
 
   return {

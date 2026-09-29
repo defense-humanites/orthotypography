@@ -1,17 +1,22 @@
 /**
  * Measures pipeline time on repeated corpus text.
  *
- * Usage: `deno task bench [--quick | --full]`. The default sizes are 25,000 and
+ * Usage: `deno task bench [--quick | --full | --scaling]`. The default sizes are 25,000 and
  * 125,000 characters; `--quick` keeps the smallest size and `--full` adds
  * 500,000 characters. Each size runs as one segment and as nodes of about 120
  * characters, in lint and fix modes.
+ *
+ * `--scaling` instead measures growth on inputs that stress the pipeline and
+ * the rules: sizes of 31,250, 62,500, and 125,000 characters, and the growth
+ * factor per doubling of the size. A factor close to 2 is linear; a factor
+ * close to 4 is quadratic. A size that takes more than 20 seconds ends its row.
  */
 import {
   IMPRIMERIE_NATIONALE_RULES,
   runPipeline,
   runTextNodePipeline,
 } from "../src/mod.ts";
-import type { RuleMode } from "../src/model.ts";
+import type { RuleMode, TextSegment } from "../src/model.ts";
 
 const corpusFiles = ["prose.txt", "technique.txt", "nombres.txt"];
 const corpusDirectory = new URL("../tests/fixtures/corpus/", import.meta.url);
@@ -58,6 +63,72 @@ function measure(run: () => void): number {
 }
 
 const modes: readonly RuleMode[] = ["lint", "fix"];
+
+type Input = string | readonly TextSegment[];
+
+/** Inputs of about `size` characters that stress one cost each. */
+const scalingInputs: Readonly<Record<string, (size: number) => Input>> = {
+  "corpus, one segment": (size) => textOfSize(size),
+  "corpus, four-word nodes": (size) => {
+    const words = textOfSize(size).split(/(?<= )/u);
+    const nodes: TextSegment[] = [];
+    for (let index = 0; index < words.length; index += 4) {
+      nodes.push({ value: words.slice(index, index + 4).join("") });
+    }
+    return nodes;
+  },
+  "corpus, one-character nodes": (size) =>
+    [...textOfSize(size)].map((value) => ({ value })),
+  "commas in one token": (size) => "a,".repeat(size / 2),
+  "spaced high punctuation": (size) => "a ; b : c ! d ? ".repeat(size / 16),
+  "spacing nodes around marks": (size) =>
+    Array.from({ length: Math.floor(size / 7) * 4 }, (_, index) => ({
+      value: ["mot", " ", "  ", ";"][index % 4],
+    })),
+  "protected node per phrase": (size) =>
+    Array.from({ length: Math.floor(size / 11) * 3 }, (_, index) => ({
+      value: ["Texte, ", "x:", " ?"][index % 3],
+      ...(index % 3 === 1 ? { protected: true } : {}),
+    })),
+};
+
+if (Deno.args.includes("--scaling")) {
+  const scalingSizes = [31_250, 62_500, 125_000];
+  console.log(
+    `| Input | Mode | ${
+      scalingSizes.map((size) => `${size}`).join(" | ")
+    } | Growth per doubling |`,
+  );
+  console.log(
+    `| --- | --- | ${scalingSizes.map(() => "---:").join(" | ")} | ---: |`,
+  );
+  for (const [name, make] of Object.entries(scalingInputs)) {
+    for (const mode of modes) {
+      const times: number[] = [];
+      for (const size of scalingSizes) {
+        const input = make(size);
+        times.push(
+          measure(() =>
+            runPipeline(input, IMPRIMERIE_NATIONALE_RULES, {
+              locale: "fr-FR",
+              mode,
+            })
+          ),
+        );
+        if (times[times.length - 1] > 20_000) break;
+      }
+      const cells = scalingSizes.map((_, index) =>
+        times[index] === undefined ? "—" : `${times[index].toFixed(0)} ms`
+      );
+      const growth = times.length === scalingSizes.length
+        ? Math.sqrt(times[2] / Math.max(times[0], 1)).toFixed(1)
+        : "—";
+      console.log(`| ${name} | ${mode} | ${cells.join(" | ")} | ${growth} |`);
+    }
+  }
+  Deno.exit(0);
+}
+
 console.log("| Input | Characters | Mode | Median time |");
 console.log("| --- | ---: | --- | ---: |");
 for (const size of sizes) {
