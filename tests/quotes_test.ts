@@ -4,7 +4,6 @@ import {
   IMPRIMERIE_NATIONALE_RULES,
   runPipeline,
 } from "../src/mod.ts";
-import type { TextSegment } from "../src/model.ts";
 
 Deno.test("paired French guillemets receive inner no-break spaces", () => {
   for (const input of ["«texte»", "« texte »", "«\u202ftexte\u202f»"]) {
@@ -155,20 +154,54 @@ Deno.test("French guillemet spacing is locale-aware and idempotent", () => {
   assert.deepEqual(second.diagnostics, []);
 });
 
-Deno.test("guillemet pairing follows changes to a reused segment array", () => {
-  const segments: TextSegment[] = [{ value: "«Oui»" }];
-  const apply = (index: number) =>
-    FRENCH_GUILLEMETS_SPACING_RULE.apply(segments[index].value, {
-      locale: "fr-FR",
-      mode: "fix",
-      segments,
-      segmentIndex: index,
-    }).value;
+Deno.test("guillemet spacing stays in the guillemet's node", () => {
+  const fix = (values: readonly string[]) =>
+    runPipeline(
+      values.map((value, index) => ({ id: `n${index}`, value })),
+      [FRENCH_GUILLEMETS_SPACING_RULE],
+      { locale: "fr-FR" },
+    ).segments.map(({ value }) => value);
 
-  assert.equal(apply(0), "« Oui »");
-  segments.splice(0, 1, { value: "«" }, { value: "Non»" });
-  assert.equal(apply(0), "« ");
-  assert.equal(apply(1), "Non »");
-  segments.splice(1, 1, { value: "Non" });
-  assert.equal(apply(0), "«");
+  assert.deepEqual(fix(["«", "Oui»"]), ["«\u00a0", "Oui\u00a0»"]);
+  assert.deepEqual(fix(["«Oui", "»"]), ["«\u00a0Oui", "\u00a0»"]);
+  assert.deepEqual(fix(["«", "", "Oui", "", "»"]), [
+    "«\u00a0",
+    "",
+    "Oui",
+    "",
+    "\u00a0»",
+  ]);
+  // Spacing in a neighboring node is left to that node, as before the
+  // logical-run migration.
+  assert.deepEqual(fix(["« ", " Oui »"]), ["«\u00a0", " Oui\u00a0»"]);
+  assert.deepEqual(fix(["«", "Non"]), ["«", "Non"]);
+});
+
+Deno.test("guillemet diagnostics are reported in text order", () => {
+  const result = runPipeline(
+    "«a «b» c»",
+    [FRENCH_GUILLEMETS_SPACING_RULE],
+    { locale: "fr-FR", mode: "lint" },
+  );
+  assert.deepEqual(
+    result.diagnostics.map(({ start, end, related }) => [
+      start,
+      end,
+      related?.[0].start,
+    ]),
+    [[1, 1, 8], [4, 4, 5], [5, 5, 3], [8, 8, 0]],
+  );
+});
+
+Deno.test("guillemet spacing runs only through the pipeline", () => {
+  assert.throws(
+    () =>
+      FRENCH_GUILLEMETS_SPACING_RULE.apply("«Oui»", {
+        locale: "fr-FR",
+        mode: "fix",
+        segments: [{ value: "«Oui»" }],
+        segmentIndex: 0,
+      }),
+    /runs on the logical run/,
+  );
 });

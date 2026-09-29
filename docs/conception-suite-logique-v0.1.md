@@ -103,11 +103,14 @@ Le pipeline refuse le résultat entier d’une règle si :
   perd sa part du texte remplacé ; le texte de remplacement entier va au
   premier nœud touché (`left`) ou au dernier (`right`). Une frontière ne reçoit
   donc jamais deux insertions.
-- Une insertion placée exactement à une frontière va au dernier nœud qui se
-  termine à cette position (`left`) ou au premier qui y commence (`right`). Les
-  nœuds protégés vides sont ignorés ; si le nœud choisi est protégé,
-  l’insertion est refusée ; au début ou à la fin de la suite, où ce côté
-  n’existe pas, l’autre côté est utilisé.
+- Une insertion placée exactement à une frontière va au dernier nœud non vide
+  qui se termine à cette position (`left`) ou au premier nœud non vide qui y
+  commence (`right`), c’est-à-dire au nœud du caractère voisin ; si le nœud
+  choisi est protégé, l’insertion est refusée ; au début ou à la fin de la
+  suite, où ce côté n’existe pas, l’autre côté est utilisé. Les nœuds vides non
+  protégés ne reçoivent une insertion que si aucun nœud non vide ne touche la
+  position, c’est-à-dire dans une suite vide ; les nœuds protégés vides sont
+  toujours ignorés.
 - Un diagnostic vide placé à une frontière suit la même règle, `bias` compris,
   sans refus pour les nœuds protégés ; un diagnostic non vide doit tenir dans un
   seul fragment tant que le format des résultats n’évolue pas
@@ -123,6 +126,11 @@ mesurés sur `0.1.0-alpha.3` :
 | `Bonjour` · `; oui` | `Bonjour` · ` ; oui` |
 | `Bonjour ` · `;oui` | `Bonjour` · ` ; oui` |
 | `«` · `texte»` | `« ` · `texte »` |
+
+Le blanc normalisé se limite au nœud du signe et à la portion non protégée qui
+le contient, comme dans l’implémentation par fragment : `« ` · ` texte»` donne
+`« ` · ` texte »`, l’espace ordinaire du second nœud étant conservé. Lever
+cette limite changerait les sorties et relève d’une PR distincte.
 
 Le ledger des changements, les coordonnées sources, le garde-fou `expected` et
 `applyTextChanges` sont inchangés.
@@ -200,6 +208,12 @@ règles avec l’ancienne interface seront réécrits lors du passage au cœur
 | 2 | Migration des guillemets, de la ponctuation, puis des points de suspension, une PR par module ; suppression des utilitaires dupliqués | identiques |
 | 3 | Annotations : classification numérique puis règles numériques | identiques, sauf constructions coupées entre nœuds |
 | 4 | Séparation des définitions (§ 6) et bascule publique ; suppression de `segmentEdits` et `context.segments` | identiques |
+
+État : l’étape 1 est fusionnée
+([PR nº 41](https://github.com/orthotypography/orthotypography/pull/41)).
+L’étape 2 a commencé par les guillemets
+([PR nº 43](https://github.com/orthotypography/orthotypography/pull/43)) ; la
+ponctuation et les points de suspension suivent.
 
 Chaque étape vérifie :
 

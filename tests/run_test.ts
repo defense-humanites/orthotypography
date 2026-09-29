@@ -73,7 +73,7 @@ Deno.test("run insertions at a node boundary follow their bias", () => {
     "a",
     "!b",
   ]);
-  assert.deepEqual(fixNodes(["a", "", "b"], [edit]), ["a", "!", "b"]);
+  assert.deepEqual(fixNodes(["a", "", "b"], [edit]), ["a!", "", "b"]);
   assert.deepEqual(fixNodes(["a"], [{ ...edit, start: 0, end: 0 }]), ["!a"]);
   assert.deepEqual(
     fixNodes(["ab", { value: "", protected: true }], [{
@@ -86,8 +86,18 @@ Deno.test("run insertions at a node boundary follow their bias", () => {
   );
   assert.deepEqual(fixNodes(["a", "", "b"], [{ ...edit, bias: "right" }]), [
     "a",
+    "",
+    "!b",
+  ]);
+  assert.deepEqual(fixNodes(["", "b"], [{ ...edit, start: 0, end: 0 }]), [
+    "",
+    "!b",
+  ]);
+  const empty = { start: 0, end: 0, replacement: "!" };
+  assert.deepEqual(fixNodes(["", ""], [empty]), ["", "!"]);
+  assert.deepEqual(fixNodes(["", ""], [{ ...empty, bias: "right" }]), [
     "!",
-    "b",
+    "",
   ]);
 });
 

@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Run `FRENCH_GUILLEMETS_SPACING_RULE` once on the logical run instead of once
+  per fragment (#21). Calling its `apply` method directly now throws; run it
+  through `runPipeline` or `runTextNodePipeline`. Outputs are unchanged.
 - Compute the pairing of French guillemets once per logical run instead of once
   per fragment. With the linear ledger, 500,000 characters take about 0.4 s in
   fix mode as one segment and 0.5 s as 3,977 nodes, instead of 33 s and 26 s in

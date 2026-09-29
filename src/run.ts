@@ -178,10 +178,13 @@ function firstFragmentEndingAtOrAfter(
  * Fragment receiving an empty range at a position.
  *
  * A fragment strictly containing the position receives it. At a boundary, the
- * last fragment ending there (`left`) or the first one starting there
- * (`right`) receives it; empty protected fragments are ignored. When `edit` is
- * set, a protected fragment on the chosen side makes the position unusable.
- * At the start or end of the run, the other side is used.
+ * last non-empty fragment ending there (`left`) or the first non-empty one
+ * starting there (`right`) receives it, so that text inserted next to a
+ * character stays in that character's node. When `edit` is set, a protected
+ * fragment on the chosen side makes the position unusable. At the start or end
+ * of the run, the other side is used. Empty unprotected fragments receive the
+ * range only when no non-empty fragment touches the position, which happens
+ * when the run text is empty.
  */
 function fragmentAtPosition(
   fragments: readonly RunFragment[],
@@ -194,7 +197,10 @@ function fragmentAtPosition(
   if (starts[first] < position && position < starts[first + 1]) {
     return edit && fragments[first].protected ? undefined : first;
   }
-  const side = (direction: RunBias): number | undefined | null => {
+  const side = (
+    direction: RunBias,
+    allowEmpty: boolean,
+  ): number | undefined | null => {
     let chosen: number | undefined;
     for (
       let index = first;
@@ -202,7 +208,9 @@ function fragmentAtPosition(
       index++
     ) {
       const fragment = fragments[index];
-      if (fragment.protected && fragment.value.length === 0) continue;
+      if (
+        fragment.value.length === 0 && (fragment.protected || !allowEmpty)
+      ) continue;
       const touches = direction === "left"
         ? starts[index + 1] === position
         : starts[index] === position;
@@ -213,9 +221,14 @@ function fragmentAtPosition(
     if (chosen === undefined) return undefined;
     return edit && fragments[chosen].protected ? null : chosen;
   };
-  const preferred = side(bias);
-  if (preferred !== undefined) return preferred ?? undefined;
-  return side(bias === "left" ? "right" : "left") ?? undefined;
+  const other = bias === "left" ? "right" : "left";
+  for (const allowEmpty of [false, true]) {
+    const preferred = side(bias, allowEmpty);
+    if (preferred !== undefined) return preferred ?? undefined;
+    const fallback = side(other, allowEmpty);
+    if (fallback !== undefined) return fallback ?? undefined;
+  }
+  return undefined;
 }
 
 function isInsideProtected(
