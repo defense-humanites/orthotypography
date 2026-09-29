@@ -4,7 +4,7 @@
 **Date de vérification :** 26 septembre 2026
 **Base examinée :** `713339a5cb5a5b0f0c0e237795dd41022a468b34`, avec le
 renommage de `number.digits.grouping` proposé dans la
-[PR nº 13](https://github.com/defense-humanites/orthotypography/pull/13)
+[PR nº 13](https://github.com/orthotypography/orthotypography/pull/13)
 **Source primaire :** *Lexique des règles typographiques en usage à
 l’Imprimerie nationale*, édition 2002  
 **Relevé de référence :**
@@ -17,7 +17,7 @@ l’Imprimerie nationale*, édition 2002
 [`groupement-chiffres-v0.1.md`](groupement-chiffres-v0.1.md)
 
 **Dernière PR fusionnée :**
-[nº 12](https://github.com/defense-humanites/orthotypography/pull/12)
+[nº 12](https://github.com/orthotypography/orthotypography/pull/12)
 
 ## 1. Objet et vocabulaire
 
@@ -47,7 +47,7 @@ supplémentaires propres au comportement.
 | Prescription atomique du dépouillement | Catalogue machine | Exécution sur `main` | Tests directs | Preset IN 2002 | Exclusions ou travail restant |
 |---|---|---|---|---|---|
 | `space.before.comma` | `punctuation.comma.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | décimales et syntaxe technique protégées par classification |
-| `space.before.period` | `punctuation.period.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | versions, adresses IP, URI et autres constructions classifiées ; suites de points laissées aux règles des points de suspension ([nº 31](https://github.com/defense-humanites/orthotypography/issues/31)) |
+| `space.before.period` | `punctuation.period.no-space-before` | `SAFE_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | versions, adresses IP, URI et autres constructions classifiées ; suites de points laissées aux règles des points de suspension ([nº 31](https://github.com/orthotypography/orthotypography/issues/31)) |
 | `space.after.comma` | `punctuation.comma.space-after` | `SPACE_AFTER_COMMA_RULE` : `fix` contextuel | `comma_spacing_test.ts` | oui | fin de texte et ponctuation adjacente exclues ; décimales, URI, chemins et segments protégés préservés |
 | `space.after.period` | `punctuation.period.space-after` | non ; `manual-review` documentaire | `catalogue_test.ts` pour le catalogue seulement | oui, `manual-review` | distinguer point final, abréviation et texte qui suit avant toute exécution |
 | `space.before.semicolon` | `punctuation.semicolon.nnbsp-before` | `HIGH_PUNCTUATION_RULES` : `fix` | `punctuation_test.ts`, `integration_test.ts` | oui | suites expressives et syntaxe protégée |
@@ -118,7 +118,7 @@ des diagnostics et des `TextChange` sans modifier la sortie utilisateur.
 La conception des points de suspension est stabilisée dans
 [`points-de-suspension-v0.1.md`](points-de-suspension-v0.1.md). Sa première
 tranche d’implémentation, fusionnée dans la
-[PR nº 8](https://github.com/defense-humanites/orthotypography/pull/8), a ajouté
+[PR nº 8](https://github.com/orthotypography/orthotypography/pull/8), a ajouté
 quatre définitions au catalogue et une classification interne `final`,
 `initial`, `word` ou `unknown`. Ce premier runtime diagnostiquait uniquement les
 trois `U+002E` des fonctions finales ou initiales certaines. Il reconnaissait
@@ -129,7 +129,7 @@ techniques, les suites de longueur différente de trois, `etc...`, les coupures
 éditoriales entre crochets et les séquences interrompues par une protection
 sont exclues ; la ponctuation adjacente est laissée intacte.
 
-La [PR nº 10](https://github.com/defense-humanites/orthotypography/pull/10)
+La [PR nº 10](https://github.com/orthotypography/orthotypography/pull/10)
 a fusionné la tranche H, qui rend le même identifiant `punctuation.ellipsis.glyph` correcteur
 sur demande explicite du mode `fix`. Le mode documentaire par défaut reste
 `lint`. Les trois points peuvent traverser plusieurs segments : le premier
@@ -142,7 +142,7 @@ comportement en mode explicite `fix` évolue ainsi de diagnostic seul à
 correction. Aucun espacement adjacent n’est modifié et le preset ne sélectionne
 toujours pas ce glyphe. Cette fonctionnalité est fusionnée, non publiée à la date de vérification.
 
-La [PR nº 11](https://github.com/defense-humanites/orthotypography/pull/11)
+La [PR nº 11](https://github.com/orthotypography/orthotypography/pull/11)
 a fusionné la tranche I, qui ajoute un runtime distinct pour l’espace après `…` lorsque le
 classificateur établit la fonction `initial` à un début structurel et qu’une
 lettre suit sans blanc. Le diagnostic par défaut ne modifie rien ; `fix`

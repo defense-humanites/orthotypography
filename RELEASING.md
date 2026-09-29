@@ -24,6 +24,8 @@ registries.
 
 Renaming the Publish workflow file or the `release` environment breaks npm
 trusted publishing until the package's trusted publisher is updated on npm.
+Transferring or renaming the repository has the same effect on npm and also
+requires updating the linked repository in the JSR package settings.
 
 ## Preparing a release
 

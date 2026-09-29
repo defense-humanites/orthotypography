@@ -64,7 +64,7 @@ A behavioral rule change should:
 
 The engine stays independent of Markdown or HTML parsers and editor APIs; those
 adapters belong in
-[orthotypography-integrations](https://github.com/defense-humanites/orthotypography-integrations).
+[orthotypography-integrations](https://github.com/orthotypography/orthotypography-integrations).
 
 French is accepted only in `docs/`. Code, comments, API documentation, tests,
 commit messages, pull requests, and the other repository files are written in

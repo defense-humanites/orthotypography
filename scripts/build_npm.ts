@@ -40,13 +40,13 @@ await build({
       "Source-backed orthotypographic primitives and presets for JavaScript runtimes and browsers.",
     author: "Antoine Boquet",
     license: denoConfig.license,
-    homepage: "https://github.com/defense-humanites/orthotypography#readme",
+    homepage: "https://github.com/orthotypography/orthotypography#readme",
     repository: {
       type: "git",
-      url: "git+https://github.com/defense-humanites/orthotypography.git",
+      url: "git+https://github.com/orthotypography/orthotypography.git",
     },
     bugs: {
-      url: "https://github.com/defense-humanites/orthotypography/issues",
+      url: "https://github.com/orthotypography/orthotypography/issues",
     },
     keywords: [
       "typography",
