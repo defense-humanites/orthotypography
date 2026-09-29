@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import {
+  applyTextChanges,
   HIGH_PUNCTUATION_RULES,
   IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
   runPipeline,
   runTextNodePipeline,
   SAFE_PUNCTUATION_RULES,
 } from "../src/mod.ts";
+import type { TextSegment } from "../src/model.ts";
 
 Deno.test("safe punctuation rules remove whitespace before comma and period", () => {
   const result = runPipeline(
@@ -170,4 +172,59 @@ Deno.test("period spacing leaves runs of periods to the ellipsis rules", () => {
     { locale: "fr-FR", mode: "fix" },
   );
   assert.deepEqual(split.changes, []);
+});
+
+function fixNodes(values: readonly (string | TextSegment)[]): string[] {
+  const nodes = values.map((value, index) => ({
+    id: `n${index}`,
+    ...(typeof value === "string" ? { value } : value),
+  }));
+  const result = runTextNodePipeline(
+    nodes,
+    IMPRIMERIE_NATIONALE_PUNCTUATION_RULES,
+    { locale: "fr-FR", mode: "fix" },
+  );
+  assert.deepEqual(
+    applyTextChanges(nodes, result.changes).map(({ value }) => value),
+    result.nodes.map(({ value }) => value),
+  );
+  return result.nodes.map(({ value }) => value);
+}
+
+Deno.test("punctuation spacing stays in the mark's node", () => {
+  assert.deepEqual(fixNodes(["Bonjour,", "monde"]), ["Bonjour, ", "monde"]);
+  assert.deepEqual(fixNodes(["Bonjour", "; oui"]), ["Bonjour", " ; oui"]);
+  assert.deepEqual(fixNodes(["Bonjour ", ";oui"]), ["Bonjour", " ; oui"]);
+  assert.deepEqual(fixNodes(["Bonjour :", " suite"]), [
+    "Bonjour : ",
+    "suite",
+  ]);
+  assert.deepEqual(fixNodes(["Oui ", " ", "!"]), ["Oui", "", " !"]);
+  assert.deepEqual(fixNodes(["Bonjour", "  ,", " monde"]), [
+    "Bonjour",
+    ",",
+    " monde",
+  ]);
+});
+
+Deno.test("technical tokens before a comma extend across unprotected nodes", () => {
+  assert.deepEqual(fixNodes(["http", "://x,y"]), ["http", "://x,y"]);
+  assert.deepEqual(
+    fixNodes(["http://", { value: "x", protected: true }, "a,b"]),
+    ["http://", "x", "a, b"],
+  );
+});
+
+Deno.test("empty protected nodes do not affect punctuation rules", () => {
+  const empty = { value: "", protected: true };
+  assert.deepEqual(fixNodes(["Bonjour,", empty, "monde"]), [
+    "Bonjour, ",
+    "",
+    "monde",
+  ]);
+  assert.deepEqual(fixNodes(["Fin .", empty, ".."]), ["Fin .", "", ".."]);
+  assert.deepEqual(
+    fixNodes(["Fin .", { value: "x", protected: true }, ".."]),
+    ["Fin.", "x", ".."],
+  );
 });

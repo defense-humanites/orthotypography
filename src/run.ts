@@ -257,6 +257,9 @@ function isInsideProtected(
 /**
  * Validates a rule's edits and projects them onto fragments.
  *
+ * Edits may not overlap, and two edits may share a start only when the first
+ * one is an insertion and the second one is not.
+ *
  * An edit inside one fragment maps to it. An edit crossing fragments deletes
  * each overlapping part and places the whole replacement in the first
  * (`left`, default) or last (`right`) fragment. An empty edit at a boundary
@@ -275,7 +278,21 @@ export function projectRunEdits(
   const projected = new Map<number, RuleApplicationEdit[]>();
   const add = (index: number, edit: RuleApplicationEdit): void => {
     const list = projected.get(index) ?? [];
-    list.push(edit);
+    const last = list.at(-1);
+    if (
+      last !== undefined && last.start === last.end && last.start === edit.start
+    ) {
+      // An insertion followed by an edit at the same position of one fragment
+      // becomes a single edit, so the fragment never holds two edits sharing a
+      // start.
+      list[list.length - 1] = {
+        start: edit.start,
+        end: edit.end,
+        replacement: last.replacement + edit.replacement,
+      };
+    } else {
+      list.push(edit);
+    }
     projected.set(index, list);
   };
 
@@ -291,7 +308,8 @@ export function projectRunEdits(
     const previous = ordered[position - 1];
     if (
       previous !== undefined &&
-      (edit.start < previous.end || edit.start === previous.start)
+      (edit.start < previous.end ||
+        (edit.start === previous.start && edit.start === edit.end))
     ) {
       throw new Error(`Rule ${ruleId} returned overlapping edits`);
     }
