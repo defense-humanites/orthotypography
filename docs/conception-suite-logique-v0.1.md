@@ -78,7 +78,8 @@ interface RunEdit {
 ```
 
 `RunDiagnostic` reprend les champs actuels (`start`, `end`, `message`,
-`replacement`, `related`) dans les coordonnées de la suite. Les nœuds eux-mêmes
+`replacement`, `related`) dans les coordonnées de la suite, avec un `bias`
+facultatif pour les emplacements vides situés à une frontière. Les nœuds eux-mêmes
 restent invisibles : `nodeBoundaries` sert seulement aux règles qui doivent
 choisir `bias`.
 
@@ -102,9 +103,15 @@ Le pipeline refuse le résultat entier d’une règle si :
   perd sa part du texte remplacé ; le texte de remplacement entier va au
   premier nœud touché (`left`) ou au dernier (`right`). Une frontière ne reçoit
   donc jamais deux insertions.
-- Une insertion placée exactement à une frontière va au dernier nœud non
-  protégé qui se termine à cette position (`left`) ou au premier qui y commence
-  (`right`).
+- Une insertion placée exactement à une frontière va au dernier nœud qui se
+  termine à cette position (`left`) ou au premier qui y commence (`right`). Les
+  nœuds protégés vides sont ignorés ; si le nœud choisi est protégé,
+  l’insertion est refusée ; au début ou à la fin de la suite, où ce côté
+  n’existe pas, l’autre côté est utilisé.
+- Un diagnostic vide placé à une frontière suit la même règle, `bias` compris,
+  sans refus pour les nœuds protégés ; un diagnostic non vide doit tenir dans un
+  seul fragment tant que le format des résultats n’évolue pas
+  ([nº 26](https://github.com/defense-humanites/orthotypography/issues/26)).
 
 Convention des règles françaises, conforme au comportement actuel : un blanc
 inséré ou normalisé appartient au nœud du signe dont il dépend. Exemples
@@ -189,7 +196,7 @@ règles avec l’ancienne interface seront réécrits lors du passage au cœur
 
 | Étape | Contenu | Sorties |
 | --- | --- | --- |
-| 1 | Pipeline construisant la vue une fois par règle, ancienne interface conservée derrière un adaptateur interne | identiques |
+| 1 | Pipeline exécutant les règles sur la vue, construite une fois par règle ; les règles non migrées gardent leur exécution par fragment | identiques |
 | 2 | Migration des guillemets, de la ponctuation, puis des points de suspension, une PR par module ; suppression des utilitaires dupliqués | identiques |
 | 3 | Annotations : classification numérique puis règles numériques | identiques, sauf constructions coupées entre nœuds |
 | 4 | Séparation des définitions (§ 6) et bascule publique ; suppression de `segmentEdits` et `context.segments` | identiques |
