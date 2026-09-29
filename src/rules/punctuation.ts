@@ -9,6 +9,10 @@ import {
   type RunRange,
   type RunRuleResult,
 } from "../run.ts";
+import {
+  technicalPatternStarts,
+  whitespaceFreeStarts,
+} from "../classify/text-index.ts";
 import { RunStretches, spacingCharacters } from "./run-text.ts";
 
 /*
@@ -262,56 +266,6 @@ class PunctuationScan {
         : {}),
     };
   }
-}
-
-const whitespace = /\s/u;
-
-/** Start of the whitespace-free stretch of text ending at each position. */
-function whitespaceFreeStarts(text: string): Int32Array {
-  const starts = new Int32Array(text.length + 1);
-  let start = 0;
-  for (let index = 0; index < text.length; index++) {
-    starts[index] = start;
-    if (whitespace.test(text[index])) start = index + 1;
-  }
-  starts[text.length] = start;
-  return starts;
-}
-
-const letter = /^[a-z]$/iu;
-const schemeCharacter = /^[a-z0-9+.-]$/iu;
-const wCharacter = /^w$/iu;
-
-/**
- * For each position, the latest start of a `scheme://` or `www.` occurrence
- * ending at or before it, as the technical-token expressions match them
- * case-insensitively, or -1.
- */
-function technicalPatternStarts(text: string): Int32Array {
-  const starts = new Int32Array(text.length + 1).fill(-1);
-  let schemeLetter = -1;
-  for (let index = 0; index < text.length; index++) {
-    const character = text[index];
-    if (
-      character === ":" && schemeLetter >= 0 && text[index + 1] === "/" &&
-      text[index + 2] === "/"
-    ) {
-      const end = index + 3;
-      starts[end] = Math.max(starts[end], schemeLetter);
-    }
-    if (
-      character === "." && index >= 3 && wCharacter.test(text[index - 1]) &&
-      wCharacter.test(text[index - 2]) && wCharacter.test(text[index - 3])
-    ) {
-      starts[index + 1] = Math.max(starts[index + 1], index - 3);
-    }
-    if (!schemeCharacter.test(character)) schemeLetter = -1;
-    else if (letter.test(character)) schemeLetter = index;
-  }
-  for (let index = 1; index <= text.length; index++) {
-    starts[index] = Math.max(starts[index], starts[index - 1]);
-  }
-  return starts;
 }
 
 function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {

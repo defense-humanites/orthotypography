@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import {
+  applyTextChanges,
+  ELLIPSIS_GLYPH_RULE,
+  ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
   ETC_ELLIPSIS_RULE,
   IMPRIMERIE_NATIONALE_RULES,
+  NUMERIC_PROTECTION_RULE,
   runPipeline,
   runTextNodePipeline,
 } from "../src/mod.ts";
+import type { TextSegment } from "../src/model.ts";
 
 Deno.test("suspension points after etc. are removed", () => {
   const result = runPipeline(
@@ -129,4 +134,68 @@ Deno.test("the etc. rule is scoped to metropolitan French", () => {
 
   assert.equal(result.value, input);
   assert.deepEqual(result.appliedRuleIds, []);
+});
+
+function fixEllipsisNodes(values: readonly (string | TextSegment)[]): string[] {
+  const nodes = values.map((value, index) => ({
+    id: `n${index}`,
+    ...(typeof value === "string" ? { value } : value),
+  }));
+  const result = runTextNodePipeline(nodes, [
+    NUMERIC_PROTECTION_RULE,
+    ETC_ELLIPSIS_RULE,
+    ELLIPSIS_GLYPH_RULE,
+    ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
+  ], { locale: "fr-FR", mode: "fix" });
+  assert.deepEqual(
+    applyTextChanges(nodes, result.changes).map(({ value }) => value),
+    result.nodes.map(({ value }) => value),
+  );
+  return result.nodes.map(({ value }) => value);
+}
+
+Deno.test("ellipsis edits stay in the nodes that hold their characters", () => {
+  assert.deepEqual(fixEllipsisNodes(["Voir etc.", ".."]), ["Voir etc.", ""]);
+  assert.deepEqual(fixEllipsisNodes(["Oui..", "."]), ["Oui…", ""]);
+  assert.deepEqual(fixEllipsisNodes(["Oui", "...", " fin"]), [
+    "Oui",
+    "…",
+    " fin",
+  ]);
+  assert.deepEqual(
+    fixEllipsisNodes([{ value: "x", protected: true }, "etc..."]),
+    ["x", "etc..."],
+  );
+});
+
+Deno.test("empty protected nodes do not affect the ellipsis rules", () => {
+  const empty = { value: "", protected: true };
+  assert.deepEqual(fixEllipsisNodes([empty, "…Oui"]), ["", "… Oui"]);
+  assert.deepEqual(fixEllipsisNodes(["etc.", empty, "..."]), ["etc.", "", ""]);
+  assert.deepEqual(fixEllipsisNodes(["A", empty, "etc...."]), [
+    "A",
+    "",
+    "etc....",
+  ]);
+});
+
+Deno.test("ellipsis rules run only through the pipeline", () => {
+  for (
+    const rule of [
+      ETC_ELLIPSIS_RULE,
+      ELLIPSIS_GLYPH_RULE,
+      ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
+    ]
+  ) {
+    assert.throws(
+      () =>
+        rule.apply("Oui...", {
+          locale: "fr-FR",
+          mode: "fix",
+          segments: [{ value: "Oui..." }],
+          segmentIndex: 0,
+        }),
+      /runs on the logical run/,
+    );
+  }
 });

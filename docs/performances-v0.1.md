@@ -156,3 +156,49 @@ groupe de mots croissent d’un facteur 2,0 à 2,2 par doublement, mesuré jusqu
 250 000 caractères pour les nœuds d’un caractère et jusqu’à 1 000 000 pour les
 deux autres (par exemple 2,5 s, 5,1 s puis 10,9 s en `fix` pour les nœuds
 d’espaces à 250 000, 500 000 et 1 000 000 de caractères).
+
+## Après la migration des points de suspension
+
+La migration des points de suspension
+([PR nº 47](https://github.com/orthotypography/orthotypography/pull/47)) achève
+l’étape 2 : la règle `etc.` et les règles facultatives de glyphe et d’espace
+initial analysent chaque suite non protégée une seule fois, et le classement des
+candidats n’examine plus le texte qui précède chacun d’eux.
+`deno task bench
+--scaling` inclut désormais ces règles facultatives et trois
+entrées de points de suspension. Mesures dans le même environnement :
+
+| Entrée                                  | Mode   |   31 250 |   62 500 |  125 000 | Facteur par doublement |
+| --------------------------------------- | ------ | -------: | -------: | -------: | ---------------------: |
+| corpus, un segment                      | `lint` |    48 ms |    66 ms |   121 ms |                    1,6 |
+| corpus, un segment                      | `fix`  |    36 ms |    80 ms |   200 ms |                    2,4 |
+| corpus, nœuds de quatre mots            | `lint` |    99 ms |   134 ms |   305 ms |                    1,8 |
+| corpus, nœuds de quatre mots            | `fix`  |    91 ms |   176 ms |   432 ms |                    2,2 |
+| corpus, nœuds d’un caractère            | `lint` | 1 512 ms | 3 055 ms | 6 868 ms |                    2,1 |
+| corpus, nœuds d’un caractère            | `fix`  | 1 448 ms | 3 341 ms | 7 188 ms |                    2,2 |
+| virgules dans un seul jeton             | `lint` |    19 ms |    58 ms |   135 ms |                    2,7 |
+| virgules dans un seul jeton             | `fix`  |   101 ms |   235 ms |   440 ms |                    2,1 |
+| ponctuation haute espacée               | `lint` |    16 ms |    21 ms |    44 ms |                    1,7 |
+| ponctuation haute espacée               | `fix`  |    47 ms |   105 ms |   198 ms |                    2,1 |
+| points de suspension denses             | `lint` |    21 ms |    43 ms |   105 ms |                    2,2 |
+| points de suspension denses             | `fix`  |    30 ms |    48 ms |   118 ms |                    2,0 |
+| points de suspension dans un seul jeton | `lint` |    39 ms |    40 ms |    89 ms |                    1,5 |
+| points de suspension dans un seul jeton | `fix`  |    36 ms |    39 ms |    92 ms |                    1,6 |
+| nœuds de points de suspension           | `lint` |   435 ms | 1 207 ms | 2 627 ms |                    2,5 |
+| nœuds de points de suspension           | `fix`  |   589 ms | 1 293 ms | 3 265 ms |                    2,4 |
+| nœuds d’espaces autour des signes       | `lint` |   856 ms | 1 519 ms | 3 488 ms |                    2,0 |
+| nœuds d’espaces autour des signes       | `fix`  |   709 ms | 1 876 ms | 4 140 ms |                    2,4 |
+| nœud protégé par groupe de mots         | `lint` |   311 ms |   561 ms | 1 366 ms |                    2,1 |
+| nœud protégé par groupe de mots         | `fix`  |   256 ms |   664 ms | 1 475 ms |                    2,4 |
+
+Sur `main` avant cette PR, 62 500 nœuds d’un caractère prenaient environ 50 s
+avec le preset seul, et avec les règles facultatives les points de suspension
+denses passaient de 1,5 s à 23 s entre 31 250 et 125 000 caractères, les points
+de suspension dans un seul jeton de 24 s à 113 s entre 31 250 et 62 500
+caractères. À 500 000 caractères, les trois entrées de points de suspension
+prennent de 0,5 à 5 s, avec un facteur 1,5 à 2,4 par doublement.
+
+La règle facultative de groupement des chiffres n’est pas mesurée : elle lit
+encore les fragments voisins à chaque fragment et reste fortement quadratique en
+nombre de nœuds (15 s pour 8 000 nœuds d’un caractère, 78 s pour 16 000). Elle
+relève de l’étape 3, avec les autres règles numériques.
