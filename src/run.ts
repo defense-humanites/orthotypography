@@ -231,16 +231,27 @@ function fragmentAtPosition(
   return undefined;
 }
 
+/**
+ * Whether a range touches protected text: a non-empty range overlaps a
+ * protected range, or an empty one lies strictly inside it. Protected ranges
+ * are sorted and disjoint, so only the first one ending after `start` can
+ * match.
+ */
 function isInsideProtected(
   ranges: readonly RunRange[],
   start: number,
   end: number,
 ): boolean {
-  return ranges.some((range) =>
-    start === end
-      ? range.start < start && start < range.end
-      : range.start < end && start < range.end
-  );
+  let low = 0;
+  let high = ranges.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (ranges[middle].end <= start) low = middle + 1;
+    else high = middle;
+  }
+  const range = ranges[low];
+  if (range === undefined) return false;
+  return start === end ? range.start < start : range.start < end;
 }
 
 /**

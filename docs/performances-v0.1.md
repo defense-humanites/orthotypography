@@ -76,3 +76,60 @@ autres règles consultent encore les segments voisins à chaque fragment ; la vu
 unique de la suite logique de
 l’[issue nº 21](https://github.com/orthotypography/orthotypography/issues/21)
 supprimera ce coût résiduel.
+
+## Croissance sur entrées défavorables
+
+Les mesures précédentes portent sur de la prose. `deno task bench --scaling`
+mesure aussi des entrées construites pour faire apparaître une croissance
+quadratique : jetons sans espace contenant de nombreuses virgules, ponctuation
+haute très dense, nœuds d’un caractère, nœuds d’espaces autour des signes, nœud
+protégé dans chaque groupe de mots. Chaque ligne passe par
+`IMPRIMERIE_NATIONALE_RULES` à 31 250, 62 500 et 125 000 caractères et donne le
+facteur de croissance pour un doublement de la taille : 2 pour une croissance
+linéaire, 4 pour une croissance quadratique. Une ligne s’arrête après une mesure
+de plus de 20 s.
+
+Trois coûts quadratiques du pipeline ont été corrigés, sans changement des
+sorties :
+
+- l’application des modifications d’un fragment reconstruisait la valeur à
+  chaque modification ; elle est désormais assemblée en une passe ;
+- la vérification des plages protégées d’une modification sur la suite logique
+  parcourait toutes les plages ; elle procède par recherche dichotomique ;
+- trois transmissions de tableaux en arguments (`push(...)`, `splice(...)`)
+  dépassaient la pile d’appels au-delà d’environ 125 000 changements ou
+  fragments.
+
+Mesures après ces corrections, dans le même environnement que ci-dessus :
+
+| Entrée                            | Mode   |    31 250 |    62 500 |   125 000 | Facteur par doublement |
+| --------------------------------- | ------ | --------: | --------: | --------: | ---------------------: |
+| corpus, un segment                | `lint` |     43 ms |     36 ms |     60 ms |                    1,2 |
+| corpus, un segment                | `fix`  |     45 ms |     35 ms |     81 ms |                    1,3 |
+| corpus, nœuds de quatre mots      | `lint` |     67 ms |     92 ms |    173 ms |                    1,6 |
+| corpus, nœuds de quatre mots      | `fix`  |     61 ms |    109 ms |    254 ms |                    2,0 |
+| corpus, nœuds d’un caractère      | `lint` | 10 765 ms | 49 996 ms |         — |                      — |
+| corpus, nœuds d’un caractère      | `fix`  | 12 353 ms | 52 769 ms |         — |                      — |
+| virgules dans un seul jeton       | `lint` |  1 269 ms |  5 055 ms | 20 860 ms |                    4,1 |
+| virgules dans un seul jeton       | `fix`  |  1 312 ms |  5 274 ms | 24 330 ms |                    4,3 |
+| ponctuation haute espacée         | `lint` |     18 ms |     20 ms |     42 ms |                    1,5 |
+| ponctuation haute espacée         | `fix`  |     51 ms |    158 ms |  3 008 ms |                    7,7 |
+| nœuds d’espaces autour des signes | `lint` |  3 860 ms | 15 895 ms | 74 378 ms |                    4,4 |
+| nœuds d’espaces autour des signes | `fix`  |  3 543 ms | 14 296 ms | 66 945 ms |                    4,3 |
+| nœud protégé par groupe de mots   | `lint` |    130 ms |    363 ms |    764 ms |                    2,4 |
+| nœud protégé par groupe de mots   | `fix`  |    158 ms |    390 ms |    791 ms |                    2,2 |
+
+Les lignes encore quadratiques viennent de règles qui n’ont pas encore migré
+vers la suite logique
+([nº 21](https://github.com/orthotypography/orthotypography/issues/21)) :
+
+- la virgule suivie d’un jeton technique relit tout le jeton qui précède chaque
+  virgule, et les règles de ponctuation gardent leur propre copie de
+  l’application des modifications : la migration de la ponctuation corrige ces
+  deux lignes ;
+- l’interdiction des points de suspension après `etc.` reconstruit la suite
+  logique pour chaque fragment, d’où les lignes de nœuds d’un caractère et de
+  nœuds d’espaces : la migration des points de suspension la corrigera.
+
+Chaque migration de l’étape 2 et de l’étape 3 reprend cette commande et doit
+ramener les lignes concernées vers un facteur 2.
