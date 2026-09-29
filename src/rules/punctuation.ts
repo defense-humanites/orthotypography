@@ -1,12 +1,25 @@
 import { RULES } from "../catalogue/rules.ts";
 import { NUMERIC_PROTECTION_RULE } from "../classify/runtime.ts";
-import type {
-  RuleApplication,
-  RuleApplicationSegmentEdit,
-  RuleContext,
-  RuleDefinition,
-  RuntimeRule,
-} from "../model.ts";
+import type { RuleDefinition, RuntimeRule } from "../model.ts";
+import {
+  defineRunRule,
+  type LogicalRun,
+  type RunDiagnostic,
+  type RunEdit,
+  type RunRange,
+  type RunRuleResult,
+} from "../run.ts";
+import { RunStretches, spacingCharacters } from "./run-text.ts";
+
+/*
+ * Punctuation rules executed on the logical run.
+ *
+ * Scans keep the reach they had when the rules ran once per fragment: spacing
+ * next to a mark is read within the mark's stretch, and neighboring stretches
+ * are only visited to find the adjacent character or the spacing to remove at
+ * a node boundary. Edits stay in the node that reported them, and text
+ * inserted next to a mark stays in the mark's node.
+ */
 
 function documentaryDefinition(id: string): RuleDefinition {
   const definition = RULES.find((rule) => rule.id === id);
@@ -16,77 +29,332 @@ function documentaryDefinition(id: string): RuleDefinition {
   return definition;
 }
 
-interface TextEdit {
-  readonly start: number;
-  readonly end: number;
-  readonly replacement: string;
-  readonly related?: readonly RuleApplicationSegmentEdit[];
+/** Character adjacent to a boundary, or a protected stretch in the way. */
+interface Adjacent {
+  readonly blocked: boolean;
+  readonly character?: string;
 }
 
-const spacingCharacters = new Set(["\t", " ", "\u00a0", "\u202f"]);
+/** Spacing to remove in neighboring stretches, nearest first. */
+interface Boundary extends Adjacent {
+  readonly removals: readonly RunRange[];
+}
 
-function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {
-  const definition = documentaryDefinition(id);
+/** One edit proposed for a mark, owned by the mark's stretch. */
+interface OwnEdit {
+  readonly stretch: number;
+  readonly edit: RunEdit;
+}
 
-  return {
-    definition,
-    apply(value, context): RuleApplication {
-      const edits: TextEdit[] = [];
-      const segmentEdits: RuleApplicationSegmentEdit[] = [];
-      for (let markIndex = 0; markIndex < value.length; markIndex++) {
-        if (value[markIndex] !== mark) continue;
-        // A run of periods is not a sentence period: suspension points follow
-        // their own spacing rules, and a space before them may be correct.
-        if (
-          mark === "." &&
-          followingCharacter(value, markIndex + 1, context).character === "."
-        ) {
-          markIndex++;
-          while (value[markIndex + 1] === ".") markIndex++;
-          continue;
+/** Shared state of one rule call on one run. */
+class PunctuationScan {
+  readonly text: string;
+  readonly stretches: RunStretches;
+  readonly #own: OwnEdit[] = [];
+  readonly #removals: RunEdit[] = [];
+  readonly #diagnostics: RunDiagnostic[] = [];
+  #tokenStarts?: Int32Array;
+  #technicalStarts?: Int32Array;
+
+  constructor(readonly run: LogicalRun) {
+    this.text = run.text;
+    this.stretches = new RunStretches(run);
+  }
+
+  /** Positions of a mark outside protected text, in text order. */
+  *marks(mark: string): Generator<{ index: number; stretch: number }> {
+    const { text, stretches } = this;
+    let index = text.indexOf(mark);
+    while (index !== -1) {
+      const stretch = stretches.indexAt(index);
+      if (stretches.protectedFlags[stretch]) {
+        index = text.indexOf(mark, stretches.ends[stretch]);
+        continue;
+      }
+      yield { index, stretch };
+      index = text.indexOf(mark, index + 1);
+    }
+  }
+
+  start(stretch: number): number {
+    return this.stretches.starts[stretch];
+  }
+
+  end(stretch: number): number {
+    return this.stretches.ends[stretch];
+  }
+
+  /** Start of the spacing that ends at `index`, within its stretch. */
+  spacingStart(index: number, stretch: number): number {
+    const first = this.start(stretch);
+    let start = index;
+    while (start > first && spacingCharacters.has(this.text[start - 1])) {
+      start--;
+    }
+    return start;
+  }
+
+  /** End of the spacing that starts at `index`, within its stretch. */
+  spacingEnd(index: number, stretch: number): number {
+    const last = this.end(stretch);
+    let end = index;
+    while (end < last && spacingCharacters.has(this.text[end])) end++;
+    return end;
+  }
+
+  /** Character before a stretch position, not reaching before the stretch. */
+  #characterBefore(index: number, stretch: number): string {
+    const unit = this.text.charCodeAt(index - 1);
+    const start = unit >= 0xdc00 && unit <= 0xdfff ? index - 2 : index - 1;
+    return this.text.slice(Math.max(this.start(stretch), start), index);
+  }
+
+  /** Code point at a stretch position, not reaching past the stretch. */
+  #characterAt(index: number, stretch: number): string {
+    const unit = this.text.charCodeAt(index);
+    const pair = unit >= 0xd800 && unit <= 0xdbff &&
+      index + 1 < this.end(stretch);
+    const codePoint = pair ? this.text.codePointAt(index) as number : unit;
+    return String.fromCodePoint(codePoint);
+  }
+
+  /** Character before a position, looking into the previous stretch. */
+  precedingCharacter(index: number, stretch: number): Adjacent {
+    if (index > this.start(stretch)) {
+      return {
+        blocked: false,
+        character: this.#characterBefore(index, stretch),
+      };
+    }
+    if (stretch === 0) return { blocked: false };
+    const previous = stretch - 1;
+    if (this.stretches.protectedFlags[previous]) return { blocked: true };
+    return {
+      blocked: false,
+      character: this.#characterBefore(this.end(previous), previous),
+    };
+  }
+
+  /** Character at a position, looking into the next stretch. */
+  followingCharacter(index: number, stretch: number): Adjacent {
+    if (index < this.end(stretch)) {
+      return { blocked: false, character: this.#characterAt(index, stretch) };
+    }
+    const next = stretch + 1;
+    if (next >= this.stretches.starts.length) return { blocked: false };
+    if (this.stretches.protectedFlags[next]) return { blocked: true };
+    return {
+      blocked: false,
+      character: this.#characterAt(this.start(next), next),
+    };
+  }
+
+  /** Character before a stretch and the trailing spacing of earlier ones. */
+  precedingBoundary(stretch: number): Boundary {
+    const removals: RunRange[] = [];
+    for (let index = stretch - 1; index >= 0; index--) {
+      const start = this.start(index);
+      const end = this.end(index);
+      const spacing = this.spacingStart(end, index);
+      if (spacing < end) {
+        if (this.stretches.protectedFlags[index]) {
+          return { blocked: true, removals };
         }
-        let start = markIndex;
-        while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
-        const preceding = start === 0 ? precedingBoundary(context) : {
-          blocked: false,
-          character: value[start - 1],
-          segmentEdits: [],
-        };
-        if (preceding.blocked) continue;
-        const related = preceding.segmentEdits;
-        if (start < markIndex || related.length > 0) {
-          edits.push({
-            start,
-            end: markIndex + 1,
-            replacement: mark,
-            related,
-          });
-          segmentEdits.push(...related);
+        removals.push({ start: spacing, end });
+      }
+      if (spacing > start) {
+        return { blocked: false, character: this.text[spacing - 1], removals };
+      }
+    }
+    return { blocked: false, removals };
+  }
+
+  /** Character after a stretch and the leading spacing of later ones. */
+  followingBoundary(stretch: number): Boundary {
+    const removals: RunRange[] = [];
+    const count = this.stretches.starts.length;
+    for (let index = stretch + 1; index < count; index++) {
+      const start = this.start(index);
+      const end = this.end(index);
+      const spacing = this.spacingEnd(start, index);
+      if (spacing > start) {
+        if (this.stretches.protectedFlags[index]) {
+          return { blocked: true, removals };
+        }
+        removals.push({ start, end: spacing });
+      }
+      if (spacing < end) {
+        return { blocked: false, character: this.text[spacing], removals };
+      }
+    }
+    return { blocked: false, removals };
+  }
+
+  /**
+   * Whether the whitespace-free token before a comma is technical: it starts
+   * with `/`, `./`, or `../`, or contains a URL scheme or `www.`. The token
+   * extends into earlier unprotected stretches only while it covers them
+   * entirely and is shorter than 256 code units.
+   */
+  technicalTokenBefore(index: number, stretch: number): boolean {
+    const tokenStarts = this.#tokenStarts ??= whitespaceFreeStarts(this.text);
+    let start = Math.max(this.start(stretch), tokenStarts[index]);
+    if (start === this.start(stretch)) {
+      for (
+        let previous = stretch - 1;
+        previous >= 0 && index - start < 256;
+        previous--
+      ) {
+        if (this.stretches.protectedFlags[previous]) break;
+        const first = this.start(previous);
+        start = Math.max(first, tokenStarts[this.end(previous)]);
+        if (start > first) break;
+      }
+    }
+    const { text } = this;
+    const path = (offset: number, value: string): boolean =>
+      start + offset < index && text[start + offset] === value;
+    if (
+      path(0, "/") || (path(0, ".") && path(1, "/")) ||
+      (path(0, ".") && path(1, ".") && path(2, "/"))
+    ) return true;
+    const technical = this.#technicalStarts ??= technicalPatternStarts(text);
+    return technical[index] >= start;
+  }
+
+  own(stretch: number, edit: RunEdit): void {
+    this.#own.push({ stretch, edit });
+  }
+
+  remove(ranges: readonly RunRange[]): void {
+    for (const range of ranges) {
+      this.#removals.push({ ...range, replacement: "" });
+    }
+  }
+
+  diagnose(diagnostic: RunDiagnostic): void {
+    this.#diagnostics.push(diagnostic);
+  }
+
+  /**
+   * Returns the collected edits and diagnostics. As with per-fragment
+   * application, a stretch keeps its own edits only when at least one of them
+   * changes its text; removals in neighboring stretches are always kept.
+   */
+  result(): RunRuleResult {
+    const edits: RunEdit[] = [];
+    if (this.run.mode === "fix") {
+      const effective = new Set<number>();
+      for (const { stretch, edit } of this.#own) {
+        if (this.text.slice(edit.start, edit.end) !== edit.replacement) {
+          effective.add(stretch);
         }
       }
+      for (const { stretch, edit } of this.#own) {
+        if (effective.has(stretch)) edits.push(edit);
+      }
+      for (const removal of this.#removals) edits.push(removal);
+    }
+    return {
+      ...(edits.length > 0 ? { edits } : {}),
+      ...(this.#diagnostics.length > 0
+        ? { diagnostics: this.#diagnostics }
+        : {}),
+    };
+  }
+}
 
-      return {
-        value: context.mode === "fix" ? applyEdits(value, edits) : value,
-        edits,
-        segmentEdits,
-        diagnostics: edits.length === 0
-          ? undefined
-          : edits.map(({ start, end, replacement, related }) => ({
-            start,
-            end,
-            message: `Unexpected whitespace before ${mark}`,
-            replacement,
-            ...(related === undefined || related.length === 0 ? {} : {
-              related: related.map(({ segmentIndex, start, end }) => ({
-                segmentIndex,
-                start,
-                end,
-              })),
-            }),
-          })),
-      };
-    },
-  };
+const whitespace = /\s/u;
+
+/** Start of the whitespace-free stretch of text ending at each position. */
+function whitespaceFreeStarts(text: string): Int32Array {
+  const starts = new Int32Array(text.length + 1);
+  let start = 0;
+  for (let index = 0; index < text.length; index++) {
+    starts[index] = start;
+    if (whitespace.test(text[index])) start = index + 1;
+  }
+  starts[text.length] = start;
+  return starts;
+}
+
+const letter = /^[a-z]$/iu;
+const schemeCharacter = /^[a-z0-9+.-]$/iu;
+const wCharacter = /^w$/iu;
+
+/**
+ * For each position, the latest start of a `scheme://` or `www.` occurrence
+ * ending at or before it, as the technical-token expressions match them
+ * case-insensitively, or -1.
+ */
+function technicalPatternStarts(text: string): Int32Array {
+  const starts = new Int32Array(text.length + 1).fill(-1);
+  let schemeLetter = -1;
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index];
+    if (
+      character === ":" && schemeLetter >= 0 && text[index + 1] === "/" &&
+      text[index + 2] === "/"
+    ) {
+      const end = index + 3;
+      starts[end] = Math.max(starts[end], schemeLetter);
+    }
+    if (
+      character === "." && index >= 3 && wCharacter.test(text[index - 1]) &&
+      wCharacter.test(text[index - 2]) && wCharacter.test(text[index - 3])
+    ) {
+      starts[index + 1] = Math.max(starts[index + 1], index - 3);
+    }
+    if (!schemeCharacter.test(character)) schemeLetter = -1;
+    else if (letter.test(character)) schemeLetter = index;
+  }
+  for (let index = 1; index <= text.length; index++) {
+    starts[index] = Math.max(starts[index], starts[index - 1]);
+  }
+  return starts;
+}
+
+function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {
+  const message = `Unexpected whitespace before ${mark}`;
+  return defineRunRule(documentaryDefinition(id), (run) => {
+    const scan = new PunctuationScan(run);
+    const { text } = scan;
+    let resumeAt = 0;
+    for (const { index, stretch } of scan.marks(mark)) {
+      if (index < resumeAt) continue;
+      // A run of periods is not a sentence period: suspension points follow
+      // their own spacing rules, and a space before them may be correct.
+      if (
+        mark === "." &&
+        scan.followingCharacter(index + 1, stretch).character === "."
+      ) {
+        let last = index + 1;
+        const end = scan.end(stretch);
+        if (last < end) {
+          while (last + 1 < end && text[last + 1] === ".") last++;
+          resumeAt = last + 1;
+        }
+        continue;
+      }
+      const start = scan.spacingStart(index, stretch);
+      const preceding = start === scan.start(stretch)
+        ? scan.precedingBoundary(stretch)
+        : { blocked: false, removals: [] };
+      if (preceding.blocked) continue;
+      const { removals } = preceding;
+      if (start === index && removals.length === 0) continue;
+      scan.own(stretch, { start, end: index + 1, replacement: mark });
+      scan.remove(removals);
+      scan.diagnose({
+        start,
+        end: index + 1,
+        message,
+        replacement: mark,
+        ...(removals.length === 0 ? {} : { related: removals }),
+      });
+    }
+    return scan.result();
+  });
 }
 
 /** Safe low-punctuation rules available in the first executable lot. */
@@ -94,105 +362,6 @@ export const SAFE_PUNCTUATION_RULES: readonly RuntimeRule[] = [
   noSpaceBeforeRule("punctuation.comma.no-space-before", ","),
   noSpaceBeforeRule("punctuation.period.no-space-before", "."),
 ] as const;
-
-interface BoundaryContext {
-  readonly blocked: boolean;
-  readonly character?: string;
-  readonly segmentEdits: readonly RuleApplicationSegmentEdit[];
-}
-
-interface AdjacentCharacter {
-  readonly blocked: boolean;
-  readonly character?: string;
-}
-
-function characterBefore(value: string, index: number): string | undefined {
-  if (index <= 0) return undefined;
-  const finalUnit = value.charCodeAt(index - 1);
-  const start = finalUnit >= 0xdc00 && finalUnit <= 0xdfff
-    ? index - 2
-    : index - 1;
-  return value.slice(Math.max(0, start), index);
-}
-
-function characterAt(value: string, index: number): string | undefined {
-  const codePoint = value.codePointAt(index);
-  return codePoint === undefined ? undefined : String.fromCodePoint(codePoint);
-}
-
-function precedingCharacter(
-  value: string,
-  index: number,
-  context: RuleContext,
-): AdjacentCharacter {
-  if (index > 0) {
-    return { blocked: false, character: characterBefore(value, index) };
-  }
-  for (
-    let segmentIndex = context.segmentIndex - 1;
-    segmentIndex >= 0;
-    segmentIndex--
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (segment.protected) return { blocked: true };
-    if (segment.value.length > 0) {
-      return {
-        blocked: false,
-        character: characterBefore(segment.value, segment.value.length),
-      };
-    }
-  }
-  return { blocked: false };
-}
-
-function followingCharacter(
-  value: string,
-  index: number,
-  context: RuleContext,
-): AdjacentCharacter {
-  if (index < value.length) {
-    return { blocked: false, character: characterAt(value, index) };
-  }
-  for (
-    let segmentIndex = context.segmentIndex + 1;
-    segmentIndex < context.segments.length;
-    segmentIndex++
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (segment.protected) return { blocked: true };
-    if (segment.value.length > 0) {
-      return { blocked: false, character: characterAt(segment.value, 0) };
-    }
-  }
-  return { blocked: false };
-}
-
-function logicalTokenBefore(
-  value: string,
-  end: number,
-  context: RuleContext,
-): string {
-  let token = value.slice(0, end).match(/\S*$/u)?.[0] ?? "";
-  if (token.length < end) return token;
-
-  for (
-    let segmentIndex = context.segmentIndex - 1;
-    segmentIndex >= 0 && token.length < 256;
-    segmentIndex--
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (segment.protected) break;
-    const suffix = segment.value.match(/\S*$/u)?.[0] ?? "";
-    token = suffix + token;
-    if (suffix.length < segment.value.length) break;
-  }
-  return token;
-}
-
-function isTechnicalTokenBeforeComma(token: string): boolean {
-  return /(?:[a-z][a-z0-9+.-]*:\/\/|www\.)\S*$/iu.test(token) ||
-    /^(?:\.{0,2}\/)[^\s]*$/u.test(token);
-}
 
 const textOpeningCharacters = new Set([
   "(",
@@ -211,171 +380,59 @@ function beginsText(character: string): boolean {
 }
 
 /** Inserts the documented word space after commas in safe prose contexts. */
-export const SPACE_AFTER_COMMA_RULE: RuntimeRule = {
-  definition: documentaryDefinition("punctuation.comma.space-after"),
-  apply(value, context): RuleApplication {
-    const edits: TextEdit[] = [];
-
-    for (let commaIndex = 0; commaIndex < value.length; commaIndex++) {
-      if (value[commaIndex] !== ",") continue;
-
-      const preceding = precedingCharacter(value, commaIndex, context);
-      const following = followingCharacter(value, commaIndex + 1, context);
+export const SPACE_AFTER_COMMA_RULE: RuntimeRule = defineRunRule(
+  documentaryDefinition("punctuation.comma.space-after"),
+  (run) => {
+    const scan = new PunctuationScan(run);
+    for (const { index, stretch } of scan.marks(",")) {
+      const preceding = scan.precedingCharacter(index, stretch);
+      const following = scan.followingCharacter(index + 1, stretch);
       if (preceding.blocked || following.blocked) continue;
 
       const previous = preceding.character;
       const next = following.character;
       if (next === undefined || /\s/u.test(next) || !beginsText(next)) continue;
       if (/\p{N}/u.test(previous ?? "") && /\p{N}/u.test(next)) continue;
-      if (
-        isTechnicalTokenBeforeComma(
-          logicalTokenBefore(value, commaIndex, context),
-        )
-      ) continue;
+      if (scan.technicalTokenBefore(index, stretch)) continue;
 
-      edits.push({
-        start: commaIndex + 1,
-        end: commaIndex + 1,
+      // An inserted space stays in the comma's node.
+      const edit: RunEdit = {
+        start: index + 1,
+        end: index + 1,
         replacement: " ",
-      });
+        bias: "left",
+      };
+      scan.own(stretch, edit);
+      scan.diagnose({ ...edit, message: "Missing whitespace after comma" });
     }
-
-    return {
-      value: context.mode === "fix" ? applyEdits(value, edits) : value,
-      edits,
-      diagnostics: edits.length === 0
-        ? undefined
-        : edits.map(({ start, end, replacement }) => ({
-          start,
-          end,
-          message: "Missing whitespace after comma",
-          replacement,
-        })),
-    };
+    return scan.result();
   },
-};
-
-function precedingBoundary(context: RuleContext): BoundaryContext {
-  const segmentEdits: RuleApplicationSegmentEdit[] = [];
-  for (
-    let segmentIndex = context.segmentIndex - 1;
-    segmentIndex >= 0;
-    segmentIndex--
-  ) {
-    const segment = context.segments[segmentIndex];
-    let end = segment.value.length;
-    while (end > 0 && spacingCharacters.has(segment.value[end - 1])) end--;
-    if (end < segment.value.length) {
-      if (segment.protected) return { blocked: true, segmentEdits };
-      segmentEdits.push({
-        segmentIndex,
-        start: end,
-        end: segment.value.length,
-        replacement: "",
-      });
-    }
-    if (end > 0) {
-      return {
-        blocked: false,
-        character: segment.value[end - 1],
-        segmentEdits,
-      };
-    }
-  }
-  return { blocked: false, segmentEdits };
-}
-
-function followingBoundary(context: RuleContext): BoundaryContext {
-  const segmentEdits: RuleApplicationSegmentEdit[] = [];
-  for (
-    let segmentIndex = context.segmentIndex + 1;
-    segmentIndex < context.segments.length;
-    segmentIndex++
-  ) {
-    const segment = context.segments[segmentIndex];
-    let start = 0;
-    while (
-      start < segment.value.length &&
-      spacingCharacters.has(segment.value[start])
-    ) start++;
-    if (start > 0) {
-      if (segment.protected) return { blocked: true, segmentEdits };
-      segmentEdits.push({
-        segmentIndex,
-        start: 0,
-        end: start,
-        replacement: "",
-      });
-    }
-    if (start < segment.value.length) {
-      return {
-        blocked: false,
-        character: segment.value[start],
-        segmentEdits,
-      };
-    }
-  }
-  return { blocked: false, segmentEdits };
-}
-
-function logicalSuffix(
-  value: string,
-  start: number,
-  context: RuleContext,
-  length: number,
-): string {
-  let result = value.slice(start);
-  for (
-    let segmentIndex = context.segmentIndex + 1;
-    result.length < length && segmentIndex < context.segments.length;
-    segmentIndex++
-  ) result += context.segments[segmentIndex].value;
-  return result.slice(0, length);
-}
-
-function applyEdits(value: string, edits: readonly TextEdit[]): string {
-  let result = value;
-  for (
-    const edit of [...edits].sort((left, right) => right.start - left.start)
-  ) {
-    result = result.slice(0, edit.start) + edit.replacement +
-      result.slice(edit.end);
-  }
-  return result;
-}
+);
 
 type HighPunctuationMark = ":" | ";" | "?" | "!";
 
 interface HighPunctuationContext {
   readonly start: number;
   readonly end: number;
-  readonly preceding: BoundaryContext;
-  readonly following: BoundaryContext;
+  readonly preceding: Boundary;
+  readonly following: Boundary;
   readonly previous?: string;
   readonly next?: string;
 }
 
 function inspectHighPunctuation(
-  value: string,
-  markIndex: number,
-  context: RuleContext,
+  scan: PunctuationScan,
+  index: number,
+  stretch: number,
 ): HighPunctuationContext {
-  let start = markIndex;
-  while (start > 0 && spacingCharacters.has(value[start - 1])) start--;
-  let end = markIndex + 1;
-  while (end < value.length && spacingCharacters.has(value[end])) end++;
-
-  const preceding = start === 0 ? precedingBoundary(context) : {
-    blocked: false,
-    character: value[start - 1],
-    segmentEdits: [],
-  };
-  const following = end === value.length ? followingBoundary(context) : {
-    blocked: false,
-    character: value[end],
-    segmentEdits: [],
-  };
-
+  const start = scan.spacingStart(index, stretch);
+  const end = scan.spacingEnd(index + 1, stretch);
+  const preceding: Boundary = start === scan.start(stretch)
+    ? scan.precedingBoundary(stretch)
+    : { blocked: false, character: scan.text[start - 1], removals: [] };
+  const following: Boundary = end === scan.end(stretch)
+    ? scan.followingBoundary(stretch)
+    : { blocked: false, character: scan.text[end], removals: [] };
   return {
     start,
     end,
@@ -387,9 +444,8 @@ function inspectHighPunctuation(
 }
 
 function excludesHighPunctuation(
-  value: string,
-  markIndex: number,
-  context: RuleContext,
+  scan: PunctuationScan,
+  index: number,
   mark: HighPunctuationMark,
   inspected: HighPunctuationContext,
 ): boolean {
@@ -398,8 +454,7 @@ function excludesHighPunctuation(
     return true;
   }
   if (
-    mark === "!" &&
-    /^!important\b/iu.test(logicalSuffix(value, markIndex, context, 11))
+    mark === "!" && /^!important\b/iu.test(scan.text.slice(index, index + 11))
   ) return true;
   if (previous === mark || next === mark) return true;
   if (mark === ":" && (previous === ":" || next === ":" || next === "/")) {
@@ -428,248 +483,172 @@ function highPunctuationRank(mark: HighPunctuationMark): number {
 }
 
 interface PunctuationLocation {
-  readonly value: string;
   readonly index: number;
-  readonly context: RuleContext;
+  readonly stretch: number;
 }
 
+/** Nearest character before `start`, stopping at protected text. */
 function precedingPunctuationLocation(
-  value: string,
+  scan: PunctuationScan,
   start: number,
-  context: RuleContext,
+  stretch: number,
 ): PunctuationLocation | undefined {
-  if (start > 0) return { value, index: start - 1, context };
-  for (
-    let segmentIndex = context.segmentIndex - 1;
-    segmentIndex >= 0;
-    segmentIndex--
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (segment.protected) return undefined;
-    let index = segment.value.length;
-    while (index > 0 && spacingCharacters.has(segment.value[index - 1])) {
-      index--;
-    }
-    if (index > 0) {
-      return {
-        value: segment.value,
-        index: index - 1,
-        context: { ...context, segmentIndex },
-      };
+  if (start > scan.start(stretch)) return { index: start - 1, stretch };
+  for (let index = stretch - 1; index >= 0; index--) {
+    if (scan.stretches.protectedFlags[index]) return undefined;
+    const spacing = scan.spacingStart(scan.end(index), index);
+    if (spacing > scan.start(index)) {
+      return { index: spacing - 1, stretch: index };
     }
   }
   return undefined;
 }
 
+/** Nearest character from `end`, stopping at protected text. */
 function followingPunctuationLocation(
-  value: string,
+  scan: PunctuationScan,
   end: number,
-  context: RuleContext,
+  stretch: number,
 ): PunctuationLocation | undefined {
-  if (end < value.length) return { value, index: end, context };
-  for (
-    let segmentIndex = context.segmentIndex + 1;
-    segmentIndex < context.segments.length;
-    segmentIndex++
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (segment.protected) return undefined;
-    let index = 0;
-    while (
-      index < segment.value.length &&
-      spacingCharacters.has(segment.value[index])
-    ) index++;
-    if (index < segment.value.length) {
-      return {
-        value: segment.value,
-        index,
-        context: { ...context, segmentIndex },
-      };
-    }
+  if (end < scan.end(stretch)) return { index: end, stretch };
+  const count = scan.stretches.starts.length;
+  for (let index = stretch + 1; index < count; index++) {
+    if (scan.stretches.protectedFlags[index]) return undefined;
+    const spacing = scan.spacingEnd(scan.start(index), index);
+    if (spacing < scan.end(index)) return { index: spacing, stretch: index };
   }
   return undefined;
 }
 
 function punctuationLocationIsExcluded(
+  scan: PunctuationScan,
   location: PunctuationLocation,
   mark: HighPunctuationMark,
 ): boolean {
   const inspected = inspectHighPunctuation(
-    location.value,
+    scan,
     location.index,
-    location.context,
+    location.stretch,
   );
-  return excludesHighPunctuation(
-    location.value,
-    location.index,
-    location.context,
-    mark,
-    inspected,
-  );
+  return excludesHighPunctuation(scan, location.index, mark, inspected);
 }
 
 function highPunctuationBeforeRule(
   id: string,
   mark: HighPunctuationMark,
-  before: "\u00a0" | "\u202f",
+  before: " " | " ",
 ): RuntimeRule {
-  const definition = documentaryDefinition(id);
-
-  return {
-    definition,
-    apply(value, context): RuleApplication {
-      const edits: TextEdit[] = [];
-      const segmentEdits: RuleApplicationSegmentEdit[] = [];
-
-      for (let markIndex = 0; markIndex < value.length; markIndex++) {
-        if (value[markIndex] !== mark) continue;
-        const inspected = inspectHighPunctuation(value, markIndex, context);
+  const message = `Unexpected whitespace before ${mark}`;
+  return defineRunRule(documentaryDefinition(id), (run) => {
+    const scan = new PunctuationScan(run);
+    for (const { index, stretch } of scan.marks(mark)) {
+      const inspected = inspectHighPunctuation(scan, index, stretch);
+      if (excludesHighPunctuation(scan, index, mark, inspected)) continue;
+      if (isHighPunctuationMark(inspected.previous)) {
+        const previous = precedingPunctuationLocation(
+          scan,
+          inspected.start,
+          stretch,
+        );
         if (
-          excludesHighPunctuation(value, markIndex, context, mark, inspected)
+          previous !== undefined &&
+          highPunctuationRank(inspected.previous) > highPunctuationRank(mark) &&
+          !punctuationLocationIsExcluded(scan, previous, inspected.previous)
         ) continue;
-        if (isHighPunctuationMark(inspected.previous)) {
-          const previous = precedingPunctuationLocation(
-            value,
-            inspected.start,
-            context,
-          );
-          if (
-            previous !== undefined &&
-            highPunctuationRank(inspected.previous) >
-              highPunctuationRank(mark) &&
-            !punctuationLocationIsExcluded(previous, inspected.previous)
-          ) continue;
-        }
-
-        const related = inspected.preceding.segmentEdits;
-        if (
-          value.slice(inspected.start, markIndex) !== before || related.length
-        ) {
-          edits.push({
-            start: inspected.start,
-            end: markIndex,
-            replacement: before,
-            related,
-          });
-          segmentEdits.push(...related);
-        }
       }
 
-      return {
-        value: context.mode === "fix" ? applyEdits(value, edits) : value,
-        edits,
-        segmentEdits,
-        diagnostics: edits.length === 0
-          ? undefined
-          : edits.map(({ start, end, replacement, related }) => ({
-            start,
-            end,
-            message: `Unexpected whitespace before ${mark}`,
-            replacement,
-            ...(related === undefined || related.length === 0 ? {} : {
-              related: related.map(({ segmentIndex, start, end }) => ({
-                segmentIndex,
-                start,
-                end,
-              })),
-            }),
-          })),
+      const { removals } = inspected.preceding;
+      if (
+        scan.text.slice(inspected.start, index) === before &&
+        removals.length === 0
+      ) continue;
+      // The space before the mark stays in the mark's node.
+      const edit: RunEdit = {
+        start: inspected.start,
+        end: index,
+        replacement: before,
+        bias: "right",
       };
-    },
-  };
+      scan.own(stretch, edit);
+      scan.remove(removals);
+      scan.diagnose({
+        ...edit,
+        message,
+        ...(removals.length === 0 ? {} : { related: removals }),
+      });
+    }
+    return scan.result();
+  });
 }
 
 function highPunctuationAfterRule(
   id: string,
   mark: HighPunctuationMark,
 ): RuntimeRule {
-  const definition = documentaryDefinition(id);
-
-  return {
-    definition,
-    apply(value, context): RuleApplication {
-      const edits: TextEdit[] = [];
-      const segmentEdits: RuleApplicationSegmentEdit[] = [];
-
-      for (let markIndex = 0; markIndex < value.length; markIndex++) {
-        if (value[markIndex] !== mark) continue;
-        const inspected = inspectHighPunctuation(value, markIndex, context);
+  const message = `Unexpected whitespace after ${mark}`;
+  return defineRunRule(documentaryDefinition(id), (run) => {
+    const scan = new PunctuationScan(run);
+    for (const { index, stretch } of scan.marks(mark)) {
+      const inspected = inspectHighPunctuation(scan, index, stretch);
+      if (excludesHighPunctuation(scan, index, mark, inspected)) continue;
+      if (isHighPunctuationMark(inspected.next)) {
+        const next = followingPunctuationLocation(
+          scan,
+          inspected.end,
+          stretch,
+        );
         if (
-          excludesHighPunctuation(value, markIndex, context, mark, inspected)
+          next !== undefined &&
+          highPunctuationRank(inspected.next) > highPunctuationRank(mark) &&
+          !punctuationLocationIsExcluded(scan, next, inspected.next)
         ) continue;
-        if (isHighPunctuationMark(inspected.next)) {
-          const next = followingPunctuationLocation(
-            value,
-            inspected.end,
-            context,
-          );
-          if (
-            next !== undefined &&
-            highPunctuationRank(inspected.next) > highPunctuationRank(mark) &&
-            !punctuationLocationIsExcluded(next, inspected.next)
-          ) continue;
-        }
-
-        const replacement = inspected.next === undefined ? "" : " ";
-        const related = inspected.following.segmentEdits;
-        if (
-          value.slice(markIndex + 1, inspected.end) !== replacement ||
-          related.length > 0
-        ) {
-          edits.push({
-            start: markIndex + 1,
-            end: inspected.end,
-            replacement,
-            related,
-          });
-          segmentEdits.push(...related);
-        }
       }
 
-      return {
-        value: context.mode === "fix" ? applyEdits(value, edits) : value,
-        edits,
-        segmentEdits,
-        diagnostics: edits.length === 0
-          ? undefined
-          : edits.map(({ start, end, replacement, related }) => ({
-            start,
-            end,
-            message: `Unexpected whitespace after ${mark}`,
-            replacement,
-            ...(related === undefined || related.length === 0 ? {} : {
-              related: related.map(({ segmentIndex, start, end }) => ({
-                segmentIndex,
-                start,
-                end,
-              })),
-            }),
-          })),
+      const replacement = inspected.next === undefined ? "" : " ";
+      const { removals } = inspected.following;
+      if (
+        scan.text.slice(index + 1, inspected.end) === replacement &&
+        removals.length === 0
+      ) continue;
+      // The space after the mark stays in the mark's node.
+      const edit: RunEdit = {
+        start: index + 1,
+        end: inspected.end,
+        replacement,
+        bias: "left",
       };
-    },
-  };
+      scan.own(stretch, edit);
+      scan.remove(removals);
+      scan.diagnose({
+        ...edit,
+        message,
+        ...(removals.length === 0 ? {} : { related: removals }),
+      });
+    }
+    return scan.result();
+  });
 }
 
 /** Context-sensitive French high-punctuation rules. */
 export const HIGH_PUNCTUATION_RULES: readonly RuntimeRule[] = [
-  highPunctuationBeforeRule("punctuation.colon.nbsp-before", ":", "\u00a0"),
+  highPunctuationBeforeRule("punctuation.colon.nbsp-before", ":", " "),
   highPunctuationAfterRule("punctuation.colon.space-after", ":"),
   highPunctuationBeforeRule(
     "punctuation.semicolon.nnbsp-before",
     ";",
-    "\u202f",
+    " ",
   ),
   highPunctuationAfterRule("punctuation.semicolon.space-after", ";"),
   highPunctuationBeforeRule(
     "punctuation.question.nnbsp-before",
     "?",
-    "\u202f",
+    " ",
   ),
   highPunctuationAfterRule("punctuation.question.space-after", "?"),
   highPunctuationBeforeRule(
     "punctuation.exclamation.nnbsp-before",
     "!",
-    "\u202f",
+    " ",
   ),
   highPunctuationAfterRule("punctuation.exclamation.space-after", "!"),
 ] as const;

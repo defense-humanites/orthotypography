@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Run the comma, period, and high-punctuation rules once on the logical run
+  instead of once per fragment (#21). Calling their `apply` methods directly now
+  throws. Outputs are unchanged, except next to empty protected nodes, which no
+  longer affect these rules: `Bonjour,` · empty protected node · `monde` now
+  receives the space after the comma. The space after a comma followed by a long
+  unbroken token is now checked in linear time; 125,000 characters of `a,` took
+  about 21 s and now take about 0.1 s.
 - Keep the pipeline linear in the number of edits, protected ranges, and
   fragments: edits are assembled in one pass instead of rebuilding the value for
   each edit, protected ranges are found by binary search, and results no longer

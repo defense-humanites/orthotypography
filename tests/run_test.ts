@@ -132,13 +132,32 @@ Deno.test("run edits are rejected when overlapping or sharing a start", () => {
     () =>
       fixNodes(["abcd"], [
         { start: 1, end: 1, replacement: "x" },
-        { start: 1, end: 2, replacement: "" },
+        { start: 1, end: 1, replacement: "y" },
       ]),
     /overlapping edits/,
   );
   assert.throws(
     () => fixNodes(["abcd"], [{ start: 3, end: 5, replacement: "" }]),
     /invalid edit range/,
+  );
+});
+
+Deno.test("an insertion may share its start with a following edit", () => {
+  // Both in one node: merged into one change of that node.
+  assert.deepEqual(
+    fixNodes(["abcd"], [
+      { start: 1, end: 2, replacement: "" },
+      { start: 1, end: 1, replacement: "x" },
+    ]),
+    ["axcd"],
+  );
+  // At a boundary: the insertion stays left, the deletion applies right.
+  assert.deepEqual(
+    fixNodes(["a:", " b"], [
+      { start: 2, end: 2, replacement: " " },
+      { start: 2, end: 3, replacement: "" },
+    ]),
+    ["a: ", "b"],
   );
 });
 

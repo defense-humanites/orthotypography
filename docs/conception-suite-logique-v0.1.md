@@ -80,8 +80,9 @@ interface RunEdit {
 `RunDiagnostic` reprend les champs actuels (`start`, `end`, `message`,
 `replacement`, `related`) dans les coordonnées de la suite, avec un `bias`
 facultatif pour les emplacements vides situés à une frontière. Les nœuds eux-mêmes
-restent invisibles : `nodeBoundaries` sert seulement aux règles qui doivent
-choisir `bias`.
+restent invisibles : `nodeBoundaries` sert aux règles qui doivent choisir
+`bias` et, pour les règles migrées à l’étape 2, à borner leurs parcours comme le
+faisait l’exécution par fragment (`src/rules/run-text.ts`).
 
 ## 4. Validation et projection des modifications
 
@@ -90,7 +91,10 @@ choisir `bias`.
 Le pipeline refuse le résultat entier d’une règle si :
 
 - une modification sort de `[0, text.length]` ou a `end < start` ;
-- deux modifications se chevauchent ou commencent à la même position ;
+- deux modifications se chevauchent ou commencent à la même position, sauf une
+  insertion suivie d’une modification non vide : l’insertion précède alors le
+  texte remplacé, et les deux sont fusionnées si elles tombent dans le même
+  nœud ;
 - une modification non vide recoupe une plage protégée ;
 - une insertion tombe à l’intérieur d’une plage protégée, ou à une frontière
   dont le côté désigné par `bias` est protégé ;
@@ -131,6 +135,12 @@ Le blanc normalisé se limite au nœud du signe et à la portion non protégée 
 le contient, comme dans l’implémentation par fragment : `« ` · ` texte»` donne
 `« ` · ` texte »`, l’espace ordinaire du second nœud étant conservé. Lever
 cette limite changerait les sorties et relève d’une PR distincte.
+
+Les nœuds protégés vides n’apparaissent pas dans la vue : aucune règle ne les
+voit. Dans l’exécution par fragment, un tel nœud bloquait l’espace après la
+virgule, la reconnaissance d’une suite de points et la recherche du signe voisin
+en ponctuation haute, mais pas la suppression des blancs ; les règles migrées
+l’ignorent partout.
 
 Le ledger des changements, les coordonnées sources, le garde-fou `expected` et
 `applyTextChanges` sont inchangés.
@@ -211,9 +221,10 @@ règles avec l’ancienne interface seront réécrits lors du passage au cœur
 
 État : l’étape 1 est fusionnée
 ([PR nº 41](https://github.com/orthotypography/orthotypography/pull/41)).
-L’étape 2 a commencé par les guillemets
-([PR nº 43](https://github.com/orthotypography/orthotypography/pull/43)) ; la
-ponctuation et les points de suspension suivent.
+L’étape 2 a migré les guillemets
+([PR nº 43](https://github.com/orthotypography/orthotypography/pull/43)) et la
+ponctuation ([PR nº 45](https://github.com/orthotypography/orthotypography/pull/45)) ;
+les points de suspension suivent.
 
 Chaque étape vérifie :
 
@@ -223,7 +234,9 @@ Chaque étape vérifie :
 - à partir de l’étape 2, les tests du SDK et une comparaison des lots de
   requêtes Google Docs, simples et stylés, sur la fixture de validation réelle
   et sur des paragraphes générés avec de nombreux changements de style ;
-- `deno task bench`, comparé à [`performances-v0.1.md`](performances-v0.1.md).
+- `deno task bench`, comparé à [`performances-v0.1.md`](performances-v0.1.md),
+  et `deno task bench --scaling`, dont le facteur de croissance par doublement
+  doit rester proche de 2 pour les lignes qui relèvent des règles migrées.
 
 À l’étape 3, les instantanés segmentés du corpus changent volontairement ; la
 PR liste chaque différence. La publication de `0.2.0` suit ce chantier et
