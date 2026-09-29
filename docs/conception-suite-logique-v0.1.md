@@ -167,7 +167,14 @@ interface Annotation {
   annotations `protect`.
 - Après les modifications d’une règle, une annotation qui contient entièrement
   une modification est étendue ou réduite d’autant ; une annotation
-  partiellement recouverte est retirée ; les autres sont décalées.
+  partiellement recouverte est retirée ; les autres sont décalées. Une
+  insertion au début d’une annotation la décale, une insertion à sa fin la
+  laisse en place.
+- La classification numérique s’exécute une fois par portion non protégée de
+  la suite. Les contextes syntaxiques (`protect`) y sont cherchés sur toute la
+  portion, ce qui protège une heure ou une version coupée entre deux nœuds ;
+  les cibles (`target`) sont cherchées dans le texte compris entre ces
+  contextes, comme chaque règle numérique le reclassait dans son fragment.
 - `dependsOn` reste une contrainte d’ordre entre identifiants ; le type
   d’annotation consommé par une règle est documenté avec elle.
 
@@ -230,7 +237,9 @@ reportée sur `main` par la
 de suspension
 ([PR nº 47](https://github.com/orthotypography/orthotypography/pull/47)). Seules
 les règles numériques gardent l’exécution par fragment ; elles relèvent de
-l’étape 3.
+l’étape 3, dont la première PR
+([nº 48](https://github.com/orthotypography/orthotypography/pull/48)) exécute
+la classification numérique sur la suite et conserve ses annotations.
 
 Chaque étape vérifie :
 

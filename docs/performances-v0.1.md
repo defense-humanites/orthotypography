@@ -202,3 +202,16 @@ La règle facultative de groupement des chiffres n’est pas mesurée : elle lit
 encore les fragments voisins à chaque fragment et reste fortement quadratique en
 nombre de nœuds (15 s pour 8 000 nœuds d’un caractère, 78 s pour 16 000). Elle
 relève de l’étape 3, avec les autres règles numériques.
+
+## Classification numérique sur la suite
+
+La classification numérique s’exécute désormais une fois par portion non
+protégée
+([PR nº 48](https://github.com/orthotypography/orthotypography/pull/48)) et
+vérifie les recouvrements en temps constant par caractère au lieu de comparer
+chaque candidat à toutes les constructions retenues. `deno task bench --scaling`
+ajoute une entrée de nombres denses (pourcentages, heures, versions, montants,
+mesures et décimaux répétés) ; toutes les lignes restent entre 1,4 et 2,6 par
+doublement. Sur cette entrée, en un segment, le temps passe de 337 ms, 304 ms et
+1 546 ms à 258 ms, 306 ms et 525 ms en `lint` à 31 250, 62 500 et 125 000
+caractères.

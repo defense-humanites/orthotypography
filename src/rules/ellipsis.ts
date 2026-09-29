@@ -6,10 +6,9 @@ import {
   type LogicalRun,
   type RunDiagnostic,
   type RunEdit,
-  type RunLocation,
   type RunRuleResult,
 } from "../run.ts";
-import { RunStretches } from "./run-text.ts";
+import { RunStretches, stretchParts, unprotectedRegions } from "./run-text.ts";
 
 const definition = RULES.find((rule) =>
   rule.id === "punctuation.ellipsis.after-etc.forbidden"
@@ -34,60 +33,6 @@ if (initialSpacingDefinition === undefined) {
   throw new Error(
     "Missing documentary rule: punctuation.ellipsis.initial.space-after",
   );
-}
-
-/** Maximal unprotected text between protected ranges. */
-interface Region {
-  readonly start: number;
-  readonly end: number;
-  /** First and last stretch of the region. */
-  readonly first: number;
-  readonly last: number;
-}
-
-function unprotectedRegions(stretches: RunStretches): Region[] {
-  const regions: Region[] = [];
-  const count = stretches.starts.length;
-  let index = 0;
-  while (index < count) {
-    if (stretches.protectedFlags[index]) {
-      index++;
-      continue;
-    }
-    const first = index;
-    while (index + 1 < count && !stretches.protectedFlags[index + 1]) index++;
-    regions.push({
-      start: stretches.starts[first],
-      end: stretches.ends[index],
-      first,
-      last: index,
-    });
-    index++;
-  }
-  return regions;
-}
-
-/**
- * Parts of `[start, end)` in each stretch, in text order. A stretch is one
- * fragment of the pipeline, so the parts are the fragment-local ranges that
- * the per-fragment rules reported.
- */
-function stretchParts(
-  stretches: RunStretches,
-  start: number,
-  end: number,
-): RunLocation[] {
-  const parts: RunLocation[] = [];
-  for (
-    let index = stretches.indexAt(start);
-    index < stretches.starts.length && stretches.starts[index] < end;
-    index++
-  ) {
-    const partStart = Math.max(start, stretches.starts[index]);
-    const partEnd = Math.min(end, stretches.ends[index]);
-    if (partStart < partEnd) parts.push({ start: partStart, end: partEnd });
-  }
-  return parts;
 }
 
 function result(

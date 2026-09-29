@@ -84,6 +84,8 @@ const scalingInputs: Readonly<Record<string, (size: number) => Input>> = {
     [...textOfSize(size)].map((value) => ({ value })),
   "commas in one token": (size) => "a,".repeat(size / 2),
   "spaced high punctuation": (size) => "a ; b : c ! d ? ".repeat(size / 16),
+  "dense numbers": (size) =>
+    "10 % 12:30 1.2.3 25 € 3 km 4,5 ".repeat(size / 32),
   "dense suspension points": (size) =>
     "Oui... etc... [...] …non ".repeat(size / 25),
   "suspension points in one token": (size) => "a...b…".repeat(size / 6),

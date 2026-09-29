@@ -1,4 +1,4 @@
-import type { LogicalRun } from "../run.ts";
+import type { LogicalRun, RunLocation } from "../run.ts";
 
 /** Characters treated as typographic spacing by the built-in rules. */
 export const spacingCharacters: ReadonlySet<string> = new Set([
@@ -86,4 +86,58 @@ export class RunStretches {
     if (position === 0 || position === this.text.length) return true;
     return this.starts[this.indexAt(position)] === position;
   }
+}
+
+/** Maximal unprotected text between protected ranges. */
+export interface Region {
+  readonly start: number;
+  readonly end: number;
+  /** First and last stretch of the region. */
+  readonly first: number;
+  readonly last: number;
+}
+
+export function unprotectedRegions(stretches: RunStretches): Region[] {
+  const regions: Region[] = [];
+  const count = stretches.starts.length;
+  let index = 0;
+  while (index < count) {
+    if (stretches.protectedFlags[index]) {
+      index++;
+      continue;
+    }
+    const first = index;
+    while (index + 1 < count && !stretches.protectedFlags[index + 1]) index++;
+    regions.push({
+      start: stretches.starts[first],
+      end: stretches.ends[index],
+      first,
+      last: index,
+    });
+    index++;
+  }
+  return regions;
+}
+
+/**
+ * Parts of `[start, end)` in each stretch, in text order. A stretch is one
+ * fragment of the pipeline, so the parts are the fragment-local ranges that
+ * the per-fragment rules reported.
+ */
+export function stretchParts(
+  stretches: RunStretches,
+  start: number,
+  end: number,
+): RunLocation[] {
+  const parts: RunLocation[] = [];
+  for (
+    let index = stretches.indexAt(start);
+    index < stretches.starts.length && stretches.starts[index] < end;
+    index++
+  ) {
+    const partStart = Math.max(start, stretches.starts[index]);
+    const partEnd = Math.min(end, stretches.ends[index]);
+    if (partStart < partEnd) parts.push({ start: partStart, end: partEnd });
+  }
+  return parts;
 }

@@ -119,6 +119,7 @@ export function buildRun(
   fragments: readonly RunFragment[],
   locale: string,
   mode: RuleMode,
+  annotations: readonly Annotation[] = [],
 ): RunLayout {
   const starts = new Array<number>(fragments.length + 1);
   starts[0] = 0;
@@ -154,9 +155,91 @@ export function buildRun(
       mode,
       protectedRanges,
       nodeBoundaries,
-      annotations: () => [],
+      annotations: annotationsByKind(annotations),
     },
   };
+}
+
+/** Lists annotations of one kind, computed once per kind and view. */
+function annotationsByKind(
+  annotations: readonly Annotation[],
+): (kind: string) => readonly Annotation[] {
+  const byKind = new Map<string, readonly Annotation[]>();
+  return (kind) => {
+    let list = byKind.get(kind);
+    if (list === undefined) {
+      list = annotations.filter((annotation) => annotation.kind === kind);
+      byKind.set(kind, list);
+    }
+    return list;
+  };
+}
+
+/** A committed replacement in run coordinates, before the rule applied it. */
+export interface RunChange extends RunRange {
+  readonly replacementLength: number;
+}
+
+/**
+ * Moves annotations through the changes of one rule (design §5).
+ *
+ * Changes are sorted and do not overlap. A change before an annotation, or an
+ * insertion at its start, shifts it; a change inside it, other than an
+ * insertion at either end, resizes it; a change that straddles one of its ends
+ * removes it. Changes after it, including an insertion at its end, leave it
+ * unchanged. Each annotation costs a binary search, so the update is linear up
+ * to a logarithmic factor.
+ */
+export function moveAnnotations(
+  annotations: readonly Annotation[],
+  changes: readonly RunChange[],
+): Annotation[] {
+  if (changes.length === 0) return [...annotations];
+  const shifts = new Array<number>(changes.length + 1);
+  shifts[0] = 0;
+  for (let index = 0; index < changes.length; index++) {
+    const { start, end, replacementLength } = changes[index];
+    shifts[index + 1] = shifts[index] + replacementLength - (end - start);
+  }
+  // First change that is not before a position: it starts after it, or it
+  // starts there and removes text.
+  const firstNotBefore = (position: number): number => {
+    let low = 0;
+    let high = changes.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      const change = changes[middle];
+      const before = change.start < position ||
+        (change.start === position && change.end === position);
+      if (before) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  };
+  // First change starting at or after a position.
+  const firstFrom = (position: number): number => {
+    let low = 0;
+    let high = changes.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (changes[middle].start < position) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  };
+
+  const moved: Annotation[] = [];
+  for (const annotation of annotations) {
+    const inside = firstNotBefore(annotation.start);
+    if (inside > 0 && changes[inside - 1].end > annotation.start) continue;
+    const after = Math.max(inside, firstFrom(annotation.end));
+    if (after > inside && changes[after - 1].end > annotation.end) continue;
+    const start = annotation.start + shifts[inside];
+    const end = annotation.end + shifts[after];
+    if (end < start) continue;
+    moved.push({ ...annotation, start, end });
+  }
+  return moved;
 }
 
 /** Index of the first fragment whose end is at or after a position. */

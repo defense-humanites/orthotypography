@@ -10,6 +10,7 @@ import {
   type Annotation,
   defineRunRule,
   type LogicalRun,
+  moveAnnotations,
   type RunDiagnostic,
   type RunEdit,
 } from "../src/run.ts";
@@ -338,4 +339,42 @@ Deno.test("large edit and fragment counts stay within the call stack", () => {
   assert.equal(result.value, "ab-".repeat(count));
   assert.equal(result.changes.length, count);
   assert.equal(result.segments.length, 2 * count);
+});
+
+Deno.test("annotations move with the changes of a rule", () => {
+  const annotation = (start: number, end: number): Annotation => ({
+    kind: "x-test",
+    start,
+    end,
+  });
+  const change = (start: number, end: number, replacementLength: number) => ({
+    start,
+    end,
+    replacementLength,
+  });
+  const move = (
+    start: number,
+    end: number,
+    changes: ReturnType<typeof change>[],
+  ) =>
+    moveAnnotations([annotation(start, end)], changes).map((
+      { start, end },
+    ) => [start, end]);
+
+  // Before: shift, including an insertion at the start.
+  assert.deepEqual(move(5, 8, [change(1, 3, 0)]), [[3, 6]]);
+  assert.deepEqual(move(5, 8, [change(5, 5, 2)]), [[7, 10]]);
+  // Inside: resize.
+  assert.deepEqual(move(5, 8, [change(6, 7, 3)]), [[5, 10]]);
+  assert.deepEqual(move(5, 8, [change(5, 6, 0)]), [[5, 7]]);
+  // After, including an insertion at the end: unchanged.
+  assert.deepEqual(move(5, 8, [change(8, 8, 1), change(9, 10, 0)]), [[5, 8]]);
+  // Straddling either end: removed.
+  assert.deepEqual(move(5, 8, [change(4, 6, 1)]), []);
+  assert.deepEqual(move(5, 8, [change(7, 9, 1)]), []);
+  // Several changes at once.
+  assert.deepEqual(
+    move(5, 8, [change(0, 1, 3), change(6, 6, 1), change(10, 12, 0)]),
+    [[7, 11]],
+  );
 });

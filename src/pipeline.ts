@@ -1,9 +1,12 @@
 import {
+  type Annotation,
   buildRun,
   locateInFragment,
   type LogicalRun,
+  moveAnnotations,
   projectProtections,
   projectRunEdits,
+  type RunChange,
   runImplementation,
   type RunRuleResult,
 } from "./run.ts";
@@ -666,11 +669,12 @@ function planRunRule(
   segments: readonly PipelineSegment[],
   locale: string,
   mode: RuleMode,
+  stored: readonly Annotation[],
   plans: (FragmentPlan | undefined)[],
   diagnostics: LocatedDiagnostic[],
-): void {
+): readonly Annotation[] {
   const id = rule.definition.id;
-  const layout = buildRun(segments, locale, mode);
+  const layout = buildRun(segments, locale, mode, stored);
   const result = apply(layout.run);
   const edits = result.edits ?? [];
   const annotations = result.annotations ?? [];
@@ -691,8 +695,13 @@ function planRunRule(
         layout.run.text.length,
         "annotation",
       );
-      if (annotation.protect !== true) {
-        throw new Error(`Rule ${id} returned an unsupported annotation`);
+      if (
+        typeof annotation.kind !== "string" || annotation.kind.length === 0 ||
+        Object.values(annotation.data ?? {}).some((value) =>
+          typeof value !== "string"
+        )
+      ) {
+        throw new Error(`Rule ${id} returned an invalid annotation`);
       }
     }
   }
@@ -722,6 +731,7 @@ function planRunRule(
       }),
     });
   }
+  return annotations;
 }
 
 /**
@@ -822,6 +832,8 @@ export function runPipeline(
   const appliedRuleIds: string[] = [];
   const orderedRules = compilePipeline(runtimeRules);
   const sourceCoordinates = options.mode === "lint";
+  // Annotations of classify rules, kept in current run coordinates.
+  let annotations: Annotation[] = [];
 
   for (const rule of orderedRules) {
     if (!rule.definition.locales.includes(options.locale)) continue;
@@ -834,13 +846,15 @@ export function runPipeline(
     const run = runImplementation(rule);
     const plans: (FragmentPlan | undefined)[] = [];
     const ruleDiagnostics: LocatedDiagnostic[] = [];
+    let added: readonly Annotation[] = [];
     if (run !== undefined) {
-      planRunRule(
+      added = planRunRule(
         rule,
         run,
         segments,
         options.locale,
         mode,
+        annotations,
         plans,
         ruleDiagnostics,
       );
@@ -880,15 +894,28 @@ export function runPipeline(
         }),
       });
     };
+    const runChanges: RunChange[] = [];
+    let fragmentStart = 0;
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
       const segment = segments[segmentIndex];
       const plan = plans[segmentIndex];
+      const start = fragmentStart;
+      fragmentStart += segment.value.length;
       if (plan === undefined) {
         nextSegments.push(segment);
         continue;
       }
 
       const edits = plan.edits;
+      if (annotations.length > 0) {
+        for (const edit of edits) {
+          runChanges.push({
+            start: start + edit.start,
+            end: start + edit.end,
+            replacementLength: edit.replacement.length,
+          });
+        }
+      }
       const value = edits.length === 0
         ? plan.value
         : applyEdits(segment.value, edits);
@@ -938,6 +965,17 @@ export function runPipeline(
     }
     segments.length = 0;
     for (const segment of nextSegments) segments.push(segment);
+    if (runChanges.length > 0) {
+      runChanges.sort((left, right) =>
+        left.start - right.start || left.end - right.end
+      );
+      annotations = moveAnnotations(annotations, runChanges);
+    }
+    if (added.length > 0) {
+      annotations = [...annotations, ...added].sort((left, right) =>
+        left.start - right.start || left.end - right.end
+      );
+    }
   }
 
   return {

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Classify numeric constructs once per unprotected region of the logical run
+  instead of once per text node (#21). A time, ratio, version, or address split
+  across text nodes is now protected: `Rendez-vous à 10` · `:30` is no longer
+  turned into `10 : 30` by colon spacing. Numeric constructs are kept as
+  `numeric` annotations that follow later edits. Single-node inputs are
+  unchanged, and classification is linear in the number of constructs.
 - Run the ellipsis rules (`ETC_ELLIPSIS_RULE`, `ELLIPSIS_GLYPH_RULE`,
   `ELLIPSIS_INITIAL_SPACE_AFTER_RULE`) once on the logical run instead of once
   per fragment (#21). Calling their `apply` methods directly now throws. The
