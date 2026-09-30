@@ -7,8 +7,7 @@ import {
   type RunEdit,
   type RunRuleResult,
 } from "../run.ts";
-
-const spacingCharacters = new Set(["\t", " ", " ", " "]);
+import { RunStretches, spacingCharacters } from "./run-text.ts";
 
 const definition = RULES.find((rule) => rule.id === "quotes.french.nbsp-inner");
 if (definition === undefined) {
@@ -56,28 +55,14 @@ function pairGuillemets(run: LogicalRun): Map<number, number> {
   return paired;
 }
 
-/**
- * Positions where spacing normalization stops: node boundaries and the edges
- * of protected ranges.
- *
- * The rule normalizes only the spacing that sits in the same node and
- * unprotected stretch as the guillemet, as the per-fragment implementation
- * did, so that every edit and diagnostic stays with the guillemet's node.
- */
-function stopPositions(run: LogicalRun): Set<number> {
-  const stops = new Set(run.nodeBoundaries);
-  for (const { start, end } of run.protectedRanges) {
-    stops.add(start);
-    stops.add(end);
-  }
-  return stops;
-}
-
 function applyGuillemetSpacing(run: LogicalRun): RunRuleResult {
   const { text } = run;
   const paired = pairGuillemets(run);
   if (paired.size === 0) return {};
-  const stops = stopPositions(run);
+  // Spacing is normalized only within the guillemet's stretch (its node and
+  // unprotected text), as the per-fragment implementation did, so that every
+  // edit and diagnostic stays with the guillemet's node.
+  const stretches = new RunStretches(run);
   const edits: RunEdit[] = [];
   const diagnostics: RunDiagnostic[] = [];
 
@@ -87,13 +72,15 @@ function applyGuillemetSpacing(run: LogicalRun): RunRuleResult {
     let edit: RunEdit;
     if (text[position] === "«") {
       let end = position + 1;
-      while (!stops.has(end) && spacingCharacters.has(text[end])) end++;
+      while (!stretches.isEdge(end) && spacingCharacters.has(text[end])) end++;
       if (text.slice(position + 1, end) === " ") continue;
       // An inserted space stays in the opening guillemet's node.
       edit = { start: position + 1, end, replacement: " ", bias: "left" };
     } else {
       let start = position;
-      while (!stops.has(start) && spacingCharacters.has(text[start - 1])) {
+      while (
+        !stretches.isEdge(start) && spacingCharacters.has(text[start - 1])
+      ) {
         start--;
       }
       if (text.slice(start, position) === " ") continue;
