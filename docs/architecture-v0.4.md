@@ -14,13 +14,15 @@ Le cœur transforme des segments de texte déjà isolés par une intégration. I
 | intégrations | analyse syntaxique des documents et reconstruction sans perte |
 | distribution | source JSR canonique et paquet npm généré par `dnt` |
 
-Une règle documentaire n’est pas automatiquement une règle exécutable. `RuleDefinition` décrit ce qui est attesté ; `RuntimeRule` porte l’algorithme. Cette séparation interdit qu’une expression régulière expérimentale soit confondue avec une prescription éditoriale.
+Une règle documentaire n’est pas automatiquement une règle exécutable. `RuleDefinition` décrit ce qui est attesté ; `RuntimeRule` porte l’algorithme. Cette séparation interdit qu’une expression régulière expérimentale soit confondue avec une prescription éditoriale. Une règle livrée tire son identifiant, sa phase, ses locales, son mode par défaut et ses dépendances de sa fiche du catalogue ; une règle externe utilise un identifiant préfixé par `x-` et n’a pas de fiche.
 
 ## Pipeline
 
 L’ordre stable est : classification, glyphes, guillemets, espaces de ponctuation, espaces numériques, nettoyage. Une dépendance ne peut pas remonter vers une phase ultérieure. Le compilateur du pipeline rejette les identifiants dupliqués, les dépendances absentes et les cycles avant toute transformation.
 
-Les intégrations peuvent protéger un segment entier. Cette primitive suffit au cœur pour préserver code, attributs ou syntaxe, sans lier la bibliothèque à un parseur particulier. Le classificateur numérique peut en outre retourner des plages : le pipeline les transforme immédiatement en segments protégés. Les positions ne survivent donc jamais à une transformation susceptible de les décaler.
+Chaque règle est appelée une fois par passe sur une vue de toute la suite logique ; ses modifications et diagnostics, exprimés dans les coordonnées de cette suite, sont projetés sur les nœuds sources (voir la [conception de l’exécution sur la suite logique](conception-suite-logique-v0.1.md)).
+
+Les intégrations peuvent protéger un segment entier. Cette primitive suffit au cœur pour préserver code, attributs ou syntaxe, sans lier la bibliothèque à un parseur particulier. Les règles de classification retournent des annotations typées : celles qui protègent deviennent des segments protégés, et toutes suivent les modifications des règles suivantes.
 
 ### Coordonnées des diagnostics
 

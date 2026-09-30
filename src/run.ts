@@ -1,103 +1,34 @@
 import type {
-  ApplicationDiagnosticLocation,
-  ProtectionRange,
-  RuleApplicationEdit,
-  RuleDefinition,
+  Annotation,
+  LogicalRun,
   RuleMode,
-  RuntimeRule,
+  RunBias,
+  RunEdit,
+  RunLocation,
+  RunRange,
 } from "./model.ts";
 
 /**
- * Internal execution of rules on the whole logical run.
+ * Execution of rules on the logical run: the view given to rules, and the
+ * projection of their results onto pipeline fragments.
  *
- * See docs/conception-suite-logique-v0.1.md. These types stay internal until
- * the public rule interface switches in the 0.2 line; until then, migrated
- * rules keep the public RuntimeRule shape and carry their run implementation
- * under a private symbol.
+ * See docs/conception-suite-logique-v0.1.md.
  */
 
-/** Half-open range in run coordinates. */
-export interface RunRange {
+/** Range local to one pipeline fragment. */
+export interface FragmentRange {
   readonly start: number;
   readonly end: number;
 }
 
-/** Side that receives text at a boundary between nodes. */
-export type RunBias = "left" | "right";
-
-/** Replacement proposed by a rule in run coordinates. */
-export interface RunEdit extends RunRange {
+/** Edit local to one pipeline fragment. */
+export interface FragmentEdit extends FragmentRange {
   readonly replacement: string;
-  /** Node receiving the replacement at or across a node boundary. */
-  readonly bias?: RunBias;
 }
 
-/** Diagnostic subject in run coordinates. */
-export interface RunLocation extends RunRange {
-  /** Node reporting an empty location placed at a node boundary. */
-  readonly bias?: RunBias;
-}
-
-export interface RunDiagnostic extends RunLocation {
-  readonly message: string;
-  readonly replacement?: string;
-  readonly related?: readonly RunLocation[];
-}
-
-/** Typed classification result attached to a range of the run. */
-export interface Annotation extends RunRange {
-  readonly kind: string;
-  /** The range becomes protected for every later rule. */
-  readonly protect?: boolean;
-  readonly data?: Readonly<Record<string, string>>;
-}
-
-/** Read-only view of one logical run, built once per rule. */
-export interface LogicalRun {
-  readonly text: string;
-  readonly locale: string;
-  readonly mode: RuleMode;
-  /** Sorted, disjoint protected ranges. */
-  readonly protectedRanges: readonly RunRange[];
-  /** Start offset of each source node, followed by the text length. */
-  readonly nodeBoundaries: readonly number[];
-  annotations(kind: string): readonly Annotation[];
-}
-
-export interface RunRuleResult {
-  readonly edits?: readonly RunEdit[];
-  readonly diagnostics?: readonly RunDiagnostic[];
-  readonly annotations?: readonly Annotation[];
-}
-
-const runApply: unique symbol = Symbol("orthotypography.runApply");
-
-interface RunRule extends RuntimeRule {
-  readonly [runApply]: (run: LogicalRun) => RunRuleResult;
-}
-
-/** Declares a rule executed once per logical run by the pipeline. */
-export function defineRunRule(
-  definition: RuleDefinition,
-  apply: (run: LogicalRun) => RunRuleResult,
-): RuntimeRule {
-  const rule: RunRule = {
-    definition,
-    apply() {
-      throw new Error(
-        `Rule ${definition.id} runs on the logical run; use runPipeline`,
-      );
-    },
-    [runApply]: apply,
-  };
-  return rule;
-}
-
-/** Returns the run implementation of a rule, if it has one. */
-export function runImplementation(
-  rule: RuntimeRule,
-): ((run: LogicalRun) => RunRuleResult) | undefined {
-  return (rule as Partial<RunRule>)[runApply];
+/** Location local to one pipeline fragment. */
+export interface FragmentLocation extends FragmentRange {
+  readonly segmentIndex: number;
 }
 
 /** Current pipeline fragment as seen by the run machinery. */
@@ -353,13 +284,13 @@ export function projectRunEdits(
   fragments: readonly RunFragment[],
   layout: RunLayout,
   edits: readonly RunEdit[],
-): Map<number, RuleApplicationEdit[]> {
+): Map<number, FragmentEdit[]> {
   const { starts, run } = layout;
   const ordered = [...edits].sort((left, right) =>
     left.start - right.start || left.end - right.end
   );
-  const projected = new Map<number, RuleApplicationEdit[]>();
-  const add = (index: number, edit: RuleApplicationEdit): void => {
+  const projected = new Map<number, FragmentEdit[]>();
+  const add = (index: number, edit: FragmentEdit): void => {
     const list = projected.get(index) ?? [];
     const last = list.at(-1);
     if (
@@ -446,9 +377,9 @@ export function projectProtections(
   layout: RunLayout,
   fragments: readonly RunFragment[],
   annotations: readonly Annotation[],
-): Map<number, ProtectionRange[]> {
+): Map<number, FragmentRange[]> {
   const { starts } = layout;
-  const byFragment = new Map<number, ProtectionRange[]>();
+  const byFragment = new Map<number, FragmentRange[]>();
   const ranges = annotations.filter(({ protect }) => protect === true)
     .sort((left, right) => left.start - right.start);
   for (const range of ranges) {
@@ -461,7 +392,7 @@ export function projectProtections(
       const start = Math.max(range.start, starts[index]) - starts[index];
       const end = Math.min(range.end, starts[index + 1]) - starts[index];
       if (end <= start) continue;
-      const list = byFragment.get(index) ?? [];
+      const list: FragmentRange[] = byFragment.get(index) ?? [];
       const previous = list.at(-1);
       if (previous !== undefined && start < previous.end) {
         throw new Error("Overlapping protected annotations");
@@ -479,7 +410,7 @@ export function locateInFragment(
   fragments: readonly RunFragment[],
   layout: RunLayout,
   location: RunLocation,
-): ApplicationDiagnosticLocation {
+): FragmentLocation {
   const { starts, run } = layout;
   if (
     !Number.isInteger(location.start) || !Number.isInteger(location.end) ||

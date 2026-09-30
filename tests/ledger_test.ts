@@ -1,57 +1,58 @@
 import assert from "node:assert/strict";
-import {
-  applyTextChanges,
-  runTextNodePipeline,
-  SAFE_PUNCTUATION_RULES,
-} from "../src/mod.ts";
-import type { RuleApplicationEdit, RuntimeRule } from "../src/model.ts";
+import { applyTextChanges, runTextNodePipeline } from "../src/mod.ts";
+import type { RunEdit, RuntimeRule } from "../src/model.ts";
+import { testRule } from "./support/rules.ts";
 import { seededRandom } from "./support/invariants.ts";
 
 const replacements = ["", "x", "yy", " ", "ZZZ"];
 
 /** A rule proposing seeded, non-overlapping edits, some of them adjacent. */
 function randomRule(id: string, seed: number): RuntimeRule {
-  return {
-    definition: { ...SAFE_PUNCTUATION_RULES[0].definition, id },
-    apply(value, context) {
-      const random = seededRandom(
-        seed * 7919 + value.length * 31 + context.segmentIndex,
+  return testRule(id, (run) => {
+    // An empty run may hold only protected nodes, where nothing can be
+    // inserted.
+    if (run.text.length === 0) return {};
+    const random = seededRandom(seed * 7919 + run.text.length * 31);
+    const edits: RunEdit[] = [];
+    const blocked = (start: number, end: number) =>
+      run.protectedRanges.some((range) =>
+        start === end
+          ? range.start <= start && start <= range.end
+          : range.start < end && start < range.end
       );
-      const edits: RuleApplicationEdit[] = [];
-      let cursor = 0;
-      while (cursor <= value.length && edits.length < 6) {
-        const start = cursor + Math.floor(random() * 4);
-        if (start > value.length) break;
-        const end = Math.min(
-          value.length,
-          start + (random() < 0.4 ? 0 : Math.floor(random() * 3)),
-        );
-        const replacement =
-          replacements[Math.floor(random() * replacements.length)];
-        if (
-          (end === start && replacement === "") ||
-          edits.at(-1)?.start === start
-        ) {
-          cursor = start + 1;
-          continue;
-        }
-        edits.push({ start, end, replacement });
-        cursor = random() < 0.3 ? end : end + 1;
+    let cursor = 0;
+    while (cursor <= run.text.length && edits.length < 12) {
+      const start = cursor + Math.floor(random() * 4);
+      if (start > run.text.length) break;
+      const end = Math.min(
+        run.text.length,
+        start + (random() < 0.4 ? 0 : Math.floor(random() * 3)),
+      );
+      const replacement =
+        replacements[Math.floor(random() * replacements.length)];
+      if (
+        (end === start && replacement === "") ||
+        edits.at(-1)?.start === start || blocked(start, end)
+      ) {
+        cursor = start + 1;
+        continue;
       }
-      const diagnostics = edits.map(({ start, end }) => ({
+      edits.push({
         start,
         end,
-        message: "test",
-      }));
-      if (context.mode !== "fix") return { value, diagnostics };
-      let result = value;
-      for (const edit of [...edits].sort((a, b) => b.start - a.start)) {
-        result = result.slice(0, edit.start) + edit.replacement +
-          result.slice(edit.end);
-      }
-      return { value: result, edits, diagnostics };
-    },
-  };
+        replacement,
+        bias: random() < 0.5 ? "left" : "right",
+      });
+      cursor = random() < 0.3 ? end : end + 1;
+    }
+    const diagnostics = edits.filter(({ start, end }) =>
+      start === end ||
+      run.nodeBoundaries.every((boundary) =>
+        boundary <= start || boundary >= end
+      )
+    ).map(({ start, end }) => ({ start, end, message: "test" }));
+    return run.mode === "fix" ? { edits, diagnostics } : { diagnostics };
+  });
 }
 
 Deno.test("stacked rules keep source changes consistent with their output", () => {
@@ -59,7 +60,7 @@ Deno.test("stacked rules keep source changes consistent with their output", () =
   for (let run = 0; run < 2000; run++) {
     const rules = Array.from(
       { length: 1 + Math.floor(random() * 4) },
-      (_, index) => randomRule(`test.random-${index}`, run * 10 + index),
+      (_, index) => randomRule(`x-test.random-${index}`, run * 10 + index),
     );
     const nodes = Array.from(
       { length: 1 + Math.floor(random() * 4) },

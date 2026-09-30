@@ -1,22 +1,20 @@
+import { RULES } from "./catalogue/rules.ts";
 import {
-  type Annotation,
   buildRun,
+  type FragmentEdit,
+  type FragmentLocation,
+  type FragmentRange,
   locateInFragment,
-  type LogicalRun,
   moveAnnotations,
   projectProtections,
   projectRunEdits,
   type RunChange,
-  runImplementation,
-  type RunRuleResult,
 } from "./run.ts";
 import {
-  type ApplicationDiagnosticLocation,
+  type Annotation,
   type DiagnosticLocation,
   type PipelineResult,
-  type ProtectionRange,
   RULE_PHASES,
-  type RuleApplicationEdit,
   type RuleDiagnostic,
   type RuleMode,
   type RuntimeRule,
@@ -98,8 +96,8 @@ function coalesceLedgerPieces(pieces: readonly LedgerPiece[]): LedgerPiece[] {
 
 function expandChangedBoundaries(
   pieces: readonly LedgerPiece[],
-  edit: RuleApplicationEdit,
-): RuleApplicationEdit {
+  edit: FragmentEdit,
+): FragmentEdit {
   let offset = 0;
   let start = edit.start;
   let end = edit.end;
@@ -195,7 +193,7 @@ function sourcePositionAt(
  */
 function applyLedgerEdits(
   ledger: ChangeLedger,
-  edits: readonly RuleApplicationEdit[],
+  edits: readonly FragmentEdit[],
   ruleId: string,
 ): void {
   if (edits.length === 0) return;
@@ -282,7 +280,7 @@ function applyLedgerEdits(
 
 function applyEdits(
   value: string,
-  edits: readonly RuleApplicationEdit[],
+  edits: readonly FragmentEdit[],
 ): string {
   // Edits are validated from right to left, in the order they would be
   // applied one by one, then assembled in a single left-to-right pass so that
@@ -360,12 +358,12 @@ function ledgerChanges(ledgers: readonly ChangeLedger[]): TextChange[] {
 }
 
 function phaseIndex(rule: RuntimeRule): number {
-  return RULE_PHASES.indexOf(rule.definition.phase);
+  return RULE_PHASES.indexOf(rule.phase);
 }
 
 function splitProtectedRanges(
   segment: PipelineSegment,
-  protections: readonly ProtectionRange[],
+  protections: readonly FragmentRange[],
 ): readonly PipelineSegment[] {
   if (protections.length === 0) return [segment];
 
@@ -479,7 +477,7 @@ function unchangedPieceAt(
 }
 
 function diagnosticLocation(
-  location: ApplicationDiagnosticLocation,
+  location: FragmentLocation,
   segments: readonly PipelineSegment[],
   runtimeOffsets: readonly number[],
   sourceSegments: readonly TextSegment[],
@@ -531,141 +529,21 @@ function diagnosticLocation(
 
 /** Fragment outcome of one rule, before it is committed. */
 interface FragmentPlan {
-  /** Fragment value when no edit applies. */
-  readonly value: string;
-  readonly edits: readonly RuleApplicationEdit[];
-  readonly protections: readonly ProtectionRange[];
-  /** Diagnostics reported by this fragment, in order. */
-  readonly diagnostics: readonly LocatedDiagnostic[];
+  readonly edits: readonly FragmentEdit[];
+  readonly protections: readonly FragmentRange[];
 }
 
 /** Diagnostic located on runtime fragments, before source projection. */
 interface LocatedDiagnostic {
-  readonly location: ApplicationDiagnosticLocation;
+  readonly location: FragmentLocation;
   readonly message: string;
   readonly replacement?: string;
-  readonly related?: readonly ApplicationDiagnosticLocation[];
-}
-
-/** Applies a per-fragment rule to every unprotected fragment. */
-function planLegacyRule(
-  rule: RuntimeRule,
-  segments: readonly PipelineSegment[],
-  locale: string,
-  mode: RuleMode,
-  sourceCoordinates: boolean,
-  plans: (FragmentPlan | undefined)[],
-): void {
-  const applications = segments.map((segment, segmentIndex) => {
-    if (segment.protected) return undefined;
-    const application = rule.apply(segment.value, {
-      locale,
-      mode,
-      segments,
-      segmentIndex,
-    });
-    if (sourceCoordinates && application.value !== segment.value) {
-      throw new Error(
-        `Rule ${rule.definition.id} cannot transform text in lint mode`,
-      );
-    }
-    if (
-      (application.protections?.length ?? 0) > 0 &&
-      application.value !== segment.value
-    ) {
-      throw new Error(
-        `Rule ${rule.definition.id} cannot transform and protect in one pass`,
-      );
-    }
-    if (
-      application.value !== segment.value &&
-      application.edits !== undefined &&
-      applyEdits(segment.value, application.edits) !== application.value
-    ) {
-      throw new Error(
-        `Rule ${rule.definition.id} edits do not produce its value`,
-      );
-    }
-    return application;
-  });
-
-  const editsBySegment = new Map<number, RuleApplicationEdit[]>();
-  const addEdit = (segmentIndex: number, edit: RuleApplicationEdit): void => {
-    const target = segments[segmentIndex];
-    if (target === undefined) {
-      throw new Error(
-        `Rule ${rule.definition.id} targets missing segment ${segmentIndex}`,
-      );
-    }
-    if (target.protected) {
-      throw new Error(
-        `Rule ${rule.definition.id} targets protected segment ${segmentIndex}`,
-      );
-    }
-    validateRange(edit.start, edit.end, target.value.length, "edit");
-    const edits = editsBySegment.get(segmentIndex) ?? [];
-    edits.push(edit);
-    editsBySegment.set(segmentIndex, edits);
-  };
-
-  if (!sourceCoordinates) {
-    for (
-      let segmentIndex = 0;
-      segmentIndex < applications.length;
-      segmentIndex++
-    ) {
-      const application = applications[segmentIndex];
-      if (application === undefined) continue;
-      const segment = segments[segmentIndex];
-      if (application.value !== segment.value) {
-        const edits = (application.edits?.length ?? 0) > 0
-          ? application.edits as readonly RuleApplicationEdit[]
-          : [{
-            start: 0,
-            end: segment.value.length,
-            replacement: application.value,
-          }];
-        for (const edit of edits) addEdit(segmentIndex, edit);
-      }
-      if (mode === "fix") {
-        for (const edit of application.segmentEdits ?? []) {
-          addEdit(edit.segmentIndex, edit);
-        }
-      }
-    }
-  }
-
-  for (const [segmentIndex, application] of applications.entries()) {
-    if (application === undefined) {
-      plans.push(undefined);
-      continue;
-    }
-    plans.push({
-      value: application.value,
-      edits: editsBySegment.get(segmentIndex) ?? [],
-      protections: application.protections ?? [],
-      diagnostics: (application.diagnostics ?? []).map((diagnostic) => ({
-        location: {
-          segmentIndex,
-          start: diagnostic.start,
-          end: diagnostic.end,
-        },
-        message: diagnostic.message,
-        ...(diagnostic.replacement === undefined
-          ? {}
-          : { replacement: diagnostic.replacement }),
-        ...(diagnostic.related === undefined
-          ? {}
-          : { related: diagnostic.related }),
-      })),
-    });
-  }
+  readonly related?: readonly FragmentLocation[];
 }
 
 /** Applies a rule once to the logical run and projects its result. */
-function planRunRule(
+function planRule(
   rule: RuntimeRule,
-  apply: (run: LogicalRun) => RunRuleResult,
   segments: readonly PipelineSegment[],
   locale: string,
   mode: RuleMode,
@@ -673,16 +551,16 @@ function planRunRule(
   plans: (FragmentPlan | undefined)[],
   diagnostics: LocatedDiagnostic[],
 ): readonly Annotation[] {
-  const id = rule.definition.id;
+  const id = rule.id;
   const layout = buildRun(segments, locale, mode, stored);
-  const result = apply(layout.run);
+  const result = rule.apply(layout.run);
   const edits = result.edits ?? [];
   const annotations = result.annotations ?? [];
   if (edits.length > 0 && mode !== "fix") {
     throw new Error(`Rule ${id} cannot transform text in ${mode} mode`);
   }
   if (annotations.length > 0) {
-    if (rule.definition.phase !== "classify") {
+    if (rule.phase !== "classify") {
       throw new Error(`Rule ${id} annotates outside the classify phase`);
     }
     if (edits.length > 0) {
@@ -710,10 +588,8 @@ function planRunRule(
   for (const [segmentIndex, segment] of segments.entries()) {
     plans.push(
       segment.protected ? undefined : {
-        value: segment.value,
         edits: edited.get(segmentIndex) ?? [],
         protections: protections.get(segmentIndex) ?? [],
-        diagnostics: [],
       },
     );
   }
@@ -734,10 +610,13 @@ function planRunRule(
   return annotations;
 }
 
+const catalogueIds: ReadonlySet<string> = new Set(RULES.map(({ id }) => id));
+
 /**
- * Orders executable rules by phase and documentary dependencies.
+ * Orders executable rules by phase and dependencies.
  *
- * The function rejects duplicate IDs, missing dependencies, backward phase
+ * The function rejects IDs that are neither in the catalogue nor prefixed with
+ * `x-`, unknown phases, duplicate IDs, missing dependencies, backward phase
  * dependencies, and dependency cycles before any text is touched.
  */
 export function compilePipeline(
@@ -745,23 +624,36 @@ export function compilePipeline(
 ): readonly RuntimeRule[] {
   const byId = new Map<string, RuntimeRule>();
   for (const rule of runtimeRules) {
-    if (byId.has(rule.definition.id)) {
-      throw new Error(`Duplicate runtime rule: ${rule.definition.id}`);
+    if (typeof rule.id !== "string" || rule.id.length === 0) {
+      throw new Error("Runtime rule without an ID");
     }
-    byId.set(rule.definition.id, rule);
+    if (!rule.id.startsWith("x-") && !catalogueIds.has(rule.id)) {
+      throw new Error(
+        `Rule ${rule.id} is not in the catalogue; use an ID prefixed with x-`,
+      );
+    }
+    if (!RULE_PHASES.includes(rule.phase)) {
+      throw new Error(`Rule ${rule.id} has an unknown phase: ${rule.phase}`);
+    }
+  }
+  for (const rule of runtimeRules) {
+    if (byId.has(rule.id)) {
+      throw new Error(`Duplicate runtime rule: ${rule.id}`);
+    }
+    byId.set(rule.id, rule);
   }
 
   for (const rule of runtimeRules) {
-    for (const dependency of rule.definition.dependsOn ?? []) {
+    for (const dependency of rule.dependsOn ?? []) {
       const dependencyRule = byId.get(dependency);
       if (dependencyRule === undefined) {
         throw new Error(
-          `Missing dependency ${dependency} for ${rule.definition.id}`,
+          `Missing dependency ${dependency} for ${rule.id}`,
         );
       }
       if (phaseIndex(dependencyRule) > phaseIndex(rule)) {
         throw new Error(
-          `Backward phase dependency ${dependency} for ${rule.definition.id}`,
+          `Backward phase dependency ${dependency} for ${rule.id}`,
         );
       }
     }
@@ -772,12 +664,12 @@ export function compilePipeline(
   const visited = new Set<string>();
 
   const visit = (rule: RuntimeRule): void => {
-    const id = rule.definition.id;
+    const id = rule.id;
     if (visited.has(id)) return;
     if (visiting.has(id)) throw new Error(`Rule dependency cycle at ${id}`);
 
     visiting.add(id);
-    for (const dependency of rule.definition.dependsOn ?? []) {
+    for (const dependency of rule.dependsOn ?? []) {
       const dependencyRule = byId.get(dependency);
       if (dependencyRule === undefined) {
         throw new Error(`Missing dependency ${dependency} for ${id}`);
@@ -836,43 +728,29 @@ export function runPipeline(
   let annotations: Annotation[] = [];
 
   for (const rule of orderedRules) {
-    if (!rule.definition.locales.includes(options.locale)) continue;
-    const mode = options.mode ?? rule.definition.defaultMode;
+    if (!rule.locales.includes(options.locale)) continue;
+    const mode = options.mode ?? rule.defaultMode;
     const diagnosticLedgers = ledgers.map(({ source, pieces }) => ({
       source,
       pieces: [...pieces],
     }));
-    appliedRuleIds.push(rule.definition.id);
-    const run = runImplementation(rule);
+    appliedRuleIds.push(rule.id);
     const plans: (FragmentPlan | undefined)[] = [];
     const ruleDiagnostics: LocatedDiagnostic[] = [];
-    let added: readonly Annotation[] = [];
-    if (run !== undefined) {
-      added = planRunRule(
-        rule,
-        run,
-        segments,
-        options.locale,
-        mode,
-        annotations,
-        plans,
-        ruleDiagnostics,
-      );
-    } else {
-      planLegacyRule(
-        rule,
-        segments,
-        options.locale,
-        mode,
-        sourceCoordinates,
-        plans,
-      );
-    }
+    const added = planRule(
+      rule,
+      segments,
+      options.locale,
+      mode,
+      annotations,
+      plans,
+      ruleDiagnostics,
+    );
 
     const nextSegments: PipelineSegment[] = [];
     const runtimeOffsets = fragmentOffsets(segments);
-    const ledgerEdits = new Map<number, RuleApplicationEdit[]>();
-    const locate = (location: ApplicationDiagnosticLocation) =>
+    const ledgerEdits = new Map<number, FragmentEdit[]>();
+    const locate = (location: FragmentLocation) =>
       diagnosticLocation(
         location,
         segments,
@@ -884,7 +762,7 @@ export function runPipeline(
     const report = (diagnostic: LocatedDiagnostic): void => {
       diagnostics.push({
         ...locate(diagnostic.location),
-        ruleId: rule.definition.id,
+        ruleId: rule.id,
         message: diagnostic.message,
         ...(diagnostic.replacement === undefined
           ? {}
@@ -917,7 +795,7 @@ export function runPipeline(
         }
       }
       const value = edits.length === 0
-        ? plan.value
+        ? segment.value
         : applyEdits(segment.value, edits);
       if (edits.length > 0) {
         const sourceEdits = ledgerEdits.get(segment.sourceIndex) ?? [];
@@ -941,11 +819,10 @@ export function runPipeline(
       for (
         const fragment of splitProtectedRanges(appliedSegment, plan.protections)
       ) nextSegments.push(fragment);
-      for (const diagnostic of plan.diagnostics) report(diagnostic);
     }
     for (const diagnostic of ruleDiagnostics) report(diagnostic);
     for (const [sourceIndex, edits] of ledgerEdits) {
-      applyLedgerEdits(ledgers[sourceIndex], edits, rule.definition.id);
+      applyLedgerEdits(ledgers[sourceIndex], edits, rule.id);
     }
     const reconstructed = sourceSegments.map(() => [] as string[]);
     for (const segment of nextSegments) {

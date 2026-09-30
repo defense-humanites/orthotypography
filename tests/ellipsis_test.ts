@@ -178,24 +178,3 @@ Deno.test("empty protected nodes do not affect the ellipsis rules", () => {
     "etc....",
   ]);
 });
-
-Deno.test("ellipsis rules run only through the pipeline", () => {
-  for (
-    const rule of [
-      ETC_ELLIPSIS_RULE,
-      ELLIPSIS_GLYPH_RULE,
-      ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
-    ]
-  ) {
-    assert.throws(
-      () =>
-        rule.apply("Oui...", {
-          locale: "fr-FR",
-          mode: "fix",
-          segments: [{ value: "Oui..." }],
-          segmentIndex: 0,
-        }),
-      /runs on the logical run/,
-    );
-  }
-});

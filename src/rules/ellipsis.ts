@@ -1,45 +1,19 @@
-import { RULES } from "../catalogue/rules.ts";
 import { classifyEllipsisCandidates } from "../classify/ellipsis.ts";
-import type { RuleDefinition, RuntimeRule } from "../model.ts";
-import {
-  defineRunRule,
-  type LogicalRun,
-  type RunDiagnostic,
-  type RunEdit,
-  type RunRuleResult,
-} from "../run.ts";
+import type {
+  LogicalRun,
+  RuleResult,
+  RunDiagnostic,
+  RunEdit,
+  RuntimeRule,
+} from "../model.ts";
+import { catalogueRule } from "./catalogue-rule.ts";
 import { RunStretches, stretchParts, unprotectedRegions } from "./run-text.ts";
-
-const definition = RULES.find((rule) =>
-  rule.id === "punctuation.ellipsis.after-etc.forbidden"
-);
-if (definition === undefined) {
-  throw new Error(
-    "Missing documentary rule: punctuation.ellipsis.after-etc.forbidden",
-  );
-}
-
-const recognitionDefinition = RULES.find((rule) =>
-  rule.id === "punctuation.ellipsis.glyph"
-);
-if (recognitionDefinition === undefined) {
-  throw new Error("Missing documentary rule: punctuation.ellipsis.glyph");
-}
-
-const initialSpacingDefinition = RULES.find((rule) =>
-  rule.id === "punctuation.ellipsis.initial.space-after"
-);
-if (initialSpacingDefinition === undefined) {
-  throw new Error(
-    "Missing documentary rule: punctuation.ellipsis.initial.space-after",
-  );
-}
 
 function result(
   run: LogicalRun,
   edits: readonly RunEdit[],
   diagnostics: readonly RunDiagnostic[],
-): RunRuleResult {
+): RuleResult {
   return {
     ...(run.mode === "fix" && edits.length > 0 ? { edits } : {}),
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
@@ -66,8 +40,8 @@ function wordBefore(stretches: RunStretches, start: number): boolean {
 }
 
 /** Removes suspension points forbidden after the standalone abbreviation etc. */
-export const ETC_ELLIPSIS_RULE: RuntimeRule = defineRunRule(
-  definition as RuleDefinition,
+export const ETC_ELLIPSIS_RULE: RuntimeRule = catalogueRule(
+  "punctuation.ellipsis.after-etc.forbidden",
   (run) => {
     const stretches = new RunStretches(run);
     const edits: RunEdit[] = [];
@@ -119,8 +93,8 @@ function* regionCandidates(stretches: RunStretches) {
 }
 
 /** Diagnoses certain ASCII ellipses and replaces their glyph in fix mode. */
-export const ELLIPSIS_GLYPH_RULE: RuntimeRule = defineRunRule(
-  recognitionDefinition as RuleDefinition,
+export const ELLIPSIS_GLYPH_RULE: RuntimeRule = catalogueRule(
+  "punctuation.ellipsis.glyph",
   (run) => {
     const stretches = new RunStretches(run);
     const edits: RunEdit[] = [];
@@ -156,8 +130,8 @@ export const ELLIPSIS_RECOGNITION_RULE = ELLIPSIS_GLYPH_RULE;
 const letterOrMark = /[\p{L}\p{M}]/u;
 
 /** Inserts a word space after a certain structurally initial ellipsis. */
-export const ELLIPSIS_INITIAL_SPACE_AFTER_RULE: RuntimeRule = defineRunRule(
-  initialSpacingDefinition as RuleDefinition,
+export const ELLIPSIS_INITIAL_SPACE_AFTER_RULE: RuntimeRule = catalogueRule(
+  "punctuation.ellipsis.initial.space-after",
   (run) => {
     const stretches = new RunStretches(run);
     const edits: RunEdit[] = [];

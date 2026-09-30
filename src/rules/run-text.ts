@@ -1,4 +1,4 @@
-import type { LogicalRun, RunLocation } from "../run.ts";
+import type { LogicalRun, RunLocation } from "../model.ts";
 
 /** Characters treated as typographic spacing by the built-in rules. */
 export const spacingCharacters: ReadonlySet<string> = new Set([

@@ -1,18 +1,17 @@
-import { RULES } from "../catalogue/rules.ts";
 import { NUMERIC_PROTECTION_RULE } from "../classify/runtime.ts";
-import type { RuleDefinition, RuntimeRule } from "../model.ts";
-import {
-  defineRunRule,
-  type LogicalRun,
-  type RunDiagnostic,
-  type RunEdit,
-  type RunRange,
-  type RunRuleResult,
-} from "../run.ts";
+import type {
+  LogicalRun,
+  RuleResult,
+  RunDiagnostic,
+  RunEdit,
+  RunRange,
+  RuntimeRule,
+} from "../model.ts";
 import {
   technicalPatternStarts,
   whitespaceFreeStarts,
 } from "../classify/text-index.ts";
+import { catalogueRule } from "./catalogue-rule.ts";
 import { RunStretches, spacingCharacters } from "./run-text.ts";
 
 /*
@@ -24,14 +23,6 @@ import { RunStretches, spacingCharacters } from "./run-text.ts";
  * a node boundary. Edits stay in the node that reported them, and text
  * inserted next to a mark stays in the mark's node.
  */
-
-function documentaryDefinition(id: string): RuleDefinition {
-  const definition = RULES.find((rule) => rule.id === id);
-  if (definition === undefined) {
-    throw new Error(`Missing documentary rule: ${id}`);
-  }
-  return definition;
-}
 
 /** Character adjacent to a boundary, or a protected stretch in the way. */
 interface Adjacent {
@@ -245,7 +236,7 @@ class PunctuationScan {
    * application, a stretch keeps its own edits only when at least one of them
    * changes its text; removals in neighboring stretches are always kept.
    */
-  result(): RunRuleResult {
+  result(): RuleResult {
     const edits: RunEdit[] = [];
     if (this.run.mode === "fix") {
       const effective = new Set<number>();
@@ -270,7 +261,7 @@ class PunctuationScan {
 
 function noSpaceBeforeRule(id: string, mark: "," | "."): RuntimeRule {
   const message = `Unexpected whitespace before ${mark}`;
-  return defineRunRule(documentaryDefinition(id), (run) => {
+  return catalogueRule(id, (run) => {
     const scan = new PunctuationScan(run);
     const { text } = scan;
     let resumeAt = 0;
@@ -334,8 +325,8 @@ function beginsText(character: string): boolean {
 }
 
 /** Inserts the documented word space after commas in safe prose contexts. */
-export const SPACE_AFTER_COMMA_RULE: RuntimeRule = defineRunRule(
-  documentaryDefinition("punctuation.comma.space-after"),
+export const SPACE_AFTER_COMMA_RULE: RuntimeRule = catalogueRule(
+  "punctuation.comma.space-after",
   (run) => {
     const scan = new PunctuationScan(run);
     for (const { index, stretch } of scan.marks(",")) {
@@ -493,7 +484,7 @@ function highPunctuationBeforeRule(
   before: " " | " ",
 ): RuntimeRule {
   const message = `Unexpected whitespace before ${mark}`;
-  return defineRunRule(documentaryDefinition(id), (run) => {
+  return catalogueRule(id, (run) => {
     const scan = new PunctuationScan(run);
     for (const { index, stretch } of scan.marks(mark)) {
       const inspected = inspectHighPunctuation(scan, index, stretch);
@@ -540,7 +531,7 @@ function highPunctuationAfterRule(
   mark: HighPunctuationMark,
 ): RuntimeRule {
   const message = `Unexpected whitespace after ${mark}`;
-  return defineRunRule(documentaryDefinition(id), (run) => {
+  return catalogueRule(id, (run) => {
     const scan = new PunctuationScan(run);
     for (const { index, stretch } of scan.marks(mark)) {
       const inspected = inspectHighPunctuation(scan, index, stretch);

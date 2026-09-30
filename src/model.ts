@@ -99,60 +99,92 @@ export interface RuleDiagnostic extends DiagnosticLocation {
   readonly related?: readonly DiagnosticLocation[];
 }
 
-/** Runtime-fragment location emitted by a rule before pipeline enrichment. */
-export interface ApplicationDiagnosticLocation {
-  readonly segmentIndex: number;
+/** Half-open range in logical-run coordinates (UTF-16 code units). */
+export interface RunRange {
   readonly start: number;
   readonly end: number;
 }
 
-export interface RuleApplicationDiagnostic {
-  readonly start: number;
-  readonly end: number;
+/** Side that receives text at a boundary between text nodes. */
+export type RunBias = "left" | "right";
+
+/** Replacement proposed by a rule in logical-run coordinates. */
+export interface RunEdit extends RunRange {
+  readonly replacement: string;
+  /**
+   * Node receiving the replacement at or across a node boundary: the last
+   * node touched (`left`, default) or the first one (`right`) for an edit
+   * crossing nodes; the node before (`left`) or after (`right`) for an
+   * insertion at a boundary.
+   */
+  readonly bias?: RunBias;
+}
+
+/** Diagnostic subject in logical-run coordinates. */
+export interface RunLocation extends RunRange {
+  /** Node reporting an empty location placed at a node boundary. */
+  readonly bias?: RunBias;
+}
+
+/**
+ * Diagnostic reported by a rule. A non-empty location must lie within one
+ * text node or unprotected fragment.
+ */
+export interface RunDiagnostic extends RunLocation {
   readonly message: string;
   readonly replacement?: string;
-  readonly related?: readonly ApplicationDiagnosticLocation[];
+  readonly related?: readonly RunLocation[];
 }
 
-/** Atomic runtime edit proposed by a rule against its input fragment. */
-export interface RuleApplicationEdit {
-  readonly start: number;
-  readonly end: number;
-  readonly replacement: string;
+/** Typed classification result attached to a range of the logical run. */
+export interface Annotation extends RunRange {
+  readonly kind: string;
+  /** The range becomes protected for every later rule. */
+  readonly protect?: boolean;
+  readonly data?: Readonly<Record<string, string>>;
 }
 
-/** Atomic edit against any segment in the current rule-context snapshot. */
-export interface RuleApplicationSegmentEdit extends RuleApplicationEdit {
-  readonly segmentIndex: number;
-}
-
-export interface RuleApplication {
-  readonly value: string;
-  /** Precise edits used to produce value; optional for legacy rules. */
-  readonly edits?: readonly RuleApplicationEdit[];
-  /** Additional edits applied atomically to other context segments. */
-  readonly segmentEdits?: readonly RuleApplicationSegmentEdit[];
-  readonly diagnostics?: readonly RuleApplicationDiagnostic[];
-  readonly protections?: readonly ProtectionRange[];
-}
-
-/** Half-open source range that later rules must not transform. */
-export interface ProtectionRange {
-  readonly start: number;
-  readonly end: number;
-}
-
-export interface RuleContext {
+/**
+ * Read-only view of one logical run: the concatenated text of all input
+ * segments, with protected ranges, node boundaries, and the annotations of
+ * earlier classify rules, all in current run coordinates.
+ */
+export interface LogicalRun {
+  readonly text: string;
   readonly locale: string;
   readonly mode: RuleMode;
-  readonly segments: readonly TextSegment[];
-  readonly segmentIndex: number;
+  /** Sorted, disjoint protected ranges. */
+  readonly protectedRanges: readonly RunRange[];
+  /** Start offset of each source node, followed by the text length. */
+  readonly nodeBoundaries: readonly number[];
+  /** Annotations of one kind, sorted by position. */
+  annotations(kind: string): readonly Annotation[];
 }
 
-/** Executable implementation kept separate from documentary definitions. */
+/** Edits, diagnostics, and annotations returned by one rule call. */
+export interface RuleResult {
+  /** Applied only in `fix` mode; a rule must return none in other modes. */
+  readonly edits?: readonly RunEdit[];
+  readonly diagnostics?: readonly RunDiagnostic[];
+  /** Reserved for rules of the `classify` phase. */
+  readonly annotations?: readonly Annotation[];
+}
+
+/**
+ * Executable rule, called once per pass on the logical run.
+ *
+ * Built-in rules take their identity and execution metadata from their
+ * catalogue entry. Rules of other packages use IDs prefixed with `x-` and need
+ * no catalogue entry.
+ */
 export interface RuntimeRule {
-  readonly definition: RuleDefinition;
-  apply(value: string, context: RuleContext): RuleApplication;
+  readonly id: string;
+  readonly phase: RulePhase;
+  readonly locales: readonly string[];
+  readonly defaultMode: RuleMode;
+  /** IDs of rules that must run before this one. */
+  readonly dependsOn?: readonly string[];
+  apply(run: LogicalRun): RuleResult;
 }
 
 /** One non-overlapping replacement expressed against an input source segment. */

@@ -25,9 +25,9 @@ contexts before transforming text. The Imprimerie nationale composition also
 inserts a missing word space after a comma when prose follows and removes
 suspension points after `etc.`. Opt-in rules outside the presets diagnose or, in
 explicit `fix` mode, correct certain ellipses, and diagnose ungrouped digits in
-classified quantities. Text-node integrations preserve inline formatting
-boundaries while punctuation and paired guillemets can inspect one logical run
-across those boundaries.
+classified quantities. Every rule runs once per pass on one logical run across
+text nodes, so that constructs split by inline formatting are handled, while
+text-node integrations preserve the formatting boundaries.
 
 ```ts
 import {
@@ -52,6 +52,45 @@ console.log(result.changes);
 console.log(applyTextChanges("Bonjour , monde : 25%.", result.changes));
 ```
 
+## Writing a rule
+
+A rule is called once per pass with a read-only view of the whole logical run:
+the concatenated text of every input segment, its protected ranges, node
+boundaries, and annotations from classify rules. It returns edits and
+diagnostics in run coordinates; the pipeline validates them and projects them
+onto the input segments. Rules of other packages use IDs prefixed with `x-`.
+
+```ts
+import { runPipeline, type RuntimeRule } from "@orthotypography/core";
+
+const noDoubleSpace: RuntimeRule = {
+  id: "x-example.no-double-space",
+  phase: "cleanup",
+  locales: ["fr-FR"],
+  defaultMode: "lint",
+  apply(run) {
+    const edits = [...run.text.matchAll(/ {2,}/g)]
+      .map((match) => ({
+        start: match.index,
+        end: match.index + match[0].length,
+        replacement: " ",
+      }))
+      .filter(({ start, end }) =>
+        !run.protectedRanges.some((range) =>
+          range.start < end && start < range.end
+        )
+      );
+    return {
+      diagnostics: edits.map((edit) => ({ ...edit, message: "Double space" })),
+      ...(run.mode === "fix" ? { edits } : {}),
+    };
+  },
+};
+
+runPipeline("Bonjour  monde", [noDoubleSpace], { locale: "fr-FR", mode: "fix" })
+  .value; // "Bonjour monde"
+```
+
 See [`docs/architecture-v0.4.md`](./docs/architecture-v0.4.md) for the technical
 boundaries and
 [`docs/depouillement-lexique-v0.3.md`](./docs/depouillement-lexique-v0.3.md) for
@@ -74,6 +113,7 @@ deno task currency:update
 
 ## License
 
-[MIT](./LICENSE) License. Contributions are accepted under the same license; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+[MIT](./LICENSE) License. Contributions are accepted under the same license; see
+[`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 Copyright (c) 2026 Antoine Boquet.
