@@ -1,246 +1,224 @@
 import { RULES } from "../catalogue/rules.ts";
-import {
-  classifyNumericConstructs,
-  numericValueSource,
-} from "../classify/numeric.ts";
+import { numericValueSource } from "../classify/numeric.ts";
+import { NUMERIC_ANNOTATION } from "../classify/runtime.ts";
 import type {
-  ApplicationDiagnosticLocation,
-  RuleContext,
+  NumericConstructKind,
   RuleDefinition,
+  RuleMode,
   RuntimeRule,
 } from "../model.ts";
 import { resolveUnitExpression } from "../registry/units.ts";
+import {
+  type Annotation,
+  defineRunRule,
+  type LogicalRun,
+  type RunDiagnostic,
+  type RunEdit,
+  type RunRuleResult,
+} from "../run.ts";
+import {
+  type Region,
+  RunStretches,
+  stretchParts,
+  unprotectedRegions,
+} from "./run-text.ts";
+
+/*
+ * Numeric rules read the `numeric` annotations of the classifier (design §5)
+ * instead of reclassifying each fragment.
+ *
+ * A construct inside one fragment is replaced whole, as before. A construct
+ * split across nodes receives the smallest edits instead, so that every node
+ * keeps its text: the space before a symbol belongs to the symbol's node, and
+ * a leading euro sign moves after the amount into the amount's node. Its
+ * diagnostic is reported on the first part, with the other parts as related
+ * locations and without a replacement, which cannot describe several parts.
+ */
 
 const numericValuePattern = new RegExp(numericValueSource, "u");
 
-const definition = RULES.find((rule) =>
-  rule.id === "number.percent.nbsp-before"
-);
-if (definition === undefined) {
-  throw new Error("Missing documentary rule: number.percent.nbsp-before");
+function documentaryDefinition(id: string): RuleDefinition {
+  const definition = RULES.find((rule) => rule.id === id);
+  if (definition === undefined) {
+    throw new Error(`Missing documentary rule: ${id}`);
+  }
+  return definition;
+}
+
+/** Target annotations of one numeric kind, in text order. */
+function targets(
+  run: LogicalRun,
+  kind: NumericConstructKind,
+): readonly Annotation[] {
+  return run.annotations(NUMERIC_ANNOTATION).filter(({ data }) =>
+    data?.disposition === "target" && data.kind === kind
+  );
+}
+
+/**
+ * Parsed construct: a number and a symbol with the spacing between them, in
+ * run coordinates, and the text expected for the whole construct.
+ */
+interface SpacedConstruct {
+  readonly start: number;
+  readonly end: number;
+  readonly replacement: string;
+  /** Range to replace or remove in split constructs. */
+  readonly spacing: { readonly start: number; readonly end: number };
+  /** Text inserted when the construct is split, and where. */
+  readonly insertion: {
+    readonly at: number;
+    readonly text: string;
+    readonly bias: "left" | "right";
+  };
+}
+
+function spacingRule(
+  id: string,
+  message: string,
+  kind: NumericConstructKind,
+  parse: (annotation: Annotation, text: string) => SpacedConstruct | null,
+): RuntimeRule {
+  return defineRunRule(documentaryDefinition(id), (run) => {
+    const edits: RunEdit[] = [];
+    const diagnostics: RunDiagnostic[] = [];
+    let stretches: RunStretches | undefined;
+    for (const annotation of targets(run, kind)) {
+      const construct = parse(annotation, run.text);
+      if (
+        construct === null ||
+        run.text.slice(construct.start, construct.end) === construct.replacement
+      ) continue;
+      stretches ??= new RunStretches(run);
+      const [primary, ...related] = stretchParts(
+        stretches,
+        construct.start,
+        construct.end,
+      );
+      if (related.length === 0) {
+        const edit = {
+          start: construct.start,
+          end: construct.end,
+          replacement: construct.replacement,
+        };
+        edits.push(edit);
+        diagnostics.push({ ...edit, message });
+        continue;
+      }
+      const { spacing, insertion } = construct;
+      if (
+        spacing.end > spacing.start && insertion.at === spacing.end &&
+        stretches.indexAt(spacing.start) === stretches.indexAt(insertion.at)
+      ) {
+        // The spacing lies in the symbol's node: replace it there.
+        edits.push({ ...spacing, replacement: insertion.text });
+      } else {
+        for (
+          const part of stretchParts(stretches, spacing.start, spacing.end)
+        ) {
+          edits.push({ ...part, replacement: "" });
+        }
+        edits.push({
+          start: insertion.at,
+          end: insertion.at,
+          replacement: insertion.text,
+          bias: insertion.bias,
+        });
+      }
+      diagnostics.push({ ...primary, message, related });
+    }
+    return result(run.mode, edits, diagnostics);
+  });
+}
+
+function result(
+  mode: RuleMode,
+  edits: readonly RunEdit[],
+  diagnostics: readonly RunDiagnostic[],
+): RunRuleResult {
+  return {
+    ...(mode === "fix" && edits.length > 0 ? { edits } : {}),
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
+  };
+}
+
+const spacedSymbol = (symbolSource: string) =>
+  new RegExp(
+    String.raw`^(${numericValueSource})([\t \u00a0\u202f]*)(${symbolSource})$`,
+    "u",
+  );
+
+/** Number, spacing, then a symbol that takes a no-break space before it. */
+function trailingSymbol(pattern: RegExp) {
+  return (annotation: Annotation, text: string): SpacedConstruct | null => {
+    const parts = pattern.exec(text.slice(annotation.start, annotation.end));
+    if (parts === null) return null;
+    const numberEnd = annotation.start + parts[1].length;
+    const symbolStart = numberEnd + parts[2].length;
+    return {
+      start: annotation.start,
+      end: annotation.end,
+      replacement: `${parts[1]}\u00a0${parts[3]}`,
+      spacing: { start: numberEnd, end: symbolStart },
+      insertion: { at: symbolStart, text: "\u00a0", bias: "right" },
+    };
+  };
 }
 
 /** Adds a no-break space inside classified percentage constructs. */
-export const PERCENTAGE_SPACING_RULE: RuntimeRule = {
-  definition: definition as RuleDefinition,
-  apply(value, context) {
-    const edits = classifyNumericConstructs(value)
-      .filter(({ kind }) => kind === "percentage")
-      .map(({ start, end, value: construct }) => {
-        const parts = new RegExp(
-          String.raw`^(${numericValueSource})[\t \u00a0\u202f]*([%‰])$`,
-          "u",
-        ).exec(construct);
-        if (parts === null) {
-          throw new Error(`Invalid classified percentage: ${construct}`);
-        }
-        return {
-          start,
-          end,
-          replacement: `${parts[1]}\u00a0${parts[2]}`,
-        };
-      })
-      .filter(({ start, end, replacement }) =>
-        value.slice(start, end) !== replacement
-      );
-
-    let result = value;
-    if (context.mode === "fix") {
-      for (
-        const edit of [...edits].sort((left, right) => right.start - left.start)
-      ) {
-        result = result.slice(0, edit.start) + edit.replacement +
-          result.slice(edit.end);
-      }
-    }
-
-    return {
-      value: result,
-      edits,
-      diagnostics: edits.length === 0
-        ? undefined
-        : edits.map(({ start, end, replacement }) => ({
-          start,
-          end,
-          message: "Expected a no-break space before the percentage symbol",
-          replacement,
-        })),
-    };
-  },
-};
-
-const unitDefinition = RULES.find((rule) =>
-  rule.id === "number.unit.nbsp-before"
+export const PERCENTAGE_SPACING_RULE: RuntimeRule = spacingRule(
+  "number.percent.nbsp-before",
+  "Expected a no-break space before the percentage symbol",
+  "percentage",
+  trailingSymbol(spacedSymbol("[%‰]")),
 );
-if (unitDefinition === undefined) {
-  throw new Error("Missing documentary rule: number.unit.nbsp-before");
-}
+
+const measurement = spacedSymbol(".+");
 
 /** Diagnoses recognized unit spacing, or fixes it when explicitly requested. */
-export const UNIT_SPACING_RULE: RuntimeRule = {
-  definition: unitDefinition as RuleDefinition,
-  apply(value, context) {
-    const edits = classifyNumericConstructs(value)
-      .filter(({ kind }) => kind === "measurement")
-      .map(({ start, end, value: construct }) => {
-        const parts = new RegExp(
-          String.raw`^(${numericValueSource})[\t \u00a0\u202f]*(.+)$`,
-          "u",
-        ).exec(construct);
-        if (parts === null || resolveUnitExpression(parts[2]) === null) {
-          throw new Error(`Invalid classified measurement: ${construct}`);
-        }
-        return {
-          start,
-          end,
-          replacement: `${parts[1]}\u00a0${parts[2]}`,
-        };
-      })
-      .filter(({ start, end, replacement }) =>
-        value.slice(start, end) !== replacement
-      );
-
-    let result = value;
-    if (context.mode === "fix") {
-      for (
-        const edit of [...edits].sort((left, right) => right.start - left.start)
-      ) {
-        result = result.slice(0, edit.start) + edit.replacement +
-          result.slice(edit.end);
-      }
-    }
-
-    return {
-      value: result,
-      edits,
-      diagnostics: edits.length === 0
-        ? undefined
-        : edits.map(({ start, end, replacement }) => ({
-          start,
-          end,
-          message: "Expected a no-break space before the unit symbol",
-          replacement,
-        })),
-    };
+export const UNIT_SPACING_RULE: RuntimeRule = spacingRule(
+  "number.unit.nbsp-before",
+  "Expected a no-break space before the unit symbol",
+  "measurement",
+  (annotation, text) => {
+    const parts = measurement.exec(
+      text.slice(annotation.start, annotation.end),
+    );
+    if (parts === null || resolveUnitExpression(parts[3]) === null) return null;
+    return trailingSymbol(measurement)(annotation, text);
   },
-};
-
-const euroDefinition = RULES.find((rule) =>
-  rule.id === "number.euro.nbsp-before"
 );
-if (euroDefinition === undefined) {
-  throw new Error("Missing documentary rule: number.euro.nbsp-before");
-}
+
+const trailingEuro = trailingSymbol(spacedSymbol("€"));
+const leadingEuro = new RegExp(
+  String.raw`^€([\t \u00a0\u202f]*)(${numericValueSource})$`,
+  "u",
+);
 
 /** Diagnoses French euro-symbol placement, or fixes it when requested. */
-export const EURO_SPACING_RULE: RuntimeRule = {
-  definition: euroDefinition as RuleDefinition,
-  apply(value, context) {
-    const edits = classifyNumericConstructs(value)
-      .filter(({ kind, value }) => kind === "currency" && value.includes("€"))
-      .map(({ start, end, value: construct }) => {
-        const leading = new RegExp(
-          String.raw`^€[\t \u00a0\u202f]*(${numericValueSource})$`,
-          "u",
-        ).exec(construct);
-        const trailing = new RegExp(
-          String.raw`^(${numericValueSource})[\t \u00a0\u202f]*€$`,
-          "u",
-        ).exec(construct);
-        const amount = leading?.[1] ?? trailing?.[1];
-        if (amount === undefined) {
-          throw new Error(`Invalid classified euro amount: ${construct}`);
-        }
-        return { start, end, replacement: `${amount}\u00a0€` };
-      })
-      .filter(({ start, end, replacement }) =>
-        value.slice(start, end) !== replacement
-      );
-
-    let result = value;
-    if (context.mode === "fix") {
-      for (
-        const edit of [...edits].sort((left, right) => right.start - left.start)
-      ) {
-        result = result.slice(0, edit.start) + edit.replacement +
-          result.slice(edit.end);
-      }
-    }
-
+export const EURO_SPACING_RULE: RuntimeRule = spacingRule(
+  "number.euro.nbsp-before",
+  "Expected the euro symbol after the amount with a no-break space",
+  "currency",
+  (annotation, text) => {
+    const construct = text.slice(annotation.start, annotation.end);
+    if (!construct.includes("€")) return null;
+    const trailing = trailingEuro(annotation, text);
+    if (trailing !== null) return trailing;
+    const parts = leadingEuro.exec(construct);
+    if (parts === null) return null;
+    const amountStart = annotation.start + 1 + parts[1].length;
     return {
-      value: result,
-      edits,
-      diagnostics: edits.length === 0
-        ? undefined
-        : edits.map(({ start, end, replacement }) => ({
-          start,
-          end,
-          message:
-            "Expected the euro symbol after the amount with a no-break space",
-          replacement,
-        })),
+      start: annotation.start,
+      end: annotation.end,
+      replacement: `${parts[2]}\u00a0€`,
+      // The sign and its spacing leave their place and follow the amount,
+      // in the amount's node.
+      spacing: { start: annotation.start, end: amountStart },
+      insertion: { at: annotation.end, text: "\u00a0€", bias: "left" },
     };
   },
-};
-
-const groupingDefinition = RULES.find((rule) =>
-  rule.id === "number.digits.grouping"
 );
-if (groupingDefinition === undefined) {
-  throw new Error("Missing documentary rule: number.digits.grouping");
-}
-
-interface LogicalSegment {
-  readonly segmentIndex: number;
-  readonly start: number;
-  readonly end: number;
-}
-
-function unprotectedComponent(context: RuleContext): {
-  readonly value: string;
-  readonly segments: readonly LogicalSegment[];
-} {
-  let first = context.segmentIndex;
-  while (first > 0 && !context.segments[first - 1].protected) first--;
-  let last = context.segmentIndex;
-  while (
-    last + 1 < context.segments.length &&
-    !context.segments[last + 1].protected
-  ) last++;
-
-  const segments: LogicalSegment[] = [];
-  let offset = 0;
-  let value = "";
-  for (let segmentIndex = first; segmentIndex <= last; segmentIndex++) {
-    const segmentValue = context.segments[segmentIndex].value;
-    segments.push({
-      segmentIndex,
-      start: offset,
-      end: offset + segmentValue.length,
-    });
-    offset += segmentValue.length;
-    value += segmentValue;
-  }
-  return { value, segments };
-}
-
-function locationsForRange(
-  start: number,
-  end: number,
-  segments: readonly LogicalSegment[],
-): readonly ApplicationDiagnosticLocation[] {
-  return segments.flatMap((segment) => {
-    const intersectionStart = Math.max(start, segment.start);
-    const intersectionEnd = Math.min(end, segment.end);
-    return intersectionStart < intersectionEnd
-      ? [{
-        segmentIndex: segment.segmentIndex,
-        start: intersectionStart - segment.start,
-        end: intersectionEnd - segment.start,
-      }]
-      : [];
-  });
-}
 
 function groupFromRight(digits: string): string {
   const firstGroupLength = digits.length % 3 || 3;
@@ -276,51 +254,60 @@ function expectedGrouping(value: string): string | null {
   return groupedInteger + groupedFraction;
 }
 
-function hasExcludedPrefix(value: string, start: number): boolean {
-  const prefix = value.slice(Math.max(0, start - 64), start);
+function hasExcludedPrefix(
+  value: string,
+  regionStart: number,
+  start: number,
+): boolean {
+  const prefix = value.slice(Math.max(regionStart, start - 64), start);
   return /(?:\b(?:article|build|code|folio|id|isbn|issn|matricule|n(?:o|uméro)|page|réf(?:érence)?|ticket|version)\s*(?:[:#]\s*)?|n[°º]\s*)$/iu
     .test(prefix) || /[-_/#]$/u.test(prefix);
 }
 
 /** Diagnoses missing digit grouping in already classified quantities. */
-export const DIGIT_GROUPING_RULE: RuntimeRule = {
-  definition: groupingDefinition as RuleDefinition,
-  apply(_value, context) {
-    const component = unprotectedComponent(context);
-    const diagnostics = classifyNumericConstructs(component.value)
-      .filter(({ disposition, kind }) =>
-        disposition === "target" &&
-        (kind === "measurement" || kind === "percentage" || kind === "currency")
-      )
-      .flatMap((construct) => {
-        const numericMatch = numericValuePattern.exec(construct.value);
-        if (numericMatch === null) return [];
-        const numericStart = construct.start + numericMatch.index;
-        const numericEnd = numericStart + numericMatch[0].length;
-        if (hasExcludedPrefix(component.value, numericStart)) return [];
+export const DIGIT_GROUPING_RULE: RuntimeRule = defineRunRule(
+  documentaryDefinition("number.digits.grouping"),
+  (run) => {
+    const diagnostics: RunDiagnostic[] = [];
+    let stretches: RunStretches | undefined;
+    let regions: Region[] = [];
+    let region = 0;
+    for (const annotation of run.annotations(NUMERIC_ANNOTATION)) {
+      const kind = annotation.data?.kind;
+      if (
+        annotation.data?.disposition !== "target" ||
+        (kind !== "measurement" && kind !== "percentage" && kind !== "currency")
+      ) continue;
+      const construct = run.text.slice(annotation.start, annotation.end);
+      const numericMatch = numericValuePattern.exec(construct);
+      if (numericMatch === null) continue;
+      const numericStart = annotation.start + numericMatch.index;
+      const numericEnd = numericStart + numericMatch[0].length;
+      if (stretches === undefined) {
+        stretches = new RunStretches(run);
+        regions = unprotectedRegions(stretches);
+      }
+      while (region < regions.length && regions[region].end <= numericStart) {
+        region++;
+      }
+      const regionStart = regions[region]?.start ?? 0;
+      if (hasExcludedPrefix(run.text, regionStart, numericStart)) continue;
 
-        const expected = expectedGrouping(numericMatch[0]);
-        const functionalInput = numericMatch[0].replaceAll("\u00a0", "\u202f");
-        if (expected === null || functionalInput === expected) return [];
+      const expected = expectedGrouping(numericMatch[0]);
+      const functionalInput = numericMatch[0].replaceAll("\u00a0", "\u202f");
+      if (expected === null || functionalInput === expected) continue;
 
-        const locations = locationsForRange(
-          numericStart,
-          numericEnd,
-          component.segments,
-        );
-        const primary = locations[0];
-        if (primary?.segmentIndex !== context.segmentIndex) return [];
-        return [{
-          start: primary.start,
-          end: primary.end,
-          message: "Expected digit grouping in this classified quantity",
-          ...(locations.length > 1 ? { related: locations.slice(1) } : {}),
-        }];
+      const [primary, ...related] = stretchParts(
+        stretches,
+        numericStart,
+        numericEnd,
+      );
+      diagnostics.push({
+        ...primary,
+        message: "Expected digit grouping in this classified quantity",
+        ...(related.length > 0 ? { related } : {}),
       });
-
-    return {
-      value: _value,
-      diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
-    };
+    }
+    return result(run.mode, [], diagnostics);
   },
-};
+);

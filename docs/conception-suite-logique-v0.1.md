@@ -237,9 +237,27 @@ reportée sur `main` par la
 de suspension
 ([PR nº 47](https://github.com/orthotypography/orthotypography/pull/47)). Seules
 les règles numériques gardent l’exécution par fragment ; elles relèvent de
-l’étape 3, dont la première PR
-([nº 48](https://github.com/orthotypography/orthotypography/pull/48)) exécute
-la classification numérique sur la suite et conserve ses annotations.
+l’étape 3 : la [PR nº 48](https://github.com/orthotypography/orthotypography/pull/48)
+exécute la classification numérique sur la suite et conserve ses annotations,
+et la [PR nº 49](https://github.com/orthotypography/orthotypography/pull/49)
+fait lire ces annotations aux règles numériques. Toutes les règles livrées
+s’exécutent désormais sur la suite ; l’étape 4 retire l’interface par fragment.
+
+Règles numériques après l’étape 3 :
+
+- une construction contenue dans un fragment est remplacée entière, comme
+  auparavant ;
+- une construction coupée entre nœuds reçoit les modifications minimales :
+  l’espace avant un symbole (`%`, unité, `€` final) va au nœud du symbole ; un
+  `€` initial et son blanc quittent leur place et suivent le montant, dans le
+  nœud du montant ; le diagnostic porte sur la première partie, les autres
+  parties en emplacements liés, sans remplacement tant que le format des
+  résultats n’évolue pas
+  ([nº 26](https://github.com/orthotypography/orthotypography/issues/26)) ;
+- les annotations suivent les modifications des règles antérieures au lieu
+  d’être recalculées : dans un seul nœud, une construction modifiée entre la
+  classification et la règle garde la lecture de la classification (voir la
+  PR nº 49).
 
 Chaque étape vérifie :
 
