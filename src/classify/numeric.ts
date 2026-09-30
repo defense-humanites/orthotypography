@@ -144,15 +144,6 @@ const MATCHERS: readonly NumericMatcher[] = [
   },
 ] as const;
 
-function overlaps(
-  candidate: Pick<NumericConstruct, "start" | "end">,
-  accepted: readonly NumericConstruct[],
-): boolean {
-  return accepted.some((item) =>
-    candidate.start < item.end && item.start < candidate.end
-  );
-}
-
 /**
  * Classifies numeric constructs without modifying the input.
  *
@@ -165,6 +156,16 @@ export function classifyNumericConstructs(
   input: string,
 ): readonly NumericConstruct[] {
   const accepted: NumericConstruct[] = [];
+  // Code units already covered by an accepted construct. Matches of one
+  // matcher do not overlap, so checking each candidate's own range keeps the
+  // classification linear in the input for each matcher.
+  const covered = new Uint8Array(input.length);
+  const overlaps = (start: number, end: number): boolean => {
+    for (let index = start; index < end; index++) {
+      if (covered[index] === 1) return true;
+    }
+    return false;
+  };
 
   for (const matcher of MATCHERS) {
     for (const match of input.matchAll(matcher.pattern)) {
@@ -177,9 +178,13 @@ export function classifyNumericConstructs(
         end: start + value.length,
         value,
       };
-      if (matcher.accept?.(value) === false || overlaps(candidate, accepted)) {
+      if (
+        matcher.accept?.(value) === false ||
+        overlaps(candidate.start, candidate.end)
+      ) {
         continue;
       }
+      covered.fill(1, candidate.start, candidate.end);
       accepted.push(candidate);
     }
   }
