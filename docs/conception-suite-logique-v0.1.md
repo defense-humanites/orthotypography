@@ -241,7 +241,11 @@ l’étape 3 : la [PR nº 48](https://github.com/orthotypography/orthotypography
 exécute la classification numérique sur la suite et conserve ses annotations,
 et la [PR nº 49](https://github.com/orthotypography/orthotypography/pull/49)
 fait lire ces annotations aux règles numériques. Toutes les règles livrées
-s’exécutent désormais sur la suite ; l’étape 4 retire l’interface par fragment.
+s’exécutent désormais sur la suite. L’étape 4
+([PR nº 50](https://github.com/orthotypography/orthotypography/pull/50)) rend
+publique l’interface du § 3, construit les règles livrées à partir de leur fiche
+(§ 6) et retire l’interface par fragment. Le chantier est achevé ; la
+publication de `0.2.0` attend encore les issues nº 26 et nº 27.
 
 Règles numériques après l’étape 3 :
 

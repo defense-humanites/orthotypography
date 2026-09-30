@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- **Breaking:** replace the per-fragment rule interface (#21, #25).
+  `RuntimeRule` now carries `id`, `phase`, `locales`, `defaultMode`, and
+  optional `dependsOn`, and `apply(run: LogicalRun): RuleResult` is called once
+  per pass on the whole logical run. Rules return `RunEdit`s, `RunDiagnostic`s,
+  and, in the `classify` phase, `Annotation`s in run coordinates. The
+  `definition` property, `RuleContext`, `RuleApplication`,
+  `RuleApplicationEdit`, `RuleApplicationSegmentEdit`,
+  `RuleApplicationDiagnostic`, `ApplicationDiagnosticLocation`, and
+  `ProtectionRange` are removed. Built-in rules take their metadata from their
+  catalogue entry; rules outside the catalogue must use an ID prefixed with
+  `x-`, and `compilePipeline` rejects other unknown IDs and unknown phases.
+  `LogicalRun`, `RuleResult`, `RunEdit`, `RunDiagnostic`, `RunLocation`,
+  `RunRange`, `RunBias`, `Annotation`, `RuleMode`, and `RulePhase` are exported.
+  Outputs of the built-in rules are unchanged.
 - Run the numeric rules (`PERCENTAGE_SPACING_RULE`, `UNIT_SPACING_RULE`,
   `EURO_SPACING_RULE`, `DIGIT_GROUPING_RULE`) once on the logical run, reading
   the `numeric` annotations instead of reclassifying each fragment (#21).

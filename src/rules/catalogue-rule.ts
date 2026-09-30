@@ -1,0 +1,26 @@
+import { RULES } from "../catalogue/rules.ts";
+import type { LogicalRun, RuleResult, RuntimeRule } from "../model.ts";
+
+/**
+ * Builds a built-in executable rule from its catalogue entry, which is the only
+ * source of its phase, locales, default mode, and dependencies.
+ */
+export function catalogueRule(
+  id: string,
+  apply: (run: LogicalRun) => RuleResult,
+): RuntimeRule {
+  const definition = RULES.find((rule) => rule.id === id);
+  if (definition === undefined) {
+    throw new Error(`Missing documentary rule: ${id}`);
+  }
+  return Object.freeze({
+    id,
+    phase: definition.phase,
+    locales: definition.locales,
+    defaultMode: definition.defaultMode,
+    ...(definition.dependsOn === undefined
+      ? {}
+      : { dependsOn: definition.dependsOn }),
+    apply,
+  });
+}

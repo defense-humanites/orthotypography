@@ -21,8 +21,8 @@ const afterRuleIds = [
 ] as const;
 
 function selectedHighRules(ruleIds: readonly string[]) {
-  const selected = HIGH_PUNCTUATION_RULES.filter(({ definition }) =>
-    ruleIds.includes(definition.id)
+  const selected = HIGH_PUNCTUATION_RULES.filter(({ id }) =>
+    ruleIds.includes(id)
   );
   return [NUMERIC_PROTECTION_RULE, ...selected];
 }

@@ -192,16 +192,3 @@ Deno.test("guillemet diagnostics are reported in text order", () => {
     [[1, 1, 8], [4, 4, 5], [5, 5, 3], [8, 8, 0]],
   );
 });
-
-Deno.test("guillemet spacing runs only through the pipeline", () => {
-  assert.throws(
-    () =>
-      FRENCH_GUILLEMETS_SPACING_RULE.apply("«Oui»", {
-        locale: "fr-FR",
-        mode: "fix",
-        segments: [{ value: "«Oui»" }],
-        segmentIndex: 0,
-      }),
-    /runs on the logical run/,
-  );
-});

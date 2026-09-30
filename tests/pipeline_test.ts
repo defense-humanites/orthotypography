@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
-import { compilePipeline, runPipeline } from "../src/mod.ts";
-import type { RuntimeRule } from "../src/model.ts";
+import {
+  catalogue,
+  compilePipeline,
+  IMPRIMERIE_NATIONALE_RULES,
+  runPipeline,
+} from "../src/mod.ts";
+import type { RunEdit } from "../src/model.ts";
+import { testRule } from "./support/rules.ts";
+import {
+  DIGIT_GROUPING_RULE,
+  ELLIPSIS_GLYPH_RULE,
+  ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
+} from "../src/rules/mod.ts";
 
 function applyChanges(
   source: string,
@@ -22,22 +33,23 @@ function applyChanges(
   return result;
 }
 
-const cleanupRule: RuntimeRule = {
-  definition: {
-    id: "test.cleanup",
-    description: "Collapse repeated spaces for the pipeline contract test.",
-    locales: ["fr-FR"],
-    phase: "cleanup",
-    status: "VERIFIED",
-    defaultMode: "fix",
-    sources: [],
-    outcome: { replacement: "U+0020" },
-    exceptions: ["protected segments"],
-  },
-  apply(value) {
-    return { value: value.replaceAll(/ {2,}/g, " ") };
-  },
-};
+/** Collapses repeated spaces outside protected text. */
+const cleanupRule = testRule("x-test.cleanup", (run) => {
+  const edits: RunEdit[] = [];
+  for (const match of run.text.matchAll(/ {2,}/g)) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (
+      run.protectedRanges.some((range) =>
+        range.start < end && start < range.end
+      )
+    ) {
+      continue;
+    }
+    edits.push({ start, end, replacement: " " });
+  }
+  return run.mode === "fix" ? { edits } : {};
+}, { phase: "cleanup" });
 
 Deno.test("the pipeline preserves protected segments", () => {
   const result = runPipeline(
@@ -50,46 +62,34 @@ Deno.test("the pipeline preserves protected segments", () => {
   );
 
   assert.equal(result.value, "Bonjour monde  code  ");
-  assert.deepEqual(result.appliedRuleIds, ["test.cleanup"]);
+  assert.deepEqual(result.appliedRuleIds, ["x-test.cleanup"]);
   assert.deepEqual(result.changes, [{
     segmentIndex: 0,
-    start: 0,
-    end: 14,
-    expected: "Bonjour  monde",
-    replacement: "Bonjour monde",
-    ruleIds: ["test.cleanup"],
+    start: 7,
+    end: 9,
+    expected: "  ",
+    replacement: " ",
+    ruleIds: ["x-test.cleanup"],
   }]);
 });
 
 Deno.test("changes compose rule provenance in source coordinates", () => {
-  const first: RuntimeRule = {
-    definition: {
-      ...cleanupRule.definition,
-      id: "test.expand",
-      phase: "glyphs",
-    },
-    apply(value, context) {
-      const edits = [{ start: 0, end: 1, replacement: "xy" }];
-      return {
-        value: context.mode === "fix" ? "xy" : value,
-        edits,
-      };
-    },
-  };
-  const second: RuntimeRule = {
-    definition: {
-      ...cleanupRule.definition,
-      id: "test.refine",
-      phase: "cleanup",
-    },
-    apply(value, context) {
-      const edits = [{ start: 1, end: 2, replacement: "z" }];
-      return {
-        value: context.mode === "fix" ? "xz" : value,
-        edits,
-      };
-    },
-  };
+  const first = testRule(
+    "x-test.expand",
+    (run) =>
+      run.mode === "fix"
+        ? { edits: [{ start: 0, end: 1, replacement: "xy" }] }
+        : {},
+    { phase: "glyphs" },
+  );
+  const second = testRule(
+    "x-test.refine",
+    (run) =>
+      run.mode === "fix"
+        ? { edits: [{ start: 1, end: 2, replacement: "z" }] }
+        : {},
+    { phase: "cleanup" },
+  );
 
   const result = runPipeline("a", [second, first], {
     locale: "fr-FR",
@@ -103,112 +103,56 @@ Deno.test("changes compose rule provenance in source coordinates", () => {
     end: 1,
     expected: "a",
     replacement: "xz",
-    ruleIds: ["test.expand", "test.refine"],
+    ruleIds: ["x-test.expand", "x-test.refine"],
   }]);
   assert.equal(applyChanges("a", result.changes), result.value);
 });
 
-Deno.test("lint mode never reports applied changes", () => {
-  const result = runPipeline("a", [{
-    ...cleanupRule,
-    apply(value) {
-      return {
-        value,
-        edits: [{ start: 0, end: 1, replacement: "b" }],
-      };
-    },
-  }], { locale: "fr-FR", mode: "lint" });
-
+Deno.test("lint mode reports diagnostics without changes", () => {
+  const result = runPipeline("a  b", [cleanupRule], {
+    locale: "fr-FR",
+    mode: "lint",
+  });
+  assert.equal(result.value, "a  b");
   assert.deepEqual(result.changes, []);
 });
 
-Deno.test("declared edits must produce the transformed value", () => {
-  const invalid: RuntimeRule = {
-    ...cleanupRule,
-    definition: { ...cleanupRule.definition, id: "test.invalid-edits" },
-    apply() {
-      return {
-        value: "b",
-        edits: [{ start: 0, end: 1, replacement: "c" }],
-      };
-    },
-  };
-
-  assert.throws(
-    () => runPipeline("a", [invalid], { locale: "fr-FR", mode: "fix" }),
-    Error,
-    "edits do not produce its value",
+Deno.test("one rule may edit text across a node boundary", () => {
+  const rule = testRule(
+    "x-test.cross-node",
+    () => ({ edits: [{ start: 1, end: 3, replacement: "" }] }),
   );
-});
-
-Deno.test("one rule transaction may edit a neighboring segment", () => {
-  const crossSegmentRule: RuntimeRule = {
-    ...cleanupRule,
-    definition: { ...cleanupRule.definition, id: "test.cross-segment" },
-    apply(value, context) {
-      return {
-        value,
-        ...(context.segmentIndex === 1
-          ? {
-            segmentEdits: [{
-              segmentIndex: 0,
-              start: 1,
-              end: 2,
-              replacement: "",
-            }],
-          }
-          : {}),
-      };
-    },
-  };
   const result = runPipeline(
-    [{ id: "left", value: "a " }, { id: "right", value: "b" }],
-    [crossSegmentRule],
+    [{ id: "left", value: "a " }, { id: "right", value: " b" }],
+    [rule],
     { locale: "fr-FR", mode: "fix" },
   );
 
   assert.equal(result.value, "ab");
-  assert.deepEqual(result.changes, [{
-    segmentIndex: 0,
-    segmentId: "left",
-    start: 1,
-    end: 2,
-    expected: " ",
-    replacement: "",
-    ruleIds: ["test.cross-segment"],
-  }]);
+  assert.deepEqual(
+    result.changes.map(({ segmentId, start, end }) => [
+      segmentId,
+      start,
+      end,
+    ]),
+    [["left", 1, 2], ["right", 0, 1]],
+  );
 });
 
-Deno.test("rule transactions cannot edit protected neighbors", () => {
-  const invalid: RuntimeRule = {
-    ...cleanupRule,
-    definition: { ...cleanupRule.definition, id: "test.protected-neighbor" },
-    apply(value, context) {
-      return {
-        value,
-        ...(context.segmentIndex === 1
-          ? {
-            segmentEdits: [{
-              segmentIndex: 0,
-              start: 0,
-              end: 1,
-              replacement: "x",
-            }],
-          }
-          : {}),
-      };
-    },
-  };
-
+Deno.test("rules cannot edit protected text", () => {
+  const rule = testRule(
+    "x-test.protected",
+    () => ({ edits: [{ start: 0, end: 1, replacement: "x" }] }),
+  );
   assert.throws(
     () =>
       runPipeline(
         [{ value: "a", protected: true }, { value: "b" }],
-        [invalid],
+        [rule],
         { locale: "fr-FR", mode: "fix" },
       ),
     Error,
-    "targets protected segment",
+    "edits protected text",
   );
 });
 
@@ -220,17 +164,58 @@ Deno.test("compiled pipelines reject duplicate rule IDs", () => {
   );
 });
 
+Deno.test("rule IDs are catalogue IDs or use the x- prefix", () => {
+  assert.throws(
+    () => compilePipeline([testRule("custom.rule", () => ({}))]),
+    Error,
+    "is not in the catalogue",
+  );
+  assert.throws(
+    () =>
+      compilePipeline([
+        testRule("x-test.phase", () => ({}), {
+          phase: "unknown" as "cleanup",
+        }),
+      ]),
+    Error,
+    "unknown phase",
+  );
+  assert.doesNotThrow(() => compilePipeline([cleanupRule]));
+});
+
+Deno.test("built-in rules take their metadata from the catalogue", () => {
+  const rules = [
+    ...IMPRIMERIE_NATIONALE_RULES,
+    ELLIPSIS_GLYPH_RULE,
+    ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
+    DIGIT_GROUPING_RULE,
+  ];
+  for (const rule of rules) {
+    const entry = catalogue.RULES.find(({ id }) => id === rule.id);
+    assert.ok(entry, `catalogue entry for ${rule.id}`);
+    assert.equal(rule.phase, entry.phase, rule.id);
+    assert.deepEqual(rule.locales, entry.locales, rule.id);
+    assert.equal(rule.defaultMode, entry.defaultMode, rule.id);
+    assert.deepEqual(rule.dependsOn, entry.dependsOn, rule.id);
+    assert.ok(Object.isFrozen(rule), rule.id);
+  }
+});
+
 Deno.test("pipelines honor a rule's default mode", () => {
-  const lintByDefault: RuntimeRule = {
-    definition: {
-      ...cleanupRule.definition,
-      id: "test.default-lint",
-      defaultMode: "lint",
-    },
-    apply(value, context) {
-      return { value: context.mode === "fix" ? value.toUpperCase() : value };
-    },
-  };
+  const lintByDefault = testRule(
+    "x-test.default-lint",
+    (run) =>
+      run.mode === "fix"
+        ? {
+          edits: [{
+            start: 0,
+            end: run.text.length,
+            replacement: run.text.toUpperCase(),
+          }],
+        }
+        : {},
+    { defaultMode: "lint" },
+  );
 
   assert.equal(
     runPipeline("texte", [lintByDefault], { locale: "fr-FR" }).value,
@@ -245,33 +230,53 @@ Deno.test("pipelines honor a rule's default mode", () => {
   );
 });
 
-Deno.test("pipelines reject invalid protection ranges", () => {
-  const invalidProtectionRule: RuntimeRule = {
-    definition: { ...cleanupRule.definition, id: "test.invalid-protection" },
-    apply(value) {
-      return { value, protections: [{ start: 2, end: value.length + 1 }] };
-    },
-  };
+Deno.test("pipelines reject invalid annotation ranges", () => {
+  const invalid = testRule(
+    "x-test.invalid-annotation",
+    (run) => ({
+      annotations: [{
+        kind: "x-test",
+        start: 2,
+        end: run.text.length + 1,
+        protect: true,
+      }],
+    }),
+    { phase: "classify" },
+  );
 
   assert.throws(
-    () => runPipeline("texte", [invalidProtectionRule], { locale: "fr-FR" }),
+    () => runPipeline("texte", [invalid], { locale: "fr-FR" }),
     Error,
-    "Invalid protection range",
+    "Invalid annotation range",
   );
 });
 
 Deno.test("pipelines reject simultaneous transformation and protection", () => {
-  const ambiguousRule: RuntimeRule = {
-    definition: { ...cleanupRule.definition, id: "test.ambiguous-protection" },
-    apply() {
-      return { value: "changed", protections: [{ start: 0, end: 1 }] };
-    },
-  };
+  const ambiguous = testRule(
+    "x-test.ambiguous-protection",
+    () => ({
+      edits: [{ start: 0, end: 1, replacement: "x" }],
+      annotations: [{ kind: "x-test", start: 1, end: 2, protect: true }],
+    }),
+    { phase: "classify" },
+  );
 
   assert.throws(
-    () => runPipeline("text", [ambiguousRule], { locale: "fr-FR" }),
+    () => runPipeline("text", [ambiguous], { locale: "fr-FR", mode: "fix" }),
     Error,
     "cannot transform and protect in one pass",
+  );
+});
+
+Deno.test("only classify rules may annotate", () => {
+  const rule = testRule(
+    "x-test.late-annotation",
+    () => ({ annotations: [{ kind: "x-test", start: 0, end: 1 }] }),
+  );
+  assert.throws(
+    () => runPipeline("text", [rule], { locale: "fr-FR" }),
+    Error,
+    "annotates outside the classify phase",
   );
 });
 
@@ -294,16 +299,20 @@ Deno.test("source segment IDs must be unique and non-empty", () => {
 });
 
 Deno.test("lint mode rejects transformations to preserve source coordinates", () => {
-  const invalidLintRule: RuntimeRule = {
-    definition: { ...cleanupRule.definition, id: "test.invalid-lint" },
-    apply(value) {
-      return { value: value.toUpperCase() };
-    },
-  };
+  const invalid = testRule(
+    "x-test.invalid-lint",
+    (run) => ({
+      edits: [{
+        start: 0,
+        end: run.text.length,
+        replacement: run.text.toUpperCase(),
+      }],
+    }),
+  );
 
   assert.throws(
     () =>
-      runPipeline("texte", [invalidLintRule], {
+      runPipeline("texte", [invalid], {
         locale: "fr-FR",
         mode: "lint",
       }),

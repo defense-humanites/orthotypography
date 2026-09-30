@@ -1,18 +1,12 @@
-import { RULES } from "../catalogue/rules.ts";
-import type { RuleDefinition, RuntimeRule } from "../model.ts";
-import {
-  defineRunRule,
-  type LogicalRun,
-  type RunDiagnostic,
-  type RunEdit,
-  type RunRuleResult,
-} from "../run.ts";
+import type {
+  LogicalRun,
+  RuleResult,
+  RunDiagnostic,
+  RunEdit,
+  RuntimeRule,
+} from "../model.ts";
+import { catalogueRule } from "./catalogue-rule.ts";
 import { RunStretches, spacingCharacters } from "./run-text.ts";
-
-const definition = RULES.find((rule) => rule.id === "quotes.french.nbsp-inner");
-if (definition === undefined) {
-  throw new Error("Missing documentary rule: quotes.french.nbsp-inner");
-}
 
 const message = "Expected a no-break space inside paired French guillemets";
 
@@ -55,7 +49,7 @@ function pairGuillemets(run: LogicalRun): Map<number, number> {
   return paired;
 }
 
-function applyGuillemetSpacing(run: LogicalRun): RunRuleResult {
+function applyGuillemetSpacing(run: LogicalRun): RuleResult {
   const { text } = run;
   const paired = pairGuillemets(run);
   if (paired.size === 0) return {};
@@ -102,7 +96,7 @@ function applyGuillemetSpacing(run: LogicalRun): RunRuleResult {
 }
 
 /** Spaces paired French guillemets without converting ambiguous quote glyphs. */
-export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = defineRunRule(
-  definition as RuleDefinition,
+export const FRENCH_GUILLEMETS_SPACING_RULE: RuntimeRule = catalogueRule(
+  "quotes.french.nbsp-inner",
   applyGuillemetSpacing,
 );

@@ -11,7 +11,8 @@ import {
   UNIT_SPACING_RULE,
 } from "../src/mod.ts";
 import type { TextSegment } from "../src/model.ts";
-import { type Annotation, defineRunRule, type LogicalRun } from "../src/run.ts";
+import type { Annotation, LogicalRun } from "../src/model.ts";
+import { testRule } from "./support/rules.ts";
 
 function fixNodes(values: readonly (string | TextSegment)[]): string[] {
   const nodes = values.map((value, index) => ({
@@ -44,16 +45,15 @@ Deno.test("protected nodes still separate numeric contexts", () => {
 
 /** Records the numeric annotations a later rule sees. */
 function observer(seen: Annotation[][]) {
-  return defineRunRule(
-    {
-      ...SAFE_PUNCTUATION_RULES[0].definition,
-      id: "x-test.observe-numeric",
-      phase: "numeric-spacing",
-      dependsOn: ["classify.numeric-constructs"],
-    },
+  return testRule(
+    "x-test.observe-numeric",
     (run: LogicalRun) => {
       seen.push([...run.annotations("numeric")]);
       return {};
+    },
+    {
+      phase: "numeric-spacing",
+      dependsOn: ["classify.numeric-constructs"],
     },
   );
 }
@@ -189,28 +189,6 @@ Deno.test("numeric rules give the same text for split and joined input", () => {
     assert.equal(
       valuesOf(values).join(""),
       numericNodes([values.join("")], "fix").nodes[0].value,
-    );
-  }
-});
-
-Deno.test("numeric rules run only through the pipeline", () => {
-  for (
-    const rule of [
-      PERCENTAGE_SPACING_RULE,
-      UNIT_SPACING_RULE,
-      EURO_SPACING_RULE,
-      DIGIT_GROUPING_RULE,
-    ]
-  ) {
-    assert.throws(
-      () =>
-        rule.apply("10 %", {
-          locale: "fr-FR",
-          mode: "fix",
-          segments: [{ value: "10 %" }],
-          segmentIndex: 0,
-        }),
-      /runs on the logical run/,
     );
   }
 });

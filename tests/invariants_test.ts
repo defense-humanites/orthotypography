@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { SAFE_PUNCTUATION_RULES } from "../src/mod.ts";
 import type { RuntimeRule } from "../src/model.ts";
+import { testRule } from "./support/rules.ts";
 import {
   checkInvariants,
   COMPOSITIONS,
@@ -60,24 +60,16 @@ function brokenRule(
   id: string,
   apply: RuntimeRule["apply"],
 ): RuntimeRule {
-  return {
-    definition: { ...SAFE_PUNCTUATION_RULES[0].definition, id },
-    apply,
-  };
+  return testRule(id, apply);
 }
 
 Deno.test("the harness detects a rule that is not idempotent", () => {
-  const rule = brokenRule("test.append", (value, context) => {
-    if (context.mode !== "fix") {
-      return {
-        value,
-        diagnostics: [{ start: value.length, end: value.length, message: "x" }],
-      };
+  const rule = brokenRule("x-test.append", (run) => {
+    const end = run.text.length;
+    if (run.mode !== "fix") {
+      return { diagnostics: [{ start: end, end, message: "x" }] };
     }
-    return {
-      value: `${value}!`,
-      edits: [{ start: value.length, end: value.length, replacement: "!" }],
-    };
+    return { edits: [{ start: end, end, replacement: "!" }] };
   });
   const violations = checkInvariants([rule], [{ id: "a", value: "Oui" }]);
   assert.ok(violations.some((violation) => /not idempotent/.test(violation)));
@@ -85,8 +77,7 @@ Deno.test("the harness detects a rule that is not idempotent", () => {
 
 Deno.test("the harness detects a nondeterministic rule", () => {
   let calls = 0;
-  const rule = brokenRule("test.counter", (value) => ({
-    value,
+  const rule = brokenRule("x-test.counter", () => ({
     diagnostics: [{ start: 0, end: 0, message: `call ${++calls}` }],
   }));
   const violations = checkInvariants([rule], [{ id: "a", value: "Oui" }]);
@@ -97,11 +88,11 @@ Deno.test("the harness detects a nondeterministic rule", () => {
 
 Deno.test("the harness detects a fix without a lint diagnostic", () => {
   const rule = brokenRule(
-    "test.silent",
-    (value, context) =>
-      context.mode === "fix" && value === "Oui"
-        ? { value: "Non", edits: [{ start: 0, end: 3, replacement: "Non" }] }
-        : { value },
+    "x-test.silent",
+    (run) =>
+      run.mode === "fix" && run.text === "Oui"
+        ? { edits: [{ start: 0, end: 3, replacement: "Non" }] }
+        : {},
   );
   const violations = checkInvariants([rule], [{ id: "a", value: "Oui" }]);
   assert.ok(

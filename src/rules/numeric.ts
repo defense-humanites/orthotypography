@@ -1,21 +1,17 @@
-import { RULES } from "../catalogue/rules.ts";
 import { numericValueSource } from "../classify/numeric.ts";
 import { NUMERIC_ANNOTATION } from "../classify/runtime.ts";
 import type {
+  Annotation,
+  LogicalRun,
   NumericConstructKind,
-  RuleDefinition,
   RuleMode,
+  RuleResult,
+  RunDiagnostic,
+  RunEdit,
   RuntimeRule,
 } from "../model.ts";
 import { resolveUnitExpression } from "../registry/units.ts";
-import {
-  type Annotation,
-  defineRunRule,
-  type LogicalRun,
-  type RunDiagnostic,
-  type RunEdit,
-  type RunRuleResult,
-} from "../run.ts";
+import { catalogueRule } from "./catalogue-rule.ts";
 import {
   type Region,
   RunStretches,
@@ -36,14 +32,6 @@ import {
  */
 
 const numericValuePattern = new RegExp(numericValueSource, "u");
-
-function documentaryDefinition(id: string): RuleDefinition {
-  const definition = RULES.find((rule) => rule.id === id);
-  if (definition === undefined) {
-    throw new Error(`Missing documentary rule: ${id}`);
-  }
-  return definition;
-}
 
 /** Target annotations of one numeric kind, in text order. */
 function targets(
@@ -79,7 +67,7 @@ function spacingRule(
   kind: NumericConstructKind,
   parse: (annotation: Annotation, text: string) => SpacedConstruct | null,
 ): RuntimeRule {
-  return defineRunRule(documentaryDefinition(id), (run) => {
+  return catalogueRule(id, (run) => {
     const edits: RunEdit[] = [];
     const diagnostics: RunDiagnostic[] = [];
     let stretches: RunStretches | undefined;
@@ -135,7 +123,7 @@ function result(
   mode: RuleMode,
   edits: readonly RunEdit[],
   diagnostics: readonly RunDiagnostic[],
-): RunRuleResult {
+): RuleResult {
   return {
     ...(mode === "fix" && edits.length > 0 ? { edits } : {}),
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
@@ -265,8 +253,8 @@ function hasExcludedPrefix(
 }
 
 /** Diagnoses missing digit grouping in already classified quantities. */
-export const DIGIT_GROUPING_RULE: RuntimeRule = defineRunRule(
-  documentaryDefinition("number.digits.grouping"),
+export const DIGIT_GROUPING_RULE: RuntimeRule = catalogueRule(
+  "number.digits.grouping",
   (run) => {
     const diagnostics: RunDiagnostic[] = [];
     let stretches: RunStretches | undefined;

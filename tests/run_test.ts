@@ -5,30 +5,25 @@ import {
   runTextNodePipeline,
   SAFE_PUNCTUATION_RULES,
 } from "../src/mod.ts";
-import type { RulePhase, RuntimeRule, TextSegment } from "../src/model.ts";
-import {
-  type Annotation,
-  defineRunRule,
-  type LogicalRun,
-  moveAnnotations,
-  type RunDiagnostic,
-  type RunEdit,
-} from "../src/run.ts";
+import type {
+  Annotation,
+  LogicalRun,
+  RulePhase,
+  RuleResult,
+  RunEdit,
+  RuntimeRule,
+  TextSegment,
+} from "../src/model.ts";
+import { moveAnnotations } from "../src/run.ts";
+import { testRule } from "./support/rules.ts";
 import { seededRandom } from "./support/invariants.ts";
 
 function runRule(
   id: string,
-  apply: (run: LogicalRun) => {
-    edits?: readonly RunEdit[];
-    diagnostics?: readonly RunDiagnostic[];
-    annotations?: readonly Annotation[];
-  },
+  apply: (run: LogicalRun) => RuleResult,
   phase: RulePhase = "punctuation-spacing",
 ): RuntimeRule {
-  return defineRunRule(
-    { ...SAFE_PUNCTUATION_RULES[0].definition, id, phase, dependsOn: [] },
-    apply,
-  );
+  return testRule(id, apply, { phase });
 }
 
 function fixNodes(
@@ -178,7 +173,7 @@ Deno.test("protected annotations protect later rules across nodes", () => {
   const classify = runRule(
     "x-test.classify",
     () => ({
-      annotations: [{ kind: "test", start: 1, end: 5, protect: true }],
+      annotations: [{ kind: "x-test", start: 1, end: 5, protect: true }],
     }),
     "classify",
   );
@@ -194,7 +189,7 @@ Deno.test("protected annotations protect later rules across nodes", () => {
       runPipeline(
         "abc",
         [runRule("x-test.annotate", () => ({
-          annotations: [{ kind: "test", start: 0, end: 1, protect: true }],
+          annotations: [{ kind: "x-test", start: 0, end: 1, protect: true }],
         }))],
         { locale: "fr-FR", mode: "fix" },
       ),
@@ -234,20 +229,6 @@ Deno.test("run diagnostics map to source coordinates by bias", () => {
         { locale: "fr-FR", mode: "lint" },
       ),
     /diagnostic crossing fragments/,
-  );
-});
-
-Deno.test("run rules cannot be applied per fragment", () => {
-  const rule = runRule("x-test.edit", () => ({}));
-  assert.throws(
-    () =>
-      rule.apply("a", {
-        locale: "fr-FR",
-        mode: "fix",
-        segments: [{ value: "a" }],
-        segmentIndex: 0,
-      }),
-    /runs on the logical run/,
   );
 });
 

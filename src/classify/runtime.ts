@@ -1,19 +1,12 @@
-import { RULES } from "../catalogue/rules.ts";
 import type {
+  Annotation,
+  LogicalRun,
   NumericConstruct,
-  RuleDefinition,
   RuntimeRule,
 } from "../model.ts";
-import { type Annotation, defineRunRule, type LogicalRun } from "../run.ts";
+import { catalogueRule } from "../rules/catalogue-rule.ts";
 import { RunStretches, unprotectedRegions } from "../rules/run-text.ts";
 import { classifyNumericConstructs } from "./numeric.ts";
-
-const definition = RULES.find((rule) =>
-  rule.id === "classify.numeric-constructs"
-);
-if (definition === undefined) {
-  throw new Error("Missing documentary rule: classify.numeric-constructs");
-}
 
 /** Annotation kind of numeric constructs. */
 export const NUMERIC_ANNOTATION = "numeric";
@@ -70,8 +63,8 @@ function classifyRun(run: LogicalRun): readonly Annotation[] {
  * Pipeline rule that annotates numeric constructs; syntactic contexts become
  * protected for every later rule.
  */
-export const NUMERIC_PROTECTION_RULE: RuntimeRule = defineRunRule(
-  definition as RuleDefinition,
+export const NUMERIC_PROTECTION_RULE: RuntimeRule = catalogueRule(
+  "classify.numeric-constructs",
   (run) => {
     const annotations = classifyRun(run);
     return annotations.length === 0 ? {} : { annotations };
