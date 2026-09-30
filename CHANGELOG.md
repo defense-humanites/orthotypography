@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Run the ellipsis rules (`ETC_ELLIPSIS_RULE`, `ELLIPSIS_GLYPH_RULE`,
+  `ELLIPSIS_INITIAL_SPACE_AFTER_RULE`) once on the logical run instead of once
+  per fragment (#21). Calling their `apply` methods directly now throws. The
+  ellipsis classifier examines each candidate in constant time. Outputs are
+  unchanged, except next to empty protected nodes, which no longer split the
+  examined text or cancel a structural beginning. Many text nodes or many
+  suspension points no longer grow quadratically: 62,500 one-character nodes
+  took about 50 s with the preset and now take about 3 s.
 - Run the comma, period, and high-punctuation rules once on the logical run
   instead of once per fragment (#21). Calling their `apply` methods directly now
   throws. Outputs are unchanged, except next to empty protected nodes, which no

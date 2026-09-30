@@ -1,16 +1,15 @@
 import { RULES } from "../catalogue/rules.ts";
+import { classifyEllipsisCandidates } from "../classify/ellipsis.ts";
+import type { RuleDefinition, RuntimeRule } from "../model.ts";
 import {
-  classifyEllipsisCandidates,
-  ellipsisLogicalRun,
-} from "../classify/ellipsis.ts";
-import type {
-  RuleApplication,
-  RuleApplicationEdit,
-  RuleApplicationSegmentEdit,
-  RuleContext,
-  RuleDefinition,
-  RuntimeRule,
-} from "../model.ts";
+  defineRunRule,
+  type LogicalRun,
+  type RunDiagnostic,
+  type RunEdit,
+  type RunLocation,
+  type RunRuleResult,
+} from "../run.ts";
+import { RunStretches } from "./run-text.ts";
 
 const definition = RULES.find((rule) =>
   rule.id === "punctuation.ellipsis.after-etc.forbidden"
@@ -37,274 +36,206 @@ if (initialSpacingDefinition === undefined) {
   );
 }
 
-interface LogicalPart {
-  readonly segmentIndex: number;
+/** Maximal unprotected text between protected ranges. */
+interface Region {
   readonly start: number;
   readonly end: number;
+  /** First and last stretch of the region. */
+  readonly first: number;
+  readonly last: number;
 }
 
-interface LogicalRun {
-  readonly value: string;
-  readonly parts: readonly LogicalPart[];
+function unprotectedRegions(stretches: RunStretches): Region[] {
+  const regions: Region[] = [];
+  const count = stretches.starts.length;
+  let index = 0;
+  while (index < count) {
+    if (stretches.protectedFlags[index]) {
+      index++;
+      continue;
+    }
+    const first = index;
+    while (index + 1 < count && !stretches.protectedFlags[index + 1]) index++;
+    regions.push({
+      start: stretches.starts[first],
+      end: stretches.ends[index],
+      first,
+      last: index,
+    });
+    index++;
+  }
+  return regions;
 }
 
-interface MatchEdits {
-  readonly local: readonly RuleApplicationEdit[];
-  readonly related: readonly RuleApplicationSegmentEdit[];
-}
-
-function candidateLocations(
-  context: RuleContext,
-  parts: readonly LogicalPart[],
+/**
+ * Parts of `[start, end)` in each stretch, in text order. A stretch is one
+ * fragment of the pipeline, so the parts are the fragment-local ranges that
+ * the per-fragment rules reported.
+ */
+function stretchParts(
+  stretches: RunStretches,
   start: number,
   end: number,
-) {
-  const locations = [];
-  for (const part of parts) {
-    const overlapStart = Math.max(start, part.start);
-    const overlapEnd = Math.min(end, part.end);
-    if (overlapStart >= overlapEnd) continue;
-    locations.push({
-      segmentIndex: part.segmentIndex,
-      start: overlapStart - part.start,
-      end: overlapEnd - part.start,
-    });
+): RunLocation[] {
+  const parts: RunLocation[] = [];
+  for (
+    let index = stretches.indexAt(start);
+    index < stretches.starts.length && stretches.starts[index] < end;
+    index++
+  ) {
+    const partStart = Math.max(start, stretches.starts[index]);
+    const partEnd = Math.min(end, stretches.ends[index]);
+    if (partStart < partEnd) parts.push({ start: partStart, end: partEnd });
   }
-  const primary = locations.find(({ segmentIndex }) =>
-    segmentIndex === context.segmentIndex
-  );
-  return primary === undefined ? undefined : {
-    primary,
-    related: locations.filter(({ segmentIndex }) =>
-      segmentIndex !== context.segmentIndex
-    ),
+  return parts;
+}
+
+function result(
+  run: LogicalRun,
+  edits: readonly RunEdit[],
+  diagnostics: readonly RunDiagnostic[],
+): RunRuleResult {
+  return {
+    ...(run.mode === "fix" && edits.length > 0 ? { edits } : {}),
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
   };
 }
 
+// The lookbehind of the original expression is checked separately, as the
+// per-fragment rule did, so that the text before a node boundary is read one
+// code unit at a time.
 const forbiddenEtcEllipsis =
-  /(?<![\p{L}\p{N}_])etc\.(?:[\t \u00a0\u202f]*…|[\t \u00a0\u202f]+\.{3,}|\.{2,})(?=$|[\t \u00a0\u202f)\]}»"'’!?;,:])/giu;
+  /etc\.(?:[\t \u00a0\u202f]*…|[\t \u00a0\u202f]+\.{3,}|\.{2,})(?=$|[\t \u00a0\u202f)\]}»"'’!?;,:])/giu;
+const wordCharacter = /[\p{L}\p{N}_]/u;
 
-function logicalRun(context: RuleContext): LogicalRun {
-  const parts: LogicalPart[] = [];
-  let value = "";
-
-  for (
-    let segmentIndex = context.segmentIndex;
-    segmentIndex < context.segments.length;
-    segmentIndex++
-  ) {
-    const segment = context.segments[segmentIndex];
-    if (segment.protected) break;
-    const start = value.length;
-    value += segment.value;
-    parts.push({ segmentIndex, start, end: value.length });
-  }
-
-  return { value, parts };
-}
-
-function precedingCharacter(context: RuleContext): string | undefined {
-  for (
-    let segmentIndex = context.segmentIndex - 1;
-    segmentIndex >= 0;
-    segmentIndex--
-  ) {
-    const value = context.segments[segmentIndex].value;
-    if (value.length > 0) return value.at(-1);
-  }
-  return undefined;
-}
-
-function splitRemoval(
-  context: RuleContext,
-  parts: readonly LogicalPart[],
-  start: number,
-  end: number,
-): MatchEdits {
-  const local: RuleApplicationEdit[] = [];
-  const related: RuleApplicationSegmentEdit[] = [];
-
-  for (const part of parts) {
-    const overlapStart = Math.max(start, part.start);
-    const overlapEnd = Math.min(end, part.end);
-    if (overlapStart >= overlapEnd) continue;
-
-    const edit = {
-      start: overlapStart - part.start,
-      end: overlapEnd - part.start,
-      replacement: "",
-    };
-    if (part.segmentIndex === context.segmentIndex) {
-      local.push(edit);
-    } else {
-      related.push({ segmentIndex: part.segmentIndex, ...edit });
-    }
-  }
-
-  return { local, related };
-}
-
-function applyEdits(
-  value: string,
-  edits: readonly RuleApplicationEdit[],
-): string {
-  let result = value;
-  for (
-    const edit of [...edits].sort((left, right) => right.start - left.start)
-  ) {
-    result = result.slice(0, edit.start) + edit.replacement +
-      result.slice(edit.end);
-  }
-  return result;
+/** Whether a word character precedes `start`, as the fragment scan saw it. */
+function wordBefore(stretches: RunStretches, start: number): boolean {
+  if (start === 0) return false;
+  const { text } = stretches;
+  const stretch = stretches.indexAt(start);
+  const stretchStart = stretches.starts[stretch];
+  if (stretchStart === start) return wordCharacter.test(text[start - 1]);
+  const unit = text.charCodeAt(start - 1);
+  const first = unit >= 0xdc00 && unit <= 0xdfff ? start - 2 : start - 1;
+  return wordCharacter.test(text.slice(Math.max(stretchStart, first), start));
 }
 
 /** Removes suspension points forbidden after the standalone abbreviation etc. */
-export const ETC_ELLIPSIS_RULE: RuntimeRule = {
-  definition: definition as RuleDefinition,
-  apply(value, context): RuleApplication {
-    const run = logicalRun(context);
-    const localEdits: RuleApplicationEdit[] = [];
-    const segmentEdits: RuleApplicationSegmentEdit[] = [];
-    const diagnostics = [];
-
-    for (const match of run.value.matchAll(forbiddenEtcEllipsis)) {
-      const start = match.index;
-      if (start >= value.length) continue;
-      if (
-        start === 0 &&
-        /[\p{L}\p{N}_]/u.test(precedingCharacter(context) ?? "")
-      ) {
-        continue;
-      }
-
-      const removalStart = start + 4;
-      const removalEnd = start + match[0].length;
-      const edits = splitRemoval(
-        context,
-        run.parts,
-        removalStart,
-        removalEnd,
-      );
-      localEdits.push(...edits.local);
-      segmentEdits.push(...edits.related);
-      diagnostics.push({
-        start,
-        end: Math.min(start + 4, value.length),
-        message: "Suspension points must not follow etc.",
-        related: edits.related.map(({ segmentIndex, start, end }) => ({
-          segmentIndex,
+export const ETC_ELLIPSIS_RULE: RuntimeRule = defineRunRule(
+  definition as RuleDefinition,
+  (run) => {
+    const stretches = new RunStretches(run);
+    const edits: RunEdit[] = [];
+    const diagnostics: RunDiagnostic[] = [];
+    for (const region of unprotectedRegions(stretches)) {
+      const value = run.text.slice(region.start, region.end);
+      forbiddenEtcEllipsis.lastIndex = 0;
+      let match: RegExpExecArray | null;
+      while ((match = forbiddenEtcEllipsis.exec(value)) !== null) {
+        const start = region.start + match.index;
+        if (wordBefore(stretches, start)) {
+          forbiddenEtcEllipsis.lastIndex = match.index + 1;
+          continue;
+        }
+        const end = start + match[0].length;
+        const stretchEnd = stretches.ends[stretches.indexAt(start)];
+        const removals = stretchParts(stretches, start + 4, end);
+        for (const removal of removals) {
+          edits.push({ ...removal, replacement: "" });
+        }
+        diagnostics.push({
           start,
-          end,
-        })),
-      });
+          end: Math.min(start + 4, stretchEnd),
+          message: "Suspension points must not follow etc.",
+          related: removals.filter(({ start }) => start >= stretchEnd),
+        });
+      }
     }
-
-    return {
-      value: context.mode === "fix" ? applyEdits(value, localEdits) : value,
-      edits: localEdits,
-      segmentEdits,
-      diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
-    };
+    return result(run, edits, diagnostics);
   },
-};
+);
+
+/** Certain ellipsis candidates of each unprotected region, in text order. */
+function* regionCandidates(stretches: RunStretches) {
+  for (const region of unprotectedRegions(stretches)) {
+    const value = stretches.text.slice(region.start, region.end);
+    for (
+      const candidate of classifyEllipsisCandidates(value, region.start === 0)
+    ) {
+      yield {
+        ...candidate,
+        start: region.start + candidate.start,
+        end: region.start + candidate.end,
+        /** Code point after the candidate within its region, or 0. */
+        next: value.codePointAt(candidate.end) ?? 0,
+      };
+    }
+  }
+}
 
 /** Diagnoses certain ASCII ellipses and replaces their glyph in fix mode. */
-export const ELLIPSIS_GLYPH_RULE: RuntimeRule = {
-  definition: recognitionDefinition as RuleDefinition,
-  apply(value, context): RuleApplication {
-    const run = ellipsisLogicalRun(context.segments, context.segmentIndex);
-    const owner = run.parts.find(({ segmentIndex }) =>
-      segmentIndex === context.segmentIndex
-    );
-    if (owner === undefined) return { value };
-
-    const localEdits: RuleApplicationEdit[] = [];
-    const segmentEdits: RuleApplicationSegmentEdit[] = [];
-    const diagnostics = classifyEllipsisCandidates(
-      run.value,
-      run.structurallyInitial,
-    ).flatMap((candidate) => {
-      if (
-        candidate.value !== "..." || !candidate.certain ||
-        candidate.start < owner.start || candidate.start >= owner.end
-      ) return [];
-      const locations = candidateLocations(
-        context,
-        run.parts,
+export const ELLIPSIS_GLYPH_RULE: RuntimeRule = defineRunRule(
+  recognitionDefinition as RuleDefinition,
+  (run) => {
+    const stretches = new RunStretches(run);
+    const edits: RunEdit[] = [];
+    const diagnostics: RunDiagnostic[] = [];
+    for (const candidate of regionCandidates(stretches)) {
+      if (candidate.value !== "..." || !candidate.certain) continue;
+      const [primary, ...related] = stretchParts(
+        stretches,
         candidate.start,
         candidate.end,
       );
-      if (locations === undefined) return [];
-      if (context.mode === "fix") {
-        localEdits.push({
-          start: locations.primary.start,
-          end: locations.primary.end,
-          replacement: "…",
-        });
-        for (const related of locations.related) {
-          segmentEdits.push({ ...related, replacement: "" });
-        }
-      }
-      return [{
-        start: locations.primary.start,
-        end: locations.primary.end,
+      // The glyph replaces the first part, in the node where the ellipsis
+      // starts; the other parts are removed from their nodes.
+      edits.push({
+        start: candidate.start,
+        end: candidate.end,
+        replacement: "…",
+        bias: "left",
+      });
+      diagnostics.push({
+        ...primary,
         message: `Use U+2026 for a recognized ${candidate.function} ellipsis`,
-        ...(locations.related.length === 0
-          ? {}
-          : { related: locations.related }),
-      }];
-    });
-
-    return {
-      value: context.mode === "fix" ? applyEdits(value, localEdits) : value,
-      ...(context.mode === "fix" ? { edits: localEdits, segmentEdits } : {}),
-      diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
-    };
+        ...(related.length === 0 ? {} : { related }),
+      });
+    }
+    return result(run, edits, diagnostics);
   },
-};
+);
 
 /** Compatibility alias for the original recognition-only export. */
 export const ELLIPSIS_RECOGNITION_RULE = ELLIPSIS_GLYPH_RULE;
 
-/** Inserts a word space after a certain structurally initial ellipsis. */
-export const ELLIPSIS_INITIAL_SPACE_AFTER_RULE: RuntimeRule = {
-  definition: initialSpacingDefinition as RuleDefinition,
-  apply(value, context): RuleApplication {
-    const run = ellipsisLogicalRun(context.segments, context.segmentIndex);
-    const owner = run.parts.find(({ segmentIndex }) =>
-      segmentIndex === context.segmentIndex
-    );
-    if (owner === undefined) return { value };
+const letterOrMark = /[\p{L}\p{M}]/u;
 
-    const edits: RuleApplicationEdit[] = [];
-    const diagnostics = classifyEllipsisCandidates(
-      run.value,
-      run.structurallyInitial,
-    ).flatMap((candidate) => {
+/** Inserts a word space after a certain structurally initial ellipsis. */
+export const ELLIPSIS_INITIAL_SPACE_AFTER_RULE: RuntimeRule = defineRunRule(
+  initialSpacingDefinition as RuleDefinition,
+  (run) => {
+    const stretches = new RunStretches(run);
+    const edits: RunEdit[] = [];
+    const diagnostics: RunDiagnostic[] = [];
+    for (const candidate of regionCandidates(stretches)) {
       if (
         candidate.value !== "…" || candidate.function !== "initial" ||
-        !candidate.certain || candidate.start < owner.start ||
-        candidate.start >= owner.end ||
-        !/[\p{L}\p{M}]/u.test(
-          String.fromCodePoint(run.value.codePointAt(candidate.end) ?? 0),
-        )
-      ) return [];
-
-      const position = candidate.end - owner.start;
-      if (context.mode === "fix") {
-        edits.push({ start: position, end: position, replacement: " " });
-      }
-      return [{
-        start: candidate.start - owner.start,
-        end: Math.min(candidate.end - owner.start, value.length),
+        !candidate.certain ||
+        !letterOrMark.test(String.fromCodePoint(candidate.next))
+      ) continue;
+      // The space stays in the ellipsis's node.
+      edits.push({
+        start: candidate.end,
+        end: candidate.end,
+        replacement: " ",
+        bias: "left",
+      });
+      diagnostics.push({
+        start: candidate.start,
+        end: candidate.end,
         message: "Insert a word space after a structurally initial ellipsis",
-      }];
-    });
-
-    return {
-      value: context.mode === "fix" ? applyEdits(value, edits) : value,
-      ...(context.mode === "fix" ? { edits } : {}),
-      diagnostics: diagnostics.length === 0 ? undefined : diagnostics,
-    };
+      });
+    }
+    return result(run, edits, diagnostics);
   },
-};
+);

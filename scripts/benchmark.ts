@@ -1,17 +1,20 @@
 /**
  * Measures pipeline time on repeated corpus text.
  *
- * Usage: `deno task bench [--quick | --full | --scaling]`. The default sizes are 25,000 and
- * 125,000 characters; `--quick` keeps the smallest size and `--full` adds
- * 500,000 characters. Each size runs as one segment and as nodes of about 120
- * characters, in lint and fix modes.
+ * Usage: `deno task bench [--quick | --full | --scaling]`. The default sizes
+ * are 25,000 and 125,000 characters; `--quick` keeps the smallest size and
+ * `--full` adds 500,000 characters. Each size runs as one segment and as nodes
+ * of about 120 characters, in lint and fix modes.
  *
  * `--scaling` instead measures growth on inputs that stress the pipeline and
- * the rules: sizes of 31,250, 62,500, and 125,000 characters, and the growth
- * factor per doubling of the size. A factor close to 2 is linear; a factor
- * close to 4 is quadratic. A size that takes more than 20 seconds ends its row.
+ * the rules, with the preset and its opt-in ellipsis rules: sizes of 31,250,
+ * 62,500, and 125,000 characters, and the growth factor per doubling of the
+ * size. A factor close to 2 is linear; a factor close to 4 is
+ * quadratic. A size that takes more than 20 seconds ends its row.
  */
 import {
+  ELLIPSIS_GLYPH_RULE,
+  ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
   IMPRIMERIE_NATIONALE_RULES,
   runPipeline,
   runTextNodePipeline,
@@ -81,6 +84,13 @@ const scalingInputs: Readonly<Record<string, (size: number) => Input>> = {
     [...textOfSize(size)].map((value) => ({ value })),
   "commas in one token": (size) => "a,".repeat(size / 2),
   "spaced high punctuation": (size) => "a ; b : c ! d ? ".repeat(size / 16),
+  "dense suspension points": (size) =>
+    "Oui... etc... [...] …non ".repeat(size / 25),
+  "suspension points in one token": (size) => "a...b…".repeat(size / 6),
+  "suspension point nodes": (size) =>
+    Array.from({ length: Math.floor(size / 11) * 5 }, (_, index) => ({
+      value: ["Oui", "...", " ", "…", "non "][index % 5],
+    })),
   "spacing nodes around marks": (size) =>
     Array.from({ length: Math.floor(size / 7) * 4 }, (_, index) => ({
       value: ["mot", " ", "  ", ";"][index % 4],
@@ -91,6 +101,18 @@ const scalingInputs: Readonly<Record<string, (size: number) => Input>> = {
       ...(index % 3 === 1 ? { protected: true } : {}),
     })),
 };
+
+/**
+ * The preset and its opt-in ellipsis rules. The opt-in digit-grouping rule
+ * still reads neighboring fragments for each fragment and grows quadratically
+ * with the number of nodes; it joins this list once it runs on the logical
+ * run (#21, stage 3).
+ */
+const scalingRules = [
+  ...IMPRIMERIE_NATIONALE_RULES,
+  ELLIPSIS_GLYPH_RULE,
+  ELLIPSIS_INITIAL_SPACE_AFTER_RULE,
+];
 
 if (Deno.args.includes("--scaling")) {
   const scalingSizes = [31_250, 62_500, 125_000];
@@ -109,7 +131,7 @@ if (Deno.args.includes("--scaling")) {
         const input = make(size);
         times.push(
           measure(() =>
-            runPipeline(input, IMPRIMERIE_NATIONALE_RULES, {
+            runPipeline(input, scalingRules, {
               locale: "fr-FR",
               mode,
             })

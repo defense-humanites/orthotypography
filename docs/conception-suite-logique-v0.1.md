@@ -139,8 +139,9 @@ cette limite changerait les sorties et relève d’une PR distincte.
 Les nœuds protégés vides n’apparaissent pas dans la vue : aucune règle ne les
 voit. Dans l’exécution par fragment, un tel nœud bloquait l’espace après la
 virgule, la reconnaissance d’une suite de points et la recherche du signe voisin
-en ponctuation haute, mais pas la suppression des blancs ; les règles migrées
-l’ignorent partout.
+en ponctuation haute, mais pas la suppression des blancs ; pour les points de
+suspension, il coupait la suite examinée et faisait perdre le début structurel
+du texte. Les règles migrées l’ignorent partout.
 
 Le ledger des changements, les coordonnées sources, le garde-fou `expected` et
 `applyTextChanges` sont inchangés.
@@ -221,10 +222,15 @@ règles avec l’ancienne interface seront réécrits lors du passage au cœur
 
 État : l’étape 1 est fusionnée
 ([PR nº 41](https://github.com/orthotypography/orthotypography/pull/41)).
-L’étape 2 a migré les guillemets
-([PR nº 43](https://github.com/orthotypography/orthotypography/pull/43)) et la
-ponctuation ([PR nº 45](https://github.com/orthotypography/orthotypography/pull/45)) ;
-les points de suspension suivent.
+L’étape 2 est terminée : guillemets
+([PR nº 43](https://github.com/orthotypography/orthotypography/pull/43)),
+ponctuation ([PR nº 45](https://github.com/orthotypography/orthotypography/pull/45),
+reportée sur `main` par la
+[PR nº 46](https://github.com/orthotypography/orthotypography/pull/46)) et points
+de suspension
+([PR nº 47](https://github.com/orthotypography/orthotypography/pull/47)). Seules
+les règles numériques gardent l’exécution par fragment ; elles relèvent de
+l’étape 3.
 
 Chaque étape vérifie :
 
